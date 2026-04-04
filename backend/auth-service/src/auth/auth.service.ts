@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   InternalServerErrorException,
+  BadGatewayException,
   UnauthorizedException,
   ForbiddenException,
   NotFoundException,
@@ -79,15 +80,37 @@ export class AuthService {
     const { firstName, lastName, email, companyName, companyCategory } = dto;
     const normalizedEmail = email.trim().toLowerCase();
 
+    const buildAlreadyRegisteredResponse = async (userId: string) => {
+      const membership = await this.prisma.userTenantMembership.findFirst({
+        where: { userId },
+        select: { tenantId: true },
+      });
+
+      return {
+        success: true,
+        message:
+          'Si cette adresse email est éligible, votre demande est bien prise en compte. ' +
+          'Vous recevrez un email du Super Admin pour la suite.',
+        data: {
+          userId,
+          tenantId: membership?.tenantId ?? '',
+          email: normalizedEmail,
+        },
+      };
+    };
+
     if (!firstName || !lastName || !email || !companyName) {
       throw new BadRequestException('Champs requis manquants');
     }
 
     const existing = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
+      select: { id: true },
     });
     if (existing) {
-      throw new ConflictException('Email déjà utilisé');
+      // Approval-based signup: do not leak whether the email already exists.
+      // Returning a success response also avoids double-submit and retry frustrations.
+      return buildAlreadyRegisteredResponse(existing.id);
     }
 
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
@@ -110,11 +133,20 @@ export class AuthService {
     const tenantServiceBase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
     ).replace(/\/+$/, '');
-    const createTenantRes = await fetch(`${tenantServiceBase}/tenants`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: companyName, slug: slugify(companyName) }),
-    });
+    let createTenantRes: Response;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      createTenantRes = await fetch(`${tenantServiceBase}/tenants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: companyName, slug: slugify(companyName) }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch {
+      throw new BadGatewayException('Tenant service unavailable');
+    }
     if (!createTenantRes.ok) {
       const body = await createTenantRes.text().catch(() => '');
       throw new InternalServerErrorException(
@@ -203,10 +235,19 @@ export class AuthService {
           email: result.user.email,
         },
       };
-    } catch {
-      throw new InternalServerErrorException(
-        'Erreur lors de la création du compte',
-      );
+    } catch (error: any) {
+      // If the email was created concurrently (double-submit or race), treat as idempotent.
+      if (error?.code === 'P2002') {
+        const user = await this.prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          select: { id: true },
+        });
+        if (user) {
+          return buildAlreadyRegisteredResponse(user.id);
+        }
+      }
+
+      throw new InternalServerErrorException('Erreur lors de la création du compte');
     }
   }
 
@@ -762,11 +803,8 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException('Utilisateur introuvable');
 
-    const now = new Date();
-    if (user.blockedUntil && user.blockedUntil.getTime() > now.getTime()) {
-      const mins = Math.ceil((user.blockedUntil.getTime() - now.getTime()) / 60000);
-      throw new ForbiddenException(`Compte bloqué. Réessayez dans ${mins} minutes.`);
-    }
+    // NOTE: we allow security-question verification even if the account is temporarily
+    // locked from failed sign-in attempts. A successful verification will unlock it.
 
     const questions = await this.prisma.securityQuestion.findMany({
       where: { userId: user.id, question: dto.question },
@@ -786,6 +824,15 @@ export class AuthService {
 
     if (!ok) {
       throw new BadRequestException('Réponse incorrecte');
+    }
+
+    // Unlock account after successful recovery check
+    if (user.blockedUntil || Number(user.loginAttempts ?? 0) > 0) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { blockedUntil: null, loginAttempts: 0 },
+        select: { id: true },
+      });
     }
 
     // Generate reset token

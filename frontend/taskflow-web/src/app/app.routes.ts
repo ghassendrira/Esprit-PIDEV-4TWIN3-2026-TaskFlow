@@ -78,6 +78,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/admin-password-requests.component').then(m => m.AdminPasswordRequestsComponent)
       },
       {
+        path: 'admin/blocked-accounts',
+        loadComponent: () => import('./features/admin/blocked-accounts.component').then(m => m.BlockedAccountsComponent)
+      },
+      {
         path: 'admin/roles',
         loadComponent: () => import('./features/admin/roles-permissions.component').then(m => m.RolesPermissionsComponent)
       },

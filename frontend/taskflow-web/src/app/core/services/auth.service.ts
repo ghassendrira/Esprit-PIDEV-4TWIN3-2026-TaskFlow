@@ -1,7 +1,8 @@
 import { Injectable, computed, signal, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ApiService } from './api.service';
 import { Router } from '@angular/router';
+import { LoadingService } from './loading.service';
 
 export type Role = 'OWNER' | 'ACCOUNTANT' | 'TEAM' | 'SUPER_ADMIN';
 
@@ -28,6 +29,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private api = inject(ApiService);
   private router = inject(Router);
+  private loading = inject(LoadingService);
   private tokenSig = signal<string | null>(localStorage.getItem(TOKEN_KEY) || localStorage.getItem('taskflow-token'));
   private userSig = signal<AuthUser | null>(this.readUser());
 
@@ -145,6 +147,14 @@ export class AuthService {
     return this.api.get<any[]>('/users/list');
   }
 
+  getEmployeesForTenant(tenantId: string) {
+    let headers = new HttpHeaders();
+    const token = this.token();
+    if (token) headers = headers.set('Authorization', `Bearer ${token}`);
+    if (tenantId) headers = headers.set('X-Tenant-Id', tenantId);
+    return this.api.get<any[]>('/users/list', { headers });
+  }
+
   getEmployee(id: string) {
     return this.api.get<any>(`/users/${id}`);
   }
@@ -186,12 +196,20 @@ export class AuthService {
     return this.api.get<any[]>('/auth/password-reset-requests');
   }
 
+  getBlockedAccounts() {
+    return this.api.get<any[]>('/admin/blocked-accounts');
+  }
+
   approvePasswordReset(requestId: string) {
     return this.api.post<any>(`/auth/password-reset-requests/${requestId}/approve`, {});
   }
 
   rejectPasswordReset(requestId: string, reason: string) {
     return this.api.post<any>(`/auth/password-reset-requests/${requestId}/reject`, { reason });
+  }
+
+  unblockAccount(userId: string) {
+    return this.api.post<any>(`/admin/unblock/${userId}`, {});
   }
 
   verifySecurityAnswer(payload: { email: string; question: string; answer: string }) {
@@ -233,12 +251,17 @@ export class AuthService {
   }
 
   logout() {
-    localStorage.removeItem(TOKEN_KEY);
-    try { localStorage.removeItem('taskflow-token'); } catch {}
-    localStorage.removeItem(USER_KEY);
-    this.tokenSig.set(null);
-    this.userSig.set(null);
-    this.router.navigate(['/home']);
+    this.loading.begin();
+
+    setTimeout(() => {
+      localStorage.removeItem(TOKEN_KEY);
+      try { localStorage.removeItem('taskflow-token'); } catch {}
+      localStorage.removeItem(USER_KEY);
+      this.tokenSig.set(null);
+      this.userSig.set(null);
+
+      void this.router.navigate(['/home']).finally(() => this.loading.end());
+    });
   }
 
   hasRole(required: Role | Role[]): boolean {

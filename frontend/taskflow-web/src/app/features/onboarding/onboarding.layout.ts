@@ -6,16 +6,15 @@ import { TenantService } from '../../core/services/tenant.service';
   selector: 'tf-onboarding-layout',
   standalone: true,
   template: `
-    <div class="min-h-screen bg-[#0a1a0a] text-white">
-      <header class="h-12 flex items-center justify-between px-4">
+    <div class="min-h-screen" style="background: var(--tf-surface); color: var(--tf-on-surface);">
+      <header class="h-16 flex items-center justify-between px-4 border-b" style="border-color: var(--tf-border);">
         <div class="flex items-center gap-2">
-          <div class="w-6 h-6 rounded bg-emerald-600"></div>
-          <span class="font-semibold tracking-wide">{{ title() }}</span>
+          <img src="/TASKFLOW-removebg-preview.png" alt="TaskFlow" class="h-16 w-auto max-w-[280px] object-contain" />
         </div>
-        <a (click)="logout()" class="text-sm text-gray-300 hover:text-white cursor-pointer">Logout</a>
+        <a (click)="logout()" class="text-sm cursor-pointer" style="color: var(--tf-muted);">Logout</a>
       </header>
       <div class="grid place-items-center py-8">
-        <div class="w-[min(580px,92vw)] bg-[#0d2d0d] rounded-2xl shadow-xl border border-emerald-700/30">
+        <div class="w-[min(580px,92vw)] rounded-2xl shadow-xl border" style="background: var(--tf-card); border-color: var(--tf-border);">
           <ng-content></ng-content>
         </div>
       </div>

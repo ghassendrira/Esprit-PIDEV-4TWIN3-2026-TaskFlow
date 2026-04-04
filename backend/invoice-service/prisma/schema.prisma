@@ -25,6 +25,8 @@ model Invoice {
   businessId    String        @db.Uuid
   clientId    String   @db.Uuid     
 
+  createdBy      String?       @db.Uuid
+
   invoiceNumber String
   status        InvoiceStatus
   issueDate     DateTime
@@ -41,6 +43,7 @@ model Invoice {
   payments Payment[]
 
   @@index([businessId])
+  @@index([createdBy])
   @@index([invoiceNumber])
 }
 

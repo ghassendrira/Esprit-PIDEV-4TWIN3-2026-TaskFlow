@@ -10,6 +10,7 @@ import {
 import { Router } from '@angular/router';
 import { NgIf, NgStyle } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { ApiService } from '../../core/services/api.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -18,19 +19,38 @@ import { firstValueFrom } from 'rxjs';
   standalone: true,
   imports: [ReactiveFormsModule, NgIf, NgStyle],
   template: `
-    <div class="min-h-screen grid place-items-center p-6 bg-gradient-to-b from-black to-[#0a2e1f]">
+    <div class="min-h-screen grid place-items-center p-6 bg-gradient-to-b from-[var(--tf-surface)] to-[var(--tf-surface-2)]">
       <div
-        class="w-[min(420px,92vw)] rounded-2xl p-6 border border-emerald-700/30 bg-[#0d1f17] text-white shadow-[0_0_0_1px_rgba(0,200,83,.15),0_15px_50px_rgba(0,200,83,.08)]"
+        class="relative w-[min(420px,92vw)] tf-card rounded-2xl p-6 text-[var(--tf-on-surface)]"
       >
+        <button
+          type="button"
+          (click)="toggleTheme()"
+          class="absolute right-4 top-4 inline-flex items-center justify-center w-10 h-10 rounded-xl border border-[var(--tf-border)] bg-[var(--tf-card)] hover:bg-[var(--tf-surface-2)] transition"
+          aria-label="Basculer le thème"
+        >
+          <ng-container *ngIf="theme.isDark(); else sunIcon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            </svg>
+          </ng-container>
+          <ng-template #sunIcon>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364L16.95 7.05M7.05 16.95l-1.414 1.414m0-12.728L7.05 7.05m9.9 9.9l1.414 1.414" />
+              <circle cx="12" cy="12" r="4" stroke-width="2" />
+            </svg>
+          </ng-template>
+        </button>
+
         <div class="flex items-center gap-2 mb-4">
-          <div class="w-6 h-6 rounded bg-[#00C853]"></div>
+          <img src="/TASKFLOW-removebg-preview.png" alt="TaskFlow" class="h-16 sm:h-20 w-auto max-w-[280px] object-contain" />
           <div class="font-semibold tracking-wide">TaskFlow</div>
         </div>
 
         <h1 class="text-center font-bold text-lg mb-2">
           Changez votre mot de passe
         </h1>
-        <p class="text-center text-sm text-gray-300 mb-4">
+        <p class="text-center text-sm text-[var(--tf-muted)] mb-4">
           Pour votre sécurité, veuillez définir un nouveau mot de passe.
         </p>
 
@@ -50,7 +70,7 @@ import { firstValueFrom } from 'rxjs';
           (ngSubmit)="onSubmit()"
         >
           <div>
-            <label class="block text-sm text-gray-300 mb-1">
+            <label class="block text-sm text-[var(--tf-muted)] mb-1">
               Mot de passe actuel
             </label>
             <div class="relative">
@@ -58,13 +78,15 @@ import { firstValueFrom } from 'rxjs';
                 [type]="showCurrentPwd ? 'text' : 'password'"
                 formControlName="currentPassword"
                 required
-                class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 pr-12 text-white placeholder-gray-400 outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition"
+                minlength="8"
+                maxlength="128"
+                class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 pr-12 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"
               />
               <button
                 type="button"
                 (click)="showCurrentPwd = !showCurrentPwd"
                 aria-label="Afficher le mot de passe actuel"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#00C853] transition-colors duration-200 cursor-pointer"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--tf-muted)] hover:text-[var(--tf-on-surface)] transition-colors duration-200 cursor-pointer"
               >
                 <ng-container *ngIf="!showCurrentPwd; else eyeOff1">
                   <svg
@@ -109,7 +131,7 @@ import { firstValueFrom } from 'rxjs';
           </div>
 
           <div>
-            <label class="block text-sm text-gray-300 mb-1">
+            <label class="block text-sm text-[var(--tf-muted)] mb-1">
               Nouveau mot de passe
             </label>
             <div class="relative">
@@ -117,13 +139,15 @@ import { firstValueFrom } from 'rxjs';
                 [type]="showNewPwd ? 'text' : 'password'"
                 formControlName="newPassword"
                 required
-                class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 pr-12 text-white placeholder-gray-400 outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition"
+                minlength="8"
+                maxlength="128"
+                class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 pr-12 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"
               />
               <button
                 type="button"
                 (click)="showNewPwd = !showNewPwd"
                 aria-label="Afficher le nouveau mot de passe"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#00C853] transition-colors duration-200 cursor-pointer"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--tf-muted)] hover:text-[var(--tf-on-surface)] transition-colors duration-200 cursor-pointer"
               >
                 <ng-container *ngIf="!showNewPwd; else eyeOff2">
                   <svg
@@ -167,13 +191,13 @@ import { firstValueFrom } from 'rxjs';
             </div>
 
             <div class="mt-2">
-              <div class="flex items-center justify-between text-xs text-gray-300 mb-1">
+              <div class="flex items-center justify-between text-xs text-[var(--tf-muted)] mb-1">
                 <span>Force</span>
                 <span class="font-medium" [ngStyle]="{ color: strengthColor }">
                   {{ strengthLabel }}
                 </span>
               </div>
-              <div class="h-2 w-full bg-[#0f2a20] rounded-full overflow-hidden">
+              <div class="h-2 w-full bg-[var(--tf-surface-2)] border border-[var(--tf-border)] rounded-full overflow-hidden">
                 <div
                   class="h-full rounded-full transition-all"
                   [ngStyle]="{ width: strengthPercent + '%', background: strengthColor }"
@@ -183,7 +207,7 @@ import { firstValueFrom } from 'rxjs';
           </div>
 
           <div>
-            <label class="block text-sm text-gray-300 mb-1">
+            <label class="block text-sm text-[var(--tf-muted)] mb-1">
               Confirmer le mot de passe
             </label>
             <div class="relative">
@@ -191,13 +215,15 @@ import { firstValueFrom } from 'rxjs';
                 [type]="showConfirmPwd ? 'text' : 'password'"
                 formControlName="confirmPassword"
                 required
-                class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 pr-12 text-white placeholder-gray-400 outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition"
+                minlength="8"
+                maxlength="128"
+                class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 pr-12 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"
               />
               <button
                 type="button"
                 (click)="showConfirmPwd = !showConfirmPwd"
                 aria-label="Afficher la confirmation du mot de passe"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#00C853] transition-colors duration-200 cursor-pointer"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--tf-muted)] hover:text-[var(--tf-on-surface)] transition-colors duration-200 cursor-pointer"
               >
                 <ng-container *ngIf="!showConfirmPwd; else eyeOff3">
                   <svg
@@ -242,47 +268,47 @@ import { firstValueFrom } from 'rxjs';
           </div>
 
           <div class="mt-1">
-            <div class="text-xs text-gray-300 mb-2">
+            <div class="text-xs text-[var(--tf-muted)] mb-2">
               Exigences :
             </div>
             <div class="space-y-1 text-xs">
               <div class="flex items-center gap-2">
-                <span [class.text-emerald-400]="checkLen" [class.text-gray-500]="!checkLen">
+                <span [class.text-primary-500]="checkLen" [class.text-slate-400]="!checkLen">
                   ✓
                 </span>
-                <span [class.text-emerald-200]="checkLen" [class.text-gray-300]="!checkLen">
+                <span [class.text-primary-500]="checkLen" [class.text-slate-400]="!checkLen">
                   Au moins 8 caractères
                 </span>
               </div>
               <div class="flex items-center gap-2">
-                <span [class.text-emerald-400]="checkUpper" [class.text-gray-500]="!checkUpper">
+                <span [class.text-primary-500]="checkUpper" [class.text-slate-400]="!checkUpper">
                   ✓
                 </span>
-                <span [class.text-emerald-200]="checkUpper" [class.text-gray-300]="!checkUpper">
+                <span [class.text-primary-500]="checkUpper" [class.text-slate-400]="!checkUpper">
                   Une lettre majuscule
                 </span>
               </div>
               <div class="flex items-center gap-2">
-                <span [class.text-emerald-400]="checkLower" [class.text-gray-500]="!checkLower">
+                <span [class.text-primary-500]="checkLower" [class.text-slate-400]="!checkLower">
                   ✓
                 </span>
-                <span [class.text-emerald-200]="checkLower" [class.text-gray-300]="!checkLower">
+                <span [class.text-primary-500]="checkLower" [class.text-slate-400]="!checkLower">
                   Une lettre minuscule
                 </span>
               </div>
               <div class="flex items-center gap-2">
-                <span [class.text-emerald-400]="checkNumber" [class.text-gray-500]="!checkNumber">
+                <span [class.text-primary-500]="checkNumber" [class.text-slate-400]="!checkNumber">
                   ✓
                 </span>
-                <span [class.text-emerald-200]="checkNumber" [class.text-gray-300]="!checkNumber">
+                <span [class.text-primary-500]="checkNumber" [class.text-slate-400]="!checkNumber">
                   Un chiffre
                 </span>
               </div>
               <div class="flex items-center gap-2">
-                <span [class.text-emerald-400]="checkSpecial" [class.text-gray-500]="!checkSpecial">
+                <span [class.text-primary-500]="checkSpecial" [class.text-slate-400]="!checkSpecial">
                   ✓
                 </span>
-                <span [class.text-emerald-200]="checkSpecial" [class.text-gray-300]="!checkSpecial">
+                <span [class.text-primary-500]="checkSpecial" [class.text-slate-400]="!checkSpecial">
                   Un caractère spécial
                 </span>
               </div>
@@ -293,12 +319,12 @@ import { firstValueFrom } from 'rxjs';
             {{ errorMessage }}
           </div>
 
-          <div *ngIf="successMessage" class="text-sm text-emerald-300">
+          <div *ngIf="successMessage" class="text-sm text-[var(--tf-muted)]">
             {{ successMessage }}
           </div>
 
           <button
-            class="w-full rounded-lg px-4 py-2 bg-[#22c55e] text-black font-semibold hover:shadow-[0_0_0_3px_rgba(34,197,94,.35)] hover:scale-[1.02] transition disabled:opacity-50 disabled:hover:scale-100 inline-flex items-center justify-center gap-2"
+            class="w-full rounded-lg px-4 py-2 bg-[var(--tf-primary)] text-white dark:text-slate-900 font-semibold hover:brightness-95 transition disabled:opacity-50 inline-flex items-center justify-center gap-2"
             type="submit"
             [disabled]="form.invalid || isSubmitting"
           >
@@ -330,6 +356,7 @@ export class ChangePasswordComponent {
   private router = inject(Router);
   private auth = inject(AuthService);
   private api = inject(ApiService);
+  protected theme = inject(ThemeService);
 
   showCurrentPwd = false;
   showNewPwd = false;
@@ -339,11 +366,15 @@ export class ChangePasswordComponent {
   errorMessage: string | null = null;
   successMessage: string | null = null;
 
+  toggleTheme() {
+    this.theme.toggle();
+  }
+
   form: FormGroup = this.fb.group(
     {
-      currentPassword: ['', [Validators.required]],
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', [Validators.required]],
+      currentPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
+      newPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/)]],
+      confirmPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
     },
     { validators: this.passwordsMatchValidator },
   );

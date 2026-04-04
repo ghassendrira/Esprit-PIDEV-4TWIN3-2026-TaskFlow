@@ -1,45 +1,101 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { AuthService, Role } from '../../core/services/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
+import { finalize, timeout } from 'rxjs/operators';
 
 @Component({
   selector: 'tf-register',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, NgIf],
   template: `
-    <div class="min-h-screen grid place-items-center p-6 bg-gradient-to-b from-black to-[#0a2e1f]">
-      <div class="relative w-[min(480px,92vw)] rounded-2xl p-6 border border-emerald-700/30 bg-[#0d1f17] text-white shadow-[0_0_0_1px_rgba(0,200,83,.15),0_15px_50px_rgba(0,200,83,.08)]">
-        <button routerLink="/auth/login" class="absolute left-4 top-4 text-gray-300 hover:text-[#00C853] transition text-sm">← Retour</button>
-        <div class="flex flex-col items-center mb-4 mt-1">
-          <div class="w-8 h-8 rounded bg-[#00C853]"></div>
-          <div class="mt-2 font-semibold tracking-wide">TaskFlow</div>
+    <div class="min-h-screen grid place-items-center p-6 bg-gradient-to-b from-[var(--tf-surface)] to-[var(--tf-surface-2)]">
+      <div class="relative w-[min(520px,92vw)] tf-card rounded-2xl p-6 sm:p-8 text-[var(--tf-on-surface)]">
+        <button
+          type="button"
+          (click)="toggleTheme()"
+          class="absolute right-4 top-4 inline-flex items-center justify-center w-10 h-10 rounded-xl border border-[var(--tf-border)] bg-[var(--tf-card)] hover:bg-[var(--tf-surface-2)] transition"
+          aria-label="Basculer le thème"
+        >
+          <ng-container *ngIf="theme.isDark(); else sunIcon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            </svg>
+          </ng-container>
+          <ng-template #sunIcon>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364L16.95 7.05M7.05 16.95l-1.414 1.414m0-12.728L7.05 7.05m9.9 9.9l1.414 1.414" />
+              <circle cx="12" cy="12" r="4" stroke-width="2" />
+            </svg>
+          </ng-template>
+        </button>
+
+        <button
+          type="button"
+          routerLink="/auth/login"
+          class="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-[var(--tf-border)] bg-[var(--tf-card)] px-3 py-2 text-sm font-medium text-[var(--tf-on-surface)] transition hover:bg-[var(--tf-surface-2)]"
+          aria-label="Retour à la connexion"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Retour
+        </button>
+        <div class="flex flex-col items-center text-center mb-6 mt-1">
+          <img src="/TASKFLOW-removebg-preview.png" alt="TaskFlow" class="h-20 sm:h-24 w-auto max-w-[340px] object-contain" />
+          <h2 class="mt-4 text-2xl font-bold">Créer votre compte</h2>
+          <p class="mt-1 text-sm text-[var(--tf-muted)]">Essai gratuit 30 jours, aucune carte requise 🎉</p>
         </div>
-        <h2 class="text-xl font-bold text-center">Créer votre compte</h2>
-        <div class="text-sm text-gray-300 text-center">Essai gratuit 30 jours, aucune carte requise 🎉</div>
-        <form class="space-y-4 mt-4" [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div *ngIf="showSuccessBanner" class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-center shadow-sm" aria-live="polite">
+          <div class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-1">Inscription envoyée</div>
+          <div class="text-base sm:text-lg font-semibold text-emerald-900 dark:text-emerald-100 whitespace-pre-line leading-relaxed">
+            {{ successMessage }}
+          </div>
+        </div>
+
+        <form class="space-y-4" [formGroup]="form" (ngSubmit)="onSubmit()">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm text-gray-300 mb-1">Prénom</label>
-              <input formControlName="firstName" required
-                     class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 text-white placeholder-gray-400 outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition"/>
+              <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">Prénom</label>
+              <input formControlName="firstName" required minlength="2" maxlength="60" autocomplete="given-name" placeholder="Votre prénom"
+                     class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
+                <p *ngIf="showError('firstName', 'required')" class="mt-1 text-xs text-red-400">Le prénom est obligatoire.</p>
+                <p *ngIf="showError('firstName', 'minlength')" class="mt-1 text-xs text-red-400">Le prénom doit contenir au moins 2 caractères.</p>
+                <p *ngIf="fieldErrors.firstName" class="mt-1 text-xs text-red-400">{{ fieldErrors.firstName }}</p>
             </div>
             <div>
-              <label class="block text-sm text-gray-300 mb-1">Nom</label>
-              <input formControlName="lastName" required
-                     class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 text-white placeholder-gray-400 outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition"/>
+              <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">Nom</label>
+              <input formControlName="lastName" required minlength="2" maxlength="60" autocomplete="family-name" placeholder="Votre nom"
+                     class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
+              <p *ngIf="showError('lastName', 'required')" class="mt-1 text-xs text-red-400">Le nom est obligatoire.</p>
+              <p *ngIf="showError('lastName', 'minlength')" class="mt-1 text-xs text-red-400">Le nom doit contenir au moins 2 caractères.</p>
+                <p *ngIf="fieldErrors.lastName" class="mt-1 text-xs text-red-400">{{ fieldErrors.lastName }}</p>
             </div>
           </div>
           <div>
-            <label class="block text-sm text-gray-300 mb-1">Nom de l'entreprise</label>
-            <input formControlName="company" required
-                   class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 text-white placeholder-gray-400 outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition"/>
+            <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">Nom de l'entreprise</label>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tf-muted)]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 21V7a2 2 0 012-2h10a2 2 0 012 2v14" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21v-8h6v8" />
+                </svg>
+              </span>
+              <input formControlName="company" required minlength="2" maxlength="120" autocomplete="organization" placeholder="Nom de votre entreprise"
+                     class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] pl-12 pr-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
+            </div>
+            <p *ngIf="showError('company', 'required')" class="mt-1 text-xs text-red-400">Le nom de l'entreprise est obligatoire.</p>
+            <p *ngIf="showError('company', 'minlength')" class="mt-1 text-xs text-red-400">Le nom de l'entreprise doit contenir au moins 2 caractères.</p>
+            <p *ngIf="fieldErrors.company" class="mt-1 text-xs text-red-400">{{ fieldErrors.company }}</p>
           </div>
           <div>
-            <label class="block text-sm text-gray-300 mb-1">Catégorie de l'entreprise (optionnel)</label>
+            <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">Catégorie de l'entreprise (optionnel)</label>
             <select formControlName="companyCategory"
-                    class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 text-white outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition">
+                    class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 text-[var(--tf-on-surface)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition">
               <option value="">Sélectionner une catégorie</option>
               <option value="Retail">Retail</option>
               <option value="Services">Services</option>
@@ -52,25 +108,38 @@ import { AuthService, Role } from '../../core/services/auth.service';
             </select>
           </div>
           <div>
-            <label class="block text-sm text-gray-300 mb-1">Email professionnel</label>
-            <input type="email" formControlName="email" required
-                   class="w-full h-12 rounded-xl bg-[#0f2a20] border border-transparent px-4 text-white placeholder-gray-400 outline-none focus:border-[#00C853] focus:shadow-[0_0_0_3px_rgba(0,200,83,.15)] transition"/>
+            <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">Email professionnel</label>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tf-muted)]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16l-8 6-8-6z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6v12H4V6" />
+                </svg>
+              </span>
+              <input type="email" formControlName="email" required maxlength="254" autocomplete="email" placeholder="ex: nom@entreprise.com"
+                     class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] pl-12 pr-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
+            </div>
+            <p *ngIf="showError('email', 'required')" class="mt-1 text-xs text-red-400">L'email professionnel est obligatoire.</p>
+            <p *ngIf="showError('email', 'email')" class="mt-1 text-xs text-red-400">Veuillez saisir une adresse email valide.</p>
+            <p *ngIf="fieldErrors.email" class="mt-1 text-xs text-red-400">{{ fieldErrors.email }}</p>
           </div>
-          <label class="flex items-center gap-2 text-sm text-gray-300">
-            <input type="checkbox" formControlName="accept" class="rounded border-gray-500 bg-[#0f2a20] accent-[#00C853]"/>
+          <label class="flex items-center gap-2 text-sm text-[var(--tf-muted)] select-none">
+            <input type="checkbox" formControlName="accept" class="rounded border-[var(--tf-border)] bg-[var(--tf-surface)] accent-[var(--tf-primary)]"/>
             J'accepte les Conditions d'utilisation
           </label>
-          <button class="w-full h-12 rounded-xl px-4 bg-gradient-to-r from-[#00C853] to-[#00b64a] text-black font-semibold shadow-[0_8px_16px_rgba(0,200,83,.2)] hover:shadow-[0_12px_24px_rgba(0,200,83,.25)] hover:-translate-y-0.5 transition-transform duration-200 disabled:opacity-50"
-                  [disabled]="form.invalid">
+          <p *ngIf="showError('accept', 'requiredTrue')" class="mt-1 text-xs text-red-400">Vous devez accepter les Conditions d'utilisation.</p>
+          <p *ngIf="fieldErrors.accept" class="mt-1 text-xs text-red-400">{{ fieldErrors.accept }}</p>
+          <button class="w-full h-12 rounded-xl px-4 bg-[var(--tf-primary)] text-white dark:text-slate-900 font-semibold hover:brightness-95 transition disabled:opacity-50"
+              [disabled]="form.invalid || isSubmitting">
             Créer mon compte
           </button>
-          <div class="flex items-center gap-3 text-gray-400 text-xs">
-            <div class="flex-1 h-px bg-gray-700"></div>
+          <div class="flex items-center gap-3 text-[var(--tf-muted)] text-xs">
+            <div class="flex-1 h-px bg-[var(--tf-border)]"></div>
             — ou s'inscrire avec —
-            <div class="flex-1 h-px bg-gray-700"></div>
+            <div class="flex-1 h-px bg-[var(--tf-border)]"></div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[#1a2e22] text-white border border-[#00C853]/30 hover:border-[#00C853] hover:bg-[#1f3a28] transition-colors duration-200 transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,200,83,.15)]">
+            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[var(--tf-surface-2)] text-[var(--tf-on-surface)] border border-[var(--tf-border)] hover:brightness-95 transition-colors duration-200 transform hover:-translate-y-0.5">
               <span class="absolute left-3 top-1/2 -translate-y-1/2">
                 <svg width="18" height="18" viewBox="0 0 48 48">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.9-6.9C35.89 2.1 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l8.55 6.64C12.87 13.2 17.96 9.5 24 9.5z"/>
@@ -81,7 +150,7 @@ import { AuthService, Role } from '../../core/services/auth.service';
               </span>
               <span class="block text-center">S'inscrire avec Google </span>
             </button>
-            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[#1a2e22] text-white border border-[#00C853]/30 hover:border-[#00C853] hover:bg-[#1f3a28] transition-colors duration-200 transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,200,83,.15)]">
+            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[var(--tf-surface-2)] text-[var(--tf-on-surface)] border border-[var(--tf-border)] hover:brightness-95 transition-colors duration-200 transform hover:-translate-y-0.5">
               <span class="absolute left-1 top-1/2 -translate-y-1/2">
                 <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#1877F2" d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.436H7.078v-3.49h3.047V9.41c0-3.007 1.792-4.669 4.533-4.669 1.313 0 2.686.235 2.686.235v2.953h-1.513c-1.492 0-1.956.93-1.956 1.883v2.257h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
@@ -90,7 +159,7 @@ import { AuthService, Role } from '../../core/services/auth.service';
               </span>
               <span class="block text-center">S'inscrire avec Facebook</span>
             </button>
-            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[#1a2e22] text-white border border-[#00C853]/30 hover:border-[#00C853] hover:bg-[#1f3a28] transition-colors duration-200 transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,200,83,.15)]">
+            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[var(--tf-surface-2)] text-[var(--tf-on-surface)] border border-[var(--tf-border)] hover:brightness-95 transition-colors duration-200 transform hover:-translate-y-0.5">
               <span class="absolute left-3 top-1/2 -translate-y-1/2">
                 <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#0A66C2" d="M22.225 0H1.771C.792 0 0 .774 0 1.728v20.543C0 23.226.792 24 1.771 24h20.451C23.2 24 24 23.226 24 22.271V1.728C24 .774 23.2 0 22.222 0h.003z"/>
@@ -99,7 +168,7 @@ import { AuthService, Role } from '../../core/services/auth.service';
               </span>
               <span class="block text-center">S'inscrire avec LinkedIn</span>
             </button>
-            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[#1a2e22] text-white border border-[#00C853]/30 hover:border-[#00C853] hover:bg-[#1f3a28] transition-colors duration-200 transform hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,200,83,.15)]">
+            <button type="button" class="relative w-full h-12 rounded-[10px] bg-[var(--tf-surface-2)] text-[var(--tf-on-surface)] border border-[var(--tf-border)] hover:brightness-95 transition-colors duration-200 transform hover:-translate-y-0.5">
               <span class="absolute left-3 top-1/2 -translate-y-1/2">
                 <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#fff" d="M16.365 1.43c0 1.12-.422 2.153-1.117 2.987-.676.808-1.787 1.43-2.87 1.347-.13-1.1.38-2.17 1.038-2.947.673-.792 1.857-1.372 2.95-1.387zM20.97 17.186c-.057 1.555.504 3.18 1.535 4.315-.67.207-1.38.3-2.08.3-1.095 0-1.975-.218-2.62-.474-.65-.257-1.243-.598-1.8-.598-.59 0-1.23.327-1.9.593-.674.268-1.41.478-2.31.478-.76 0-1.52-.1-2.23-.32-.7-.217-1.34-.56-1.9-1.014-1.5-1.21-2.23-3.28-2.23-5.18 0-2.39.97-4.39 2.45-5.6 1.07-.86 2.4-1.38 3.71-1.38.94 0 1.8.3 2.5.56.7.25 1.2.53 1.78.53.5 0 .98-.23 1.56-.47.77-.31 1.67-.62 2.76-.62.7 0 1.39.15 2.03.46-.55.6-.99 1.34-1.22 2.14-.23.81-.21 1.7-.21 1.95z"/>
@@ -109,17 +178,14 @@ import { AuthService, Role } from '../../core/services/auth.service';
             </button>
           </div>
         </form>
-        <div *ngIf="successMessage" class="text-sm text-[#86b29a] mt-4 text-center whitespace-pre-line">
-          {{ successMessage }}
-        </div>
-        <div *ngIf="errorMessage" class="text-sm text-red-400 mt-2 text-center whitespace-pre-line">
+        <div *ngIf="errorMessage" class="mt-4 rounded-xl border border-red-700/40 bg-red-900/40 px-4 py-3 text-sm text-red-200 text-center whitespace-pre-line" aria-live="polite">
           {{ errorMessage }}
         </div>
-        <div class="text-sm text-gray-300 mt-4 text-center">
+        <div class="text-sm text-[var(--tf-muted)] mt-6 text-center">
           Déjà un compte ?
-          <a class="text-[#00C853] hover:underline" routerLink="/auth/login">Se connecter</a>
+          <a class="text-[var(--tf-primary)] hover:underline" routerLink="/auth/login">Se connecter</a>
         </div>
-        <div class="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-700/30 text-xs">
+        <div class="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--tf-surface-2)] border border-[var(--tf-border)] text-xs text-[var(--tf-muted)]">
           🇹🇳 Données hébergées en Tunisie • Conformité INPDP garantie
         </div>
       </div>
@@ -131,21 +197,50 @@ export class RegisterComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private auth = inject(AuthService);
+  protected theme = inject(ThemeService);
+  private cdr = inject(ChangeDetectorRef);
 
   form = this.fb.group({
-    firstName: ['', Validators.required],
-    lastName: ['', Validators.required],
-    company: ['', Validators.required],
+    firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
+    lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
+    company: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
     companyCategory: [''],
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
     accept: [false, Validators.requiredTrue]
   });
 
   successMessage: string | null = null;
+  showSuccessBanner = false;
   errorMessage: string | null = null;
+  isSubmitting = false;
+  submitted = false;
+  fieldErrors: Partial<Record<'firstName' | 'lastName' | 'company' | 'email' | 'accept', string>> = {};
+  private successTimer: number | null = null;
+
+  toggleTheme() {
+    this.theme.toggle();
+  }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.isSubmitting) return;
+
+    if (this.successTimer !== null) {
+      window.clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+    this.submitted = true;
+    this.showSuccessBanner = false;
+    this.successMessage = null;
+    this.errorMessage = null;
+    this.fieldErrors = {};
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.isSubmitting = true;
+
     const first = (this.form.value.firstName as string).trim();
     const last = (this.form.value.lastName as string).trim();
     const company = (this.form.value.company as string).trim();
@@ -153,31 +248,103 @@ export class RegisterComponent {
 
     const companyCategory = (this.form.value.companyCategory as string) || undefined;
 
-    this.auth.signup({
-      firstName: first,
-      lastName: last,
-      email,
-      companyName: company,
-      companyCategory
-    }).subscribe({
+    this.auth
+      .signup({
+        firstName: first,
+        lastName: last,
+        email,
+        companyName: company,
+        companyCategory,
+      })
+      .pipe(
+        timeout({ first: 15000 }),
+        finalize(() => (this.isSubmitting = false)),
+      )
+      .subscribe({
       next: (response: any) => {
         try {
           localStorage.setItem('companyName', company);
         } catch {}
+        this.form.reset({
+          firstName: '',
+          lastName: '',
+          company: '',
+          companyCategory: '',
+          email: '',
+          accept: false,
+        });
+        this.submitted = false;
+        this.fieldErrors = {};
         this.successMessage =
+          response?.message ||
           'Votre demande d\'inscription a été envoyée avec succès.\n' +
-          'Veuillez patienter, vous recevrez prochainement un email du Super Admin\n' +
-          'contenant votre email et mot de passe pour vous connecter.';
+            'Veuillez patienter, vous recevrez prochainement un email du Super Admin\n' +
+            'contenant votre email et mot de passe pour vous connecter.';
+        this.showSuccessBanner = true;
+        this.successTimer = window.setTimeout(() => {
+          this.showSuccessBanner = false;
+          this.successMessage = null;
+          this.successTimer = null;
+          this.cdr.detectChanges();
+        }, 7000);
+        this.cdr.detectChanges();
       },
       error: (error) => {
-        if (error?.status === 409) {
+        if (error?.name === 'TimeoutError') {
+          this.errorMessage = 'Le serveur met trop de temps à répondre. Réessayez.';
+        } else if (error?.status === 409) {
           this.errorMessage = 'Un compte avec cet email existe déjà';
         } else if (error?.status === 400) {
-          this.errorMessage = error?.error?.message || 'Données invalides';
+          this.applyBackendValidationErrors(error?.error?.message);
+          if (!Object.keys(this.fieldErrors).length) {
+            this.errorMessage = typeof error?.error?.message === 'string' ? error.error.message : 'Données invalides';
+          }
         } else {
           this.errorMessage = 'Une erreur serveur est survenue';
         }
       }
     });
+  }
+
+  private applyBackendValidationErrors(message: string | string[] | undefined) {
+    const messages = Array.isArray(message) ? message : message ? [message] : [];
+    for (const msg of messages) {
+      const lower = String(msg).toLowerCase();
+      if (lower.includes('firstname') || lower.includes('first name')) {
+        this.fieldErrors.firstName = this.humanizeBackendMessage(msg, 'firstName');
+      } else if (lower.includes('lastname') || lower.includes('last name')) {
+        this.fieldErrors.lastName = this.humanizeBackendMessage(msg, 'lastName');
+      } else if (lower.includes('companyname') || lower.includes('company name') || lower.includes('company')) {
+        this.fieldErrors.company = this.humanizeBackendMessage(msg, 'company');
+      } else if (lower.includes('email')) {
+        this.fieldErrors.email = 'Veuillez saisir une adresse email valide.';
+      } else if (lower.includes('accept')) {
+        this.fieldErrors.accept = 'Vous devez accepter les Conditions d\'utilisation.';
+      }
+    }
+  }
+
+  private humanizeBackendMessage(message: string, field: string) {
+    const lower = message.toLowerCase();
+    if (lower.includes('should not be empty') || lower.includes('must not be empty') || lower.includes('required')) {
+      return `${field === 'firstName' ? 'Le prénom' : field === 'lastName' ? 'Le nom' : 'Le nom de l\'entreprise'} est obligatoire.`;
+    }
+    if (lower.includes('minlength') || lower.includes('must be longer') || lower.includes('too short')) {
+      return `${field === 'firstName' ? 'Le prénom' : field === 'lastName' ? 'Le nom' : 'Le nom de l\'entreprise'} est trop court.`;
+    }
+    return message;
+  }
+
+  showError(field: 'firstName' | 'lastName' | 'company' | 'email' | 'accept', error?: string) {
+    const control = this.form.get(field);
+    if (!control) return false;
+    const shouldShow = this.submitted || control.touched || control.dirty;
+    return shouldShow && control.invalid && (!error || control.hasError(error));
+  }
+
+  ngOnDestroy() {
+    if (this.successTimer !== null) {
+      window.clearTimeout(this.successTimer);
+    }
   }
 }

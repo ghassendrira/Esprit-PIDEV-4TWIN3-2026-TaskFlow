@@ -7,6 +7,8 @@ export class AuthProxyController {
   async signup(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     const url = 'http://localhost:3001/auth/signup';
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       const r = await fetch(url, {
         method: 'POST',
         headers: {
@@ -14,7 +16,9 @@ export class AuthProxyController {
           Authorization: (req.headers['authorization'] as string) ?? '',
         },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const text = await r.text();
       res.status(r.status);
       const ct = r.headers.get('content-type') ?? 'application/json';
@@ -524,6 +528,52 @@ export class AdminProxyController {
           Authorization: (req.headers['authorization'] as string) ?? '',
         },
         body: JSON.stringify(body ?? {}),
+      });
+      const text = await r.text();
+      res
+        .status(r.status)
+        .setHeader('Content-Type', 'application/json')
+        .send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('blocked-accounts')
+  async blockedAccounts(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3001/admin/blocked-accounts';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: (req.headers['authorization'] as string) ?? '',
+        },
+      });
+      const text = await r.text();
+      res
+        .status(r.status)
+        .setHeader('Content-Type', 'application/json')
+        .send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Post('unblock/:userId')
+  async unblockAccount(
+    @Param('userId') userId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3001/admin/unblock/${encodeURIComponent(userId)}`;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: (req.headers['authorization'] as string) ?? '',
+        },
       });
       const text = await r.text();
       res

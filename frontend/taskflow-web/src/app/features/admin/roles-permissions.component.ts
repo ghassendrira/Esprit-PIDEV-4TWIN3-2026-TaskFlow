@@ -27,19 +27,19 @@ interface Permission {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-[calc(100vh-3rem)] p-6 bg-[#0a1f15] text-white">
+    <div class="min-h-[calc(100vh-3rem)] p-6 bg-[var(--tf-surface)] text-[var(--tf-on-surface)]">
       <!-- Header -->
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Roles & permissions</h1>
-          <p class="text-sm text-gray-400 mt-1">Gérez les niveaux d'accès et les permissions pour chaque rôle</p>
+          <p class="text-sm text-[var(--tf-muted)] mt-1">Gérez les niveaux d'accès et les permissions pour chaque rôle</p>
         </div>
         <div class="flex gap-3">
-          <span *ngIf="isSaving()" class="flex items-center gap-2 text-xs text-[#1D9E75] animate-pulse">
+          <span *ngIf="isSaving()" class="flex items-center gap-2 text-xs text-[var(--tf-primary)] animate-pulse">
             <i class="fa-solid fa-circle-notch animate-spin"></i>
             Enregistrement...
           </span>
-          <button class="px-6 py-2.5 rounded-xl border border-[#1D9E75] text-[#1D9E75] font-semibold hover:bg-[#1D9E75]/10 transition-all">
+          <button class="px-6 py-2.5 rounded-xl border border-[var(--tf-primary)] text-[var(--tf-primary)] font-semibold hover:bg-[var(--tf-surface-2)] transition-all">
             Ajouter un rôle
           </button>
         </div>
@@ -77,8 +77,8 @@ interface Permission {
             <div class="w-2 h-2 rounded-full" [style.background-color]="getRoleColor(role.name)"></div>
           </div>
           <h3 class="text-lg font-bold mb-2">{{ role.name | titlecase }}</h3>
-          <p class="text-sm text-gray-400 line-clamp-2 mb-6">{{ getRoleDescription(role.name) }}</p>
-          <div class="mt-auto pt-4 border-t border-[#1a4a2e] flex items-center gap-2 text-xs text-gray-400">
+          <p class="text-sm text-[var(--tf-muted)] line-clamp-2 mb-6">{{ getRoleDescription(role.name) }}</p>
+          <div class="mt-auto pt-4 border-t border-[var(--tf-border)] flex items-center gap-2 text-xs text-[var(--tf-muted)]">
             <span class="w-1.5 h-1.5 rounded-full" [style.background-color]="getRoleColor(role.name)"></span>
             {{ role.userCount || 0 }} utilisateurs actifs
           </div>
@@ -86,25 +86,25 @@ interface Permission {
       </div>
 
       <!-- Permissions Matrix -->
-      <div class="rounded-2xl border border-[#1a4a2e] bg-[#0f2d1e] overflow-hidden shadow-2xl">
-        <div class="p-6 border-b border-[#1a4a2e]">
+      <div class="rounded-2xl border border-[var(--tf-border)] bg-[var(--tf-card)] overflow-hidden shadow-[var(--tf-shadow)]">
+        <div class="p-6 border-b border-[var(--tf-border)]">
           <h2 class="text-lg font-bold">Matrice des permissions</h2>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="bg-[#0a1f15]/50">
-                <th class="p-4 text-xs font-bold uppercase tracking-widest text-gray-500 border-b border-[#1a4a2e]">Permission</th>
-                <th *ngFor="let role of roles()" class="p-4 text-xs font-bold uppercase tracking-widest text-gray-500 border-b border-[#1a4a2e] text-center">
+              <tr class="bg-[var(--tf-surface-2)]">
+                <th class="p-4 text-xs font-bold uppercase tracking-widest text-[var(--tf-muted)] border-b border-[var(--tf-border)]">Permission</th>
+                <th *ngFor="let role of roles()" class="p-4 text-xs font-bold uppercase tracking-widest text-[var(--tf-muted)] border-b border-[var(--tf-border)] text-center">
                   {{ role.name | titlecase }}
                 </th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let perm of permissions()" class="hover:bg-white/5 transition-colors border-b border-[#1a4a2e]/50 last:border-0">
+              <tr *ngFor="let perm of permissions()" class="hover:bg-[var(--tf-surface-2)] transition-colors border-b border-[var(--tf-border)] last:border-0">
                 <td class="p-4">
-                  <div class="font-medium text-sm text-gray-200">{{ perm.name }}</div>
-                  <div class="text-[10px] text-gray-500">{{ perm.description }}</div>
+                  <div class="font-medium text-sm">{{ perm.name }}</div>
+                  <div class="text-[10px] text-[var(--tf-muted)]">{{ perm.description }}</div>
                 </td>
                 <td *ngFor="let role of roles()" class="p-4 text-center">
                   <div class="flex justify-center">
@@ -125,8 +125,8 @@ interface Permission {
   `,
   styles: [`
     .stat-card {
-      background: #0f2d1e;
-      border: 1px solid #1a4a2e;
+      background: var(--tf-card);
+      border: 1px solid var(--tf-border);
       border-radius: 10px;
       padding: 1.25rem;
       display: flex;
@@ -138,15 +138,15 @@ interface Permission {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #86b29a;
+      color: var(--tf-muted);
     }
     .stat-value {
       font-size: 1.5rem;
       font-weight: 700;
     }
     .role-card {
-      background: #0f2d1e;
-      border: 1px solid #1a4a2e;
+      background: var(--tf-card);
+      border: 1px solid var(--tf-border);
       border-top-width: 3px;
       border-radius: 12px;
       padding: 1.5rem;
@@ -155,7 +155,7 @@ interface Permission {
       transition: transform 0.2s ease, border-color 0.2s ease;
       &:hover {
         transform: translateY(-4px);
-        border-color: #1D9E75;
+        border-color: var(--tf-primary);
       }
     }
     .role-badge {
@@ -170,7 +170,7 @@ interface Permission {
       appearance: none;
       width: 1.25rem;
       height: 1.25rem;
-      border: 2px solid #1a4a2e;
+      border: 2px solid var(--tf-border);
       border-radius: 4px;
       background: transparent;
       cursor: pointer;
@@ -197,7 +197,7 @@ interface Permission {
         cursor: not-allowed;
       }
 
-      &.super_admin { color: #1D9E75; }
+      &.super_admin { color: var(--tf-primary); }
       &.admin { color: #534AB7; }
       &.owner { color: #378ADD; }
       &.business_owner { color: #BA7517; }
@@ -221,10 +221,25 @@ export class RolesPermissionsComponent implements OnInit {
   loadData() {
     this.auth.getRoles().subscribe(roles => {
       this.roles.set(roles);
+      this.recomputeStats();
     });
     this.auth.getPermissions().subscribe(perms => {
       this.permissions.set(perms);
+      this.recomputeStats();
     });
+  }
+
+  private recomputeStats() {
+    const roles = this.roles();
+    const perms = this.permissions();
+
+    const activeUsers = roles.reduce((sum, r) => sum + (r.userCount ?? 0), 0);
+    this.activeUsers.set(activeUsers);
+
+    // "Accès complet" = roles that have all permissions
+    if (perms.length === 0) return;
+    const fullAccess = roles.filter(r => (r.permissions?.length ?? 0) >= perms.length).length;
+    this.fullAccessRolesCount.set(fullAccess);
   }
 
   hasPermission(role: RoleInfo, permissionId: string): boolean {
@@ -258,7 +273,7 @@ export class RolesPermissionsComponent implements OnInit {
 
   getRoleColor(roleName: string): string {
     switch (roleName) {
-      case 'SUPER_ADMIN': return '#1D9E75';
+      case 'SUPER_ADMIN': return 'var(--tf-primary)';
       case 'ADMIN': return '#534AB7';
       case 'OWNER': return '#378ADD';
       case 'BUSINESS_OWNER': return '#BA7517';

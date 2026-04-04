@@ -8,20 +8,21 @@ import { AuthService } from '../../core/services/auth.service';
   standalone: true,
   imports: [ReactiveFormsModule, NgIf],
   template: `
-    <div class="min-h-[calc(100vh-3rem)] p-6 bg-[#0a1f0a] text-white">
+    <div class="min-h-[calc(100vh-3rem)] p-6" style="background: var(--tf-surface); color: var(--tf-on-surface);">
       <div class="max-w-xl mx-auto">
-        <div class="bg-white/5 border border-emerald-700/30 rounded-2xl p-6 text-white">
+        <div class="rounded-2xl p-6 border shadow-sm" style="background: var(--tf-card); border-color: var(--tf-border);">
           <h2 class="text-xl font-bold mb-2">Questions de sécurité</h2>
-          <p class="text-sm text-gray-300 mb-4">
+          <p class="text-sm muted mb-4">
             Utilisez ces informations pour la récupération de compte.
           </p>
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
             <div>
-              <label class="block text-sm text-gray-300 mb-1">Question</label>
+              <label class="block text-sm muted mb-1">Question</label>
               <select
                 formControlName="question"
-                class="w-full rounded-lg bg-[#0f2a20] border border-transparent px-3 py-2 text-white outline-none focus:border-[#00C853] transition"
+                class="w-full rounded-lg border px-3 py-2 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"
               >
                 <option value="Quel est le nom de votre premier animal de compagnie ?">Quel est le nom de votre premier animal de compagnie ?</option>
                 <option value="Quelle est votre ville natale ?">Quelle est votre ville natale ?</option>
@@ -34,20 +35,23 @@ import { AuthService } from '../../core/services/auth.service';
             </div>
 
             <div>
-              <label class="block text-sm text-gray-300 mb-1">Réponse</label>
+              <label class="block text-sm muted mb-1">Réponse</label>
               <div class="relative">
                 <input
                   [type]="showAnswer ? 'text' : 'password'"
                   formControlName="answer"
-                  class="w-full rounded-lg bg-[#0f2a20] border border-transparent px-3 py-2 pr-12 text-white placeholder-gray-400 outline-none focus:border-[#00C853] transition"
+                  minlength="2"
+                  maxlength="120"
+                  class="w-full rounded-lg border px-3 py-2 pr-12 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"
                 />
                 <button type="button"
                         (click)="showAnswer = !showAnswer"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#00C853]">
+                        class="absolute right-3 top-1/2 -translate-y-1/2 muted hover:text-primary-500">
                   {{ showAnswer ? '🙈' : '👁️' }}
                 </button>
               </div>
-              <p class="text-xs text-emerald-200/80 mt-2">
+              <p class="text-xs muted mt-2">
                 Votre réponse sera chiffrée et stockée de manière sécurisée.
               </p>
             </div>
@@ -55,13 +59,13 @@ import { AuthService } from '../../core/services/auth.service';
             <div *ngIf="errorMessage" class="text-sm text-red-400">
               {{ errorMessage }}
             </div>
-            <div *ngIf="successMessage" class="text-sm text-emerald-300">
+            <div *ngIf="successMessage" class="text-sm text-primary-600 dark:text-primary-400">
               {{ successMessage }}
             </div>
 
             <button
               type="submit"
-              class="w-full rounded-lg px-4 py-2 bg-[#00C853] text-black font-semibold hover:shadow-[0_0_0_3px_rgba(0,200,83,.35)] hover:scale-[1.02] transition disabled:opacity-50"
+              class="w-full rounded-lg px-4 py-2 bg-[var(--tf-primary)] text-white dark:text-slate-900 font-semibold hover:brightness-95 transition disabled:opacity-50"
               [disabled]="form.invalid || isSubmitting"
             >
               <span *ngIf="!isSubmitting">Enregistrer</span>
@@ -85,9 +89,9 @@ export class SecurityQuestionsComponent {
   form: FormGroup = this.fb.group({
     question: [
       'Quel est le nom de votre premier animal de compagnie ?',
-      [Validators.required, Validators.minLength(3)],
+      [Validators.required, Validators.minLength(5), Validators.maxLength(180)],
     ],
-    answer: ['', [Validators.required, Validators.minLength(2)]],
+    answer: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
   });
 
   onSubmit() {

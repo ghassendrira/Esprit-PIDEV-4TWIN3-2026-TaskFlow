@@ -27,45 +27,48 @@ export class RolesService implements OnModuleInit {
     }
 
     // Assign permissions to standard roles
-    const adminRoles = ['BUSINESS_OWNER', 'ADMIN', 'SUPER_ADMIN'];
+    // NOTE: OWNER is used by some tenant creation flows; keep it permissioned to avoid RBAC lockouts.
+    const adminRoles = ['BUSINESS_OWNER', 'OWNER', 'ADMIN', 'SUPER_ADMIN'];
     for (const roleName of adminRoles) {
-      // Find official standard role
-      let role = await this.prisma.role.findFirst({
+      // Ensure official standard role exists.
+      let standardRole = await this.prisma.role.findFirst({
         where: { name: roleName, tenantId: null, isStandard: true },
       });
 
       // If not found, look for any role with that name and no tenantId (legacy)
-      if (!role) {
-        role = await this.prisma.role.findFirst({
+      if (!standardRole) {
+        const legacy = await this.prisma.role.findFirst({
           where: { name: roleName, tenantId: null },
         });
 
-        // If found, mark it as standard
-        if (role) {
-          role = await this.prisma.role.update({
-            where: { id: role.id },
+        if (legacy) {
+          standardRole = await this.prisma.role.update({
+            where: { id: legacy.id },
             data: { isStandard: true },
           });
         }
       }
 
-      // If still not found, create it
-      let wasCreated = false;
-      if (!role) {
-        role = await this.prisma.role.create({
-          data: { 
-            name: roleName, 
-            isStandard: true, 
+      if (!standardRole) {
+        standardRole = await this.prisma.role.create({
+          data: {
+            name: roleName,
+            isStandard: true,
             tenantId: null,
-            company_id: null
+            company_id: null,
           },
         });
-        wasCreated = true;
       }
 
-      // Seed all permissions to ALL standard roles ONLY IF the role was just created
-      // This ensures we only set default permissions ONCE.
-      if (wasCreated) {
+      // Seed permissions to:
+      // - the official standard role, AND
+      // - any tenant-scoped roles with the same name (legacy/custom), so RBAC doesn't break.
+      const rolesToSeed = await this.prisma.role.findMany({
+        where: { name: roleName, deletedAt: null },
+        select: { id: true },
+      });
+
+      for (const role of rolesToSeed) {
         for (const perm of createdPermissions) {
           await this.prisma.rolePermission.upsert({
             where: {
@@ -172,7 +175,7 @@ export class RolesService implements OnModuleInit {
     }
 
     // Return standard roles + roles of current company only
-    return this.prisma.role.findMany({
+    const roles = await this.prisma.role.findMany({
       where: whereClause,
       include: {
         permissions: {
@@ -182,6 +185,34 @@ export class RolesService implements OnModuleInit {
         },
       },
     });
+
+    // Attach active user count per role for UI stats
+    const roleIds = roles.map(r => r.id);
+    if (roleIds.length === 0) return roles;
+
+    const memberships = await this.prisma.userTenantMembership.findMany({
+      where: {
+        roleId: { in: roleIds },
+        deletedAt: null,
+        ...(tid ? { tenantId: tid } : {}),
+        user: {
+          deletedAt: null,
+          isActive: true,
+          registrationStatus: 'ACTIVE',
+        },
+      },
+      select: { roleId: true },
+    });
+
+    const countsByRoleId = new Map<string, number>();
+    for (const m of memberships) {
+      countsByRoleId.set(m.roleId, (countsByRoleId.get(m.roleId) ?? 0) + 1);
+    }
+
+    return roles.map(role => ({
+      ...role,
+      userCount: countsByRoleId.get(role.id) ?? 0,
+    }));
   }
 
   // TASK 5: assignPermissionToRole

@@ -172,6 +172,9 @@ export class NotificationService {
 
   async sendApprovalEmail(params: ApprovalEmailParams): Promise<void> {
     const apiKey = process.env.BREVO_API_KEY ?? '';
+    if (!apiKey) {
+      throw new Error('BREVO_API_KEY is missing');
+    }
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
     const client = SibApiV3Sdk.ApiClient.instance;
@@ -205,8 +208,8 @@ export class NotificationService {
       </div>
     `;
 
+    const sender = this.parseSender(from);
     try {
-      const sender = this.parseSender(from);
       await api.sendTransacEmail({
         sender,
         to: [{ email: params.email, name: params.fullName }],
@@ -215,11 +218,15 @@ export class NotificationService {
       });
     } catch (e) {
       console.log('Brevo approval email error:', e);
+      throw new Error('Failed to send approval email');
     }
   }
 
   async sendRejectionEmail(params: RejectionEmailParams): Promise<void> {
     const apiKey = process.env.BREVO_API_KEY ?? '';
+    if (!apiKey) {
+      throw new Error('BREVO_API_KEY is missing');
+    }
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
     const client = SibApiV3Sdk.ApiClient.instance;
@@ -253,8 +260,8 @@ export class NotificationService {
       </div>
     `;
 
+    const sender = this.parseSender(from);
     try {
-      const sender = this.parseSender(from);
       await api.sendTransacEmail({
         sender,
         to: [{ email: params.email, name: params.fullName }],
@@ -263,6 +270,7 @@ export class NotificationService {
       });
     } catch (e) {
       console.log('Brevo rejection email error:', e);
+      throw new Error('Failed to send rejection email');
     }
   }
 

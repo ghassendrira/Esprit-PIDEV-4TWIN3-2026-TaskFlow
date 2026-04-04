@@ -8,48 +8,53 @@ import { AuthService } from '../../core/services/auth.service';
   standalone: true,
   imports: [ReactiveFormsModule, NgIf],
   template: `
-    <div class="min-h-[calc(100vh-3rem)] p-6 bg-[#0a1f0a] text-white">
+    <div class="min-h-[calc(100vh-3rem)] p-6 bg-[var(--tf-surface)] text-[var(--tf-on-surface)]">
       <div class="max-w-xl mx-auto">
-        <div class="bg-white/5 border border-emerald-700/30 rounded-2xl p-6 text-white">
+        <div class="bg-[var(--tf-card)] border border-[var(--tf-border)] rounded-2xl p-6 shadow-[var(--tf-shadow)]">
           <h2 class="text-xl font-bold mb-2">Créer un employé</h2>
-          <p class="text-sm text-gray-300 mb-4">
+          <p class="text-sm text-[var(--tf-muted)] mb-4">
             Les informations d’accès seront envoyées par email.
           </p>
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
             <div>
-              <label class="block text-sm text-gray-300 mb-1">Email</label>
+              <label class="block text-sm text-[var(--tf-muted)] mb-1">Email</label>
               <input
                 type="email"
                 formControlName="email"
-                class="w-full rounded-lg bg-[#0f2a20] border border-transparent px-3 py-2 text-white placeholder-gray-400 outline-none focus:border-[#00C853] transition"
+                  maxlength="254"
+                class="w-full rounded-lg bg-[var(--tf-surface-2)] border border-[var(--tf-border)] px-3 py-2 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] placeholder:opacity-60 outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition"
               />
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm text-gray-300 mb-1">Prénom</label>
+                <label class="block text-sm text-[var(--tf-muted)] mb-1">Prénom</label>
                 <input
                   type="text"
                   formControlName="firstName"
-                  class="w-full rounded-lg bg-[#0f2a20] border border-transparent px-3 py-2 text-white placeholder-gray-400 outline-none focus:border-[#00C853] transition"
+                  minlength="2"
+                  maxlength="60"
+                  class="w-full rounded-lg bg-[var(--tf-surface-2)] border border-[var(--tf-border)] px-3 py-2 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] placeholder:opacity-60 outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition"
                 />
               </div>
               <div>
-                <label class="block text-sm text-gray-300 mb-1">Nom</label>
+                <label class="block text-sm text-[var(--tf-muted)] mb-1">Nom</label>
                 <input
                   type="text"
                   formControlName="lastName"
-                  class="w-full rounded-lg bg-[#0f2a20] border border-transparent px-3 py-2 text-white placeholder-gray-400 outline-none focus:border-[#00C853] transition"
+                  minlength="2"
+                  maxlength="60"
+                  class="w-full rounded-lg bg-[var(--tf-surface-2)] border border-[var(--tf-border)] px-3 py-2 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] placeholder:opacity-60 outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label class="block text-sm text-gray-300 mb-1">Rôle</label>
+              <label class="block text-sm text-[var(--tf-muted)] mb-1">Rôle</label>
               <select
                 formControlName="role"
-                class="w-full rounded-lg bg-[#0f2a20] border border-transparent px-3 py-2 text-white outline-none focus:border-[#00C853] transition"
+                class="w-full rounded-lg bg-[var(--tf-surface-2)] border border-[var(--tf-border)] px-3 py-2 text-[var(--tf-on-surface)] outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition"
               >
                 <option value="ACCOUNTANT">ACCOUNTANT</option>
                 <option value="ADMIN">ADMIN</option>
@@ -60,13 +65,13 @@ import { AuthService } from '../../core/services/auth.service';
             <div *ngIf="errorMessage" class="text-sm text-red-400">
               {{ errorMessage }}
             </div>
-            <div *ngIf="successMessage" class="text-sm text-emerald-300">
+            <div *ngIf="successMessage" class="text-sm text-[var(--tf-primary)]">
               {{ successMessage }}
             </div>
 
             <button
               type="submit"
-              class="w-full rounded-lg px-4 py-2 bg-[#00C853] text-black font-semibold hover:shadow-[0_0_0_3px_rgba(0,200,83,.35)] hover:scale-[1.02] transition disabled:opacity-50"
+              class="w-full rounded-lg px-4 py-2 bg-primary-500 text-white font-semibold hover:bg-primary-600 hover:scale-[1.02] transition disabled:opacity-50"
               [disabled]="form.invalid || isSubmitting"
             >
               <span *ngIf="!isSubmitting">Créer</span>
@@ -87,9 +92,9 @@ export class CreateEmployeeComponent {
   successMessage: string | null = null;
 
   form: FormGroup = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
-    firstName: ['', [Validators.required, Validators.minLength(2)]],
-    lastName: ['', [Validators.required, Validators.minLength(2)]],
+    email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
+    firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
+    lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
     role: ['ACCOUNTANT', [Validators.required]],
   });
 

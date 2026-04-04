@@ -15,12 +15,12 @@ import { OnboardingLayoutComponent } from './onboarding.layout';
         <div class="flex items-center justify-between mb-4">
           <div class="flex-1 flex items-center justify-center gap-10">
             <div class="flex flex-col items-center">
-              <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-black">✓</div>
+              <div class="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center text-white">✓</div>
               <div class="text-xs mt-1">Company Info</div>
             </div>
-            <div class="h-[2px] w-24 bg-emerald-500"></div>
+            <div class="h-[2px] w-24 bg-primary-600/70"></div>
             <div class="flex flex-col items-center">
-              <div class="w-6 h-6 rounded-full bg-emerald-500"></div>
+              <div class="w-6 h-6 rounded-full bg-primary-600"></div>
               <div class="text-xs mt-1">Your Business</div>
             </div>
           </div>
@@ -29,42 +29,42 @@ import { OnboardingLayoutComponent } from './onboarding.layout';
         <div class="text-center mb-4">
           <div class="text-3xl">💼</div>
           <div class="text-lg font-semibold mt-1">Create Your First Business</div>
-          <div class="text-sm text-gray-300">You can add more businesses later from settings.</div>
+          <div class="text-sm muted">You can add more businesses later from settings.</div>
         </div>
 
         <form class="space-y-4" [formGroup]="form" (ngSubmit)="onSubmit()">
           <div>
             <label class="block text-sm mb-1">Business Name <span class="text-red-500">*</span></label>
-            <input formControlName="name" placeholder="e.g. Hasni Consulting" class="w-full h-11 rounded-xl bg-[#113a13] border border-transparent px-4 text-white outline-none" autofocus/>
+            <input formControlName="name" minlength="2" maxlength="120" placeholder="e.g. Hasni Consulting" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" autofocus/>
           </div>
           <div>
             <label class="block text-sm mb-1">Currency <span class="text-red-500">*</span></label>
-            <select formControlName="currency" class="w-full h-11 rounded-xl bg-[#113a13] border border-transparent px-4 text-white outline-none">
+            <select formControlName="currency" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);">
               <option value="TND">TND 🇹🇳</option>
               <option value="USD">USD 🇺🇸</option>
               <option value="EUR">EUR 🇪🇺</option>
               <option value="GBP">GBP 🇬🇧</option>
             </select>
-            <div class="text-xs text-gray-400 mt-1">Auto-selected based on your country</div>
+            <div class="text-xs muted mt-1">Auto-selected based on your country</div>
           </div>
           <div>
             <label class="block text-sm mb-1">Default Tax Rate (%) <span class="text-red-500">*</span></label>
-            <input type="number" formControlName="taxRate" min="0" max="100" step="0.5" class="w-full h-11 rounded-xl bg-[#113a13] border border-transparent px-4 text-white outline-none"/>
+            <input type="number" formControlName="taxRate" min="0" max="100" step="0.5" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"/>
           </div>
           <div>
             <label class="block text-sm mb-1">Business Logo URL</label>
-            <input formControlName="logoUrl" placeholder="https://yourlogo.com/logo.png" class="w-full h-11 rounded-xl bg-[#113a13] border border-transparent px-4 text-white outline-none"/>
-            <div class="text-xs text-gray-400 mt-1">Optional — you can add this later</div>
+            <input formControlName="logoUrl" placeholder="https://yourlogo.com/logo.png" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"/>
+            <div class="text-xs muted mt-1">Optional — you can add this later</div>
           </div>
 
-          <div *ngIf="form.valid" class="mt-3 border border-emerald-600 rounded-xl p-3 bg-[#102810] text-sm">
+          <div *ngIf="form.valid" class="mt-3 border rounded-xl p-3 text-sm" style="border-color: var(--tf-border); background: var(--tf-surface);">
             <div class="font-semibold mb-1">📋 Review Your Business</div>
             <div>Name: {{ form.value.name }}</div>
             <div>Currency: {{ form.value.currency }}</div>
             <div>Tax Rate: {{ form.value.taxRate }}%</div>
           </div>
 
-          <button class="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50" [disabled]="form.invalid || saving">
+          <button class="w-full h-11 rounded-xl bg-[var(--tf-primary)] text-white dark:text-slate-900 font-semibold hover:brightness-95 transition disabled:opacity-50" [disabled]="form.invalid || saving">
             <span *ngIf="!saving">Create Business & Go to Dashboard</span>
             <span *ngIf="saving">Creating...</span>
           </button>
@@ -82,10 +82,10 @@ export class CreateBusinessComponent implements OnInit {
   saving = false;
   errorMessage: string | null = null;
   form = this.fb.group({
-    name: ['', Validators.required],
+    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
     currency: ['TND', Validators.required],
-    taxRate: [19, Validators.required],
-    logoUrl: [''],
+    taxRate: [19, [Validators.required, Validators.min(0), Validators.max(100)]],
+    logoUrl: ['', [Validators.pattern(/^(https?:\/\/|data:image\/).+/i)]],
   });
   ngOnInit() {
     try {
@@ -97,7 +97,10 @@ export class CreateBusinessComponent implements OnInit {
     } catch {}
   }
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.saving = true;
     const { name, logoUrl, currency, taxRate } = this.form.value;
     this.api.createBusiness({ name: name!, logoUrl: logoUrl!, currency: currency!, taxRate: Number(taxRate) }).subscribe({

@@ -48,11 +48,31 @@ export class RBACGuard implements CanActivate {
       throw new ForbiddenException('User or Tenant context missing');
     }
 
+    // Super Admin bypass: if user has SUPER_ADMIN role in ANY tenant context, allow all.
+    // The previous implementation only checked memberships within the current tenant.
+    const globalSuperAdmin = await this.prisma.userTenantMembership.findFirst({
+      where: {
+        userId,
+        deletedAt: null,
+        role: {
+          name: 'SUPER_ADMIN',
+        },
+      },
+      select: { id: true },
+    });
+
+    if (globalSuperAdmin) {
+      // eslint-disable-next-line no-console
+      console.log(`[RBACGuard] Super Admin global bypass triggered`);
+      return true;
+    }
+
     // TASK 6: Load role permissions
     const memberships = await this.prisma.userTenantMembership.findMany({
       where: {
         userId,
         tenantId,
+        deletedAt: null,
       },
       include: {
         role: {
@@ -74,13 +94,6 @@ export class RBACGuard implements CanActivate {
     console.log(`[RBACGuard] User: ${userId} | Tenant: ${tenantId}`);
     console.log(`[RBACGuard] Required: ${requiredPermissions.join(', ')}`);
     console.log(`[RBACGuard] User has: ${userPermissions.join(', ')}`);
-
-    // Super Admin bypass: if user has SUPER_ADMIN role in ANY context, allow all
-    const isSuperAdmin = memberships.some(m => m.role.name === 'SUPER_ADMIN');
-    if (isSuperAdmin) {
-      console.log(`[RBACGuard] Super Admin bypass triggered`);
-      return true;
-    }
 
     // Check if user has ALL required permissions
     const missingPermissions = requiredPermissions.filter(p => !userPermissions.includes(p));

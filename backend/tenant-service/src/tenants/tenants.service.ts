@@ -16,6 +16,23 @@ function slugify(s: string): string {
 export class TenantsService {
   constructor(private prisma: PrismaService) {}
 
+  async listAll() {
+    return this.prisma.tenant.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        address: true,
+        country: true,
+        phone: true,
+        logoUrl: true,
+        matricule: true,
+        branding: true,
+      },
+    });
+  }
+
   private async makeUniqueSlug(base: string): Promise<string> {
     const cleanBase = slugify(base || 'tenant');
     // Try base, then base-2..base-50

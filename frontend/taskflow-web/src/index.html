@@ -7,6 +7,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <script>
+    (function () {
+      try {
+        var key = 'taskflow-theme';
+        var mode = localStorage.getItem(key);
+        if (mode !== 'dark' && mode !== 'light') {
+          mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        var el = document.documentElement;
+        el.setAttribute('data-theme', mode);
+        if (mode === 'dark') el.classList.add('dark');
+        else el.classList.remove('dark');
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

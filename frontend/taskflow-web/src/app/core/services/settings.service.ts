@@ -13,13 +13,20 @@ export class SettingsService {
     return localStorage.getItem('activeTenantId') || '';
   }
 
-  private getHeaders(): { headers: HttpHeaders } {
-    return {
-      headers: new HttpHeaders({
-        Authorization: `Bearer ${this.auth.token()}`,
-        'X-Tenant-Id': this.getActiveTenantId(),
-      }),
-    };
+  private getHeaders(tenantIdOverride?: string): { headers: HttpHeaders } {
+    let headers = new HttpHeaders();
+
+    const token = this.auth.token();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const tenantId = tenantIdOverride ?? this.getActiveTenantId();
+    if (tenantId) {
+      headers = headers.set('X-Tenant-Id', tenantId);
+    }
+
+    return { headers };
   }
 
   countries(): Observable<any[]> {
@@ -39,6 +46,10 @@ export class SettingsService {
   }
   getBusinesses(): Observable<any[]> {
     return this.api.get('/business/list', this.getHeaders());
+  }
+
+  getBusinessesForTenant(tenantId: string): Observable<any[]> {
+    return this.api.get('/business/list', this.getHeaders(tenantId));
   }
   businesses(): Observable<any[]> {
     return this.api.get('/business/list', this.getHeaders());

@@ -52,6 +52,22 @@ export class BusinessService {
     });
   }
 
+  byId(id: string) {
+    return this.prisma.business.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        tenantId: true,
+        name: true,
+        logoUrl: true,
+        currency: true,
+        taxRate: true,
+        category: true,
+        createdAt: true,
+      },
+    });
+  }
+
   countByTenant(tenantId: string) {
     return this.prisma.business.count({ where: { tenantId } });
   }

@@ -6,17 +6,17 @@ import { NgFor } from '@angular/common';
   standalone: true,
   imports: [NgFor],
   template: `
-    <div class="overflow-auto rounded border border-slate-200">
-      <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-slate-600">
+    <div class="overflow-auto rounded" style="border: 1px solid var(--tf-border);">
+      <table class="min-w-full text-sm" style="color: var(--tf-on-surface);">
+        <thead style="background: var(--tf-surface-2); color: var(--tf-muted);">
           <tr>
-            <th *ngFor="let col of columns" class="text-left font-medium px-3 py-2 border-b border-slate-200">
+            <th *ngFor="let col of columns" class="text-left font-medium px-3 py-2" style="border-bottom: 1px solid var(--tf-border);">
               {{ col.label }}
             </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          <tr *ngFor="let row of data" class="hover:bg-slate-50 transition">
+          <tr *ngFor="let row of data" class="transition" style="border-top: 1px solid rgba(0,0,0,0.04);">
             <td *ngFor="let col of columns" class="px-3 py-2">
               {{ row[col.key] }}
             </td>
@@ -27,6 +27,8 @@ import { NgFor } from '@angular/common';
   `,
   styles: [`
     :host { display: block; }
+    tbody tr:hover { background: rgba(0,0,0,0.02); }
+    :root[data-theme='dark'] tbody tr:hover, .dark tbody tr:hover { background: rgba(255,255,255,0.04); }
   `]
 })
 export class TfTableComponent {

@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -20,19 +20,19 @@ interface Employee {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen bg-[#050f08] text-[#e8f5e9] font-['Syne'] selection:bg-[#22c55e]/30 p-8 relative overflow-hidden">
+    <div class="min-h-screen bg-[var(--tf-surface)] text-[var(--tf-on-surface)] font-['Syne'] selection:bg-primary/20 p-8 relative overflow-hidden">
       <!-- Radial Glow Background -->
-      <div class="absolute -top-24 -right-24 w-96 h-96 bg-[#22c55e]/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
       
       <!-- Topbar -->
       <div class="flex items-center justify-between mb-12">
-        <div class="font-['DM_Mono'] text-[#6b8f72] text-sm tracking-tighter opacity-80">
+        <div class="font-['DM_Mono'] text-[var(--tf-muted)] text-sm tracking-tighter opacity-80">
           /employees
         </div>
-        <div class="flex items-center gap-4 bg-[#0d1f12] py-2 px-4 rounded-full border border-[#1a3321]">
-          <span class="text-xs font-bold uppercase tracking-widest text-[#6b8f72]">{{ userName() }}</span>
-          <div class="w-2 h-2 bg-[#22c55e] rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#22c55e] to-emerald-800 flex items-center justify-center text-[10px] font-black text-white">
+        <div class="flex items-center gap-4 bg-[var(--tf-card)] py-2 px-4 rounded-full border border-[var(--tf-border)]">
+          <span class="text-xs font-bold uppercase tracking-widest text-[var(--tf-muted)]">{{ userName() }}</span>
+          <div class="w-2 h-2 bg-[var(--tf-primary)] rounded-full animate-pulse"></div>
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-[10px] font-black text-white">
             {{ userName().substring(0, 2).toUpperCase() }}
           </div>
         </div>
@@ -41,12 +41,12 @@ interface Employee {
       <!-- Header -->
       <div class="flex items-end justify-between mb-10">
         <div>
-          <h1 class="text-5xl font-black mb-2 tracking-tighter uppercase leading-none">Team <span class="text-[#22c55e]">Hub</span></h1>
-          <p class="text-[#6b8f72] font-medium tracking-tight">Gérez les accès et les rôles de votre équipe</p>
+          <h1 class="text-5xl font-black mb-2 tracking-tighter uppercase leading-none">Team <span class="text-[var(--tf-primary)]">Hub</span></h1>
+          <p class="text-[var(--tf-muted)] font-medium tracking-tight">Gérez les accès et les rôles de votre équipe</p>
         </div>
         <button 
           (click)="openCreateModal()"
-          class="bg-[#22c55e] text-[#050f08] px-8 py-4 rounded-xl font-black uppercase text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+          class="bg-[var(--tf-primary)] text-white px-8 py-4 rounded-xl font-black uppercase text-sm hover:scale-[1.02] active:scale-95 transition-all"
         >
           Nouvel employé
         </button>
@@ -54,20 +54,20 @@ interface Employee {
 
       <!-- Stats Bar -->
       <div class="grid grid-cols-4 gap-6 mb-12">
-        <div class="bg-[#0d1f12] p-6 rounded-2xl border border-[#1a3321] group hover:border-[#22c55e]/30 transition-all">
-          <div class="text-[#6b8f72] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Total Employees</div>
+        <div class="bg-[var(--tf-card)] p-6 rounded-2xl border border-[var(--tf-border)] group hover:border-primary/30 transition-all">
+          <div class="text-[var(--tf-muted)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Total Employees</div>
           <div class="text-4xl font-black leading-none">{{ stats().total }}</div>
         </div>
-        <div class="bg-[#0d1f12] p-6 rounded-2xl border-t-2 border-t-[#22c55e] border-x border-x-[#1a3321] border-b border-b-[#1a3321]">
-          <div class="text-[#22c55e] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Active Now</div>
+        <div class="bg-[var(--tf-card)] p-6 rounded-2xl border-t-2 border-t-[var(--tf-primary)] border-x border-x-[var(--tf-border)] border-b border-b-[var(--tf-border)]">
+          <div class="text-[var(--tf-primary)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Active Now</div>
           <div class="text-4xl font-black leading-none">{{ stats().active }}</div>
         </div>
-        <div class="bg-[#0d1f12] p-6 rounded-2xl border border-[#1a3321] group hover:border-[#22c55e]/30 transition-all">
-          <div class="text-[#6b8f72] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Total Roles</div>
+        <div class="bg-[var(--tf-card)] p-6 rounded-2xl border border-[var(--tf-border)] group hover:border-primary/30 transition-all">
+          <div class="text-[var(--tf-muted)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Total Roles</div>
           <div class="text-4xl font-black leading-none">{{ stats().roles }}</div>
         </div>
-        <div class="bg-[#0d1f12] p-6 rounded-2xl border border-[#1a3321] group hover:border-[#22c55e]/30 transition-all">
-          <div class="text-[#6b8f72] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Added this month</div>
+        <div class="bg-[var(--tf-card)] p-6 rounded-2xl border border-[var(--tf-border)] group hover:border-primary/30 transition-all">
+          <div class="text-[var(--tf-muted)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Added this month</div>
           <div class="text-4xl font-black leading-none">+{{ stats().addedMonth }}</div>
         </div>
       </div>
@@ -79,22 +79,22 @@ interface Employee {
             type="text" 
             [(ngModel)]="searchQuery"
             placeholder="Rechercher par nom ou email..." 
-            class="w-full bg-[#0d1f12] border border-[#1a3321] rounded-2xl px-14 py-5 text-lg font-medium focus:outline-none focus:border-[#22c55e] focus:ring-4 focus:ring-[#22c55e]/10 transition-all placeholder:text-[#6b8f72]/50"
+            class="w-full bg-[var(--tf-card)] border border-[var(--tf-border)] rounded-2xl px-14 py-5 text-lg font-medium focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-[var(--tf-muted)] placeholder:opacity-60"
           >
-          <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-[#6b8f72] text-xl group-focus-within:text-[#22c55e] transition-colors"></i>
+          <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-[var(--tf-muted)] text-xl group-focus-within:text-primary-500 transition-colors"></i>
         </div>
         
         <div class="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
           <button 
             *ngFor="let filter of roles"
             (click)="activeFilter.set(filter)"
-            [class.bg-[#22c55e]]="activeFilter() === filter"
-            [class.text-[#050f08]]="activeFilter() === filter"
-            [class.border-[#22c55e]]="activeFilter() === filter"
+            [class.bg-primary-500]="activeFilter() === filter"
+            [class.text-white]="activeFilter() === filter"
+            [class.border-primary-500]="activeFilter() === filter"
             [class.bg-transparent]="activeFilter() !== filter"
-            [class.text-[#6b8f72]]="activeFilter() !== filter"
-            [class.border-[#1a3321]]="activeFilter() !== filter"
-            class="px-6 py-2.5 rounded-full border text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap hover:border-[#22c55e]/50"
+            [class.text-[var(--tf-muted)]]="activeFilter() !== filter"
+            [class.border-[var(--tf-border)]]="activeFilter() !== filter"
+            class="px-6 py-2.5 rounded-full border text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap hover:border-primary/50"
           >
             {{ filter }}
           </button>
@@ -102,22 +102,22 @@ interface Employee {
       </div>
 
       <!-- Table Container -->
-      <div class="bg-[#0d1f12] rounded-[2rem] border border-[#1a3321] overflow-hidden mb-8">
+      <div class="bg-[var(--tf-card)] rounded-[2rem] border border-[var(--tf-border)] overflow-hidden mb-8">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="border-b border-[#1a3321]">
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b8f72]">Employé</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b8f72]">Email</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b8f72]">Rôle</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b8f72]">Statut</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b8f72]">Ajouté le</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b8f72]">Actions</th>
+            <tr class="border-b border-[var(--tf-border)]">
+              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Employé</th>
+              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Email</th>
+              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Rôle</th>
+              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Statut</th>
+              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Ajouté le</th>
+              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr 
               *ngFor="let emp of filteredEmployees(); let i = index" 
-              class="group hover:bg-[#22c55e]/[0.02] transition-colors border-b border-[#1a3321]/50 last:border-0 animate-fadeIn"
+              class="group hover:bg-[var(--tf-surface-2)] transition-colors border-b border-[var(--tf-border)] last:border-0 animate-fadeIn"
               [style.animation-delay]="i * 50 + 'ms'"
             >
               <td class="px-8 py-5">
@@ -129,13 +129,13 @@ interface Employee {
                     {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
                   </div>
                   <div>
-                    <div class="font-black text-[#e8f5e9] tracking-tight">{{ emp.firstName }} {{ emp.lastName }}</div>
-                    <div class="text-[10px] font-['DM_Mono'] text-[#6b8f72] mt-0.5 tracking-tighter">#{{ emp.id.substring(0, 8) }}</div>
+                    <div class="font-black tracking-tight">{{ emp.firstName }} {{ emp.lastName }}</div>
+                    <div class="text-[10px] font-['DM_Mono'] text-[var(--tf-muted)] mt-0.5 tracking-tighter">#{{ emp.id.substring(0, 8) }}</div>
                   </div>
                 </div>
               </td>
               <td class="px-8 py-5">
-                <span class="font-['DM_Mono'] text-sm text-[#6b8f72]">{{ emp.email }}</span>
+                <span class="font-['DM_Mono'] text-sm text-[var(--tf-muted)]">{{ emp.email }}</span>
               </td>
               <td class="px-8 py-5">
                 <span 
@@ -148,38 +148,37 @@ interface Employee {
               <td class="px-8 py-5">
                 <div class="flex items-center gap-2.5">
                   <div 
-                    [class.bg-[#22c55e]]="emp.isActive"
-                    [class.shadow-[0_0_8px_rgba(34,197,94,0.4)]]="emp.isActive"
-                    [class.bg-gray-600]="!emp.isActive"
+                    [class.bg-primary-500]="emp.isActive"
+                    [class.bg-[var(--tf-border)]]="!emp.isActive"
                     class="w-2 h-2 rounded-full"
                   ></div>
-                  <span class="text-xs font-bold tracking-tight" [class.text-[#e8f5e9]]="emp.isActive" [class.text-[#6b8f72]]="!emp.isActive">
+                  <span class="text-xs font-bold tracking-tight" [class.text-[var(--tf-on-surface)]]="emp.isActive" [class.text-[var(--tf-muted)]]="!emp.isActive">
                     {{ emp.isActive ? 'Actif' : 'Inactif' }}
                   </span>
                 </div>
               </td>
               <td class="px-8 py-5">
-                <span class="font-['DM_Mono'] text-sm text-[#6b8f72]">{{ emp.createdAt | date:'dd MMM yyyy' }}</span>
+                <span class="font-['DM_Mono'] text-sm text-[var(--tf-muted)]">{{ emp.createdAt | date:'dd MMM yyyy' }}</span>
               </td>
               <td class="px-8 py-5">
                 <div class="flex items-center gap-3">
                   <button 
                     (click)="showEmployee(emp)"
-                    class="w-8 h-8 rounded-lg bg-[#1a3321] text-[#22c55e] flex items-center justify-center hover:bg-[#22c55e] hover:text-[#050f08] transition-all"
+                    class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-[var(--tf-primary)] flex items-center justify-center hover:bg-[var(--tf-primary)] hover:text-white transition-all"
                     title="Voir"
                   >
                     <i class="fa-solid fa-eye text-xs"></i>
                   </button>
                   <button 
                     (click)="editEmployee(emp)"
-                    class="w-8 h-8 rounded-lg bg-[#1a3321] text-blue-400 flex items-center justify-center hover:bg-blue-400 hover:text-[#050f08] transition-all"
+                    class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-blue-400 flex items-center justify-center hover:bg-blue-400 hover:text-white transition-all"
                     title="Modifier"
                   >
                     <i class="fa-solid fa-pen text-xs"></i>
                   </button>
                   <button 
                     (click)="deleteEmployee(emp)"
-                    class="w-8 h-8 rounded-lg bg-[#1a3321] text-red-400 flex items-center justify-center hover:bg-red-400 hover:text-[#050f08] transition-all"
+                    class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-red-400 flex items-center justify-center hover:bg-red-400 hover:text-white transition-all"
                     title="Supprimer"
                   >
                     <i class="fa-solid fa-trash text-xs"></i>
@@ -193,19 +192,19 @@ interface Employee {
         <!-- Empty State -->
         <div *ngIf="filteredEmployees().length === 0" class="py-24 text-center">
           <div class="text-4xl mb-4 opacity-20">📂</div>
-          <div class="text-[#6b8f72] font-black uppercase tracking-widest text-xs">Aucun employé trouvé</div>
+          <div class="text-[var(--tf-muted)] font-black uppercase tracking-widest text-xs">Aucun employé trouvé</div>
         </div>
       </div>
 
       <!-- Pagination -->
       <div class="flex items-center justify-between px-4">
-        <div class="text-[10px] font-black uppercase tracking-widest text-[#6b8f72]">
+        <div class="text-[10px] font-black uppercase tracking-widest text-[var(--tf-muted)]">
           Affichage 1–{{ filteredEmployees().length }} sur {{ employees().length }} employés
         </div>
         <div class="flex gap-2">
-          <button class="w-10 h-10 rounded-xl border border-[#1a3321] flex items-center justify-center text-[#6b8f72] hover:border-[#22c55e] transition-all"><i class="fa-solid fa-chevron-left"></i></button>
-          <button class="w-10 h-10 rounded-xl bg-[#22c55e] flex items-center justify-center text-[#050f08] font-black shadow-[0_0_15px_rgba(34,197,94,0.3)]">1</button>
-          <button class="w-10 h-10 rounded-xl border border-[#1a3321] flex items-center justify-center text-[#6b8f72] hover:border-[#22c55e] transition-all"><i class="fa-solid fa-chevron-right"></i></button>
+          <button class="w-10 h-10 rounded-xl border border-[var(--tf-border)] flex items-center justify-center text-[var(--tf-muted)] hover:border-primary/60 transition-all"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center text-white font-black">1</button>
+          <button class="w-10 h-10 rounded-xl border border-[var(--tf-border)] flex items-center justify-center text-[var(--tf-muted)] hover:border-primary/60 transition-all"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
       </div>
     </div>
@@ -225,6 +224,7 @@ interface Employee {
 })
 export class EmployeesListComponent implements OnInit {
   private auth = inject(AuthService);
+  private tenant = inject(TenantService);
   
   employees = signal<Employee[]>([]);
   searchQuery = '';
@@ -264,10 +264,16 @@ export class EmployeesListComponent implements OnInit {
     });
   });
 
-  constructor(private router: Router) {}
+  constructor(private router: Router) {
+    effect(() => {
+      // Re-load whenever the active company (tenant) changes.
+      this.tenant.currentTenantId();
+      this.loadEmployees();
+    });
+  }
 
   ngOnInit() {
-    this.loadEmployees();
+    // Initial load handled by the tenant effect.
   }
 
   openCreateModal() {
@@ -317,7 +323,7 @@ export class EmployeesListComponent implements OnInit {
     switch (role) {
       case 'ADMIN': return 'bg-gradient-to-br from-purple-500 to-indigo-900';
       case 'MANAGER': return 'bg-gradient-to-br from-orange-400 to-red-900';
-      case 'ACCOUNTANT': return 'bg-gradient-to-br from-[#22c55e] to-emerald-900';
+      case 'ACCOUNTANT': return 'bg-gradient-to-br from-primary-500 to-primary-900';
       case 'ANALYST': return 'bg-gradient-to-br from-sky-400 to-blue-900';
       case 'HR': return 'bg-gradient-to-br from-pink-400 to-rose-900';
       default: return 'bg-gradient-to-br from-gray-400 to-gray-800';
@@ -328,7 +334,7 @@ export class EmployeesListComponent implements OnInit {
     switch (role) {
       case 'ADMIN': return 'text-purple-400 border-purple-500/20 bg-purple-500/5';
       case 'MANAGER': return 'text-orange-400 border-orange-500/20 bg-orange-500/5';
-      case 'ACCOUNTANT': return 'text-[#22c55e] border-[#22c55e]/20 bg-[#22c55e]/5';
+      case 'ACCOUNTANT': return 'text-primary-400 border-primary-500/20 bg-primary-500/5';
       case 'ANALYST': return 'text-sky-400 border-sky-500/20 bg-sky-500/5';
       case 'HR': return 'text-pink-400 border-pink-500/20 bg-pink-500/5';
       default: return 'text-gray-400 border-gray-500/20 bg-gray-500/5';

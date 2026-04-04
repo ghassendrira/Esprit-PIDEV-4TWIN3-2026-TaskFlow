@@ -20,7 +20,7 @@ type PendingRegistration = {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-[calc(100vh-3rem)] p-6 bg-[#0a1f0a] text-white">
+    <div class="min-h-[calc(100vh-4rem)] p-6 bg-[var(--tf-surface)] text-[color:var(--tf-on-surface)]">
       <!-- Toast -->
       <div
         *ngIf="toast()"
@@ -30,14 +30,14 @@ type PendingRegistration = {
       >
         <div
           class="rounded-xl border px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,.35)] backdrop-blur"
-          [class.border-emerald-600/40]="toast()!.type==='success'"
-          [class.bg-emerald-900/60]="toast()!.type==='success'"
+          style="background: var(--tf-card); border-color: var(--tf-border); color: var(--tf-on-surface);"
+          [class.border-primary-500/40]="toast()!.type==='success'"
           [class.border-red-500/40]="toast()!.type==='error'"
-          [class.bg-red-950/50]="toast()!.type==='error'"
+          [class.bg-red-950/20]="toast()!.type==='error'"
         >
           <div class="flex items-start gap-3">
             <div class="mt-0.5">
-              <svg *ngIf="toast()!.type==='success'" class="w-5 h-5 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg *ngIf="toast()!.type==='success'" class="w-5 h-5 text-primary-600 dark:text-primary-200" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5"/>
               </svg>
               <svg *ngIf="toast()!.type==='error'" class="w-5 h-5 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -46,9 +46,9 @@ type PendingRegistration = {
             </div>
             <div class="flex-1">
               <div class="font-semibold">{{ toast()!.title }}</div>
-              <div class="text-sm text-[#86b29a] mt-0.5">{{ toast()!.message }}</div>
+              <div class="text-sm text-[color:var(--tf-muted)] mt-0.5">{{ toast()!.message }}</div>
             </div>
-            <button class="text-[#86b29a] hover:text-white" (click)="toast.set(null)" aria-label="Close notification">
+            <button class="text-[color:var(--tf-muted)] hover:text-[color:var(--tf-on-surface)]" (click)="toast.set(null)" aria-label="Close notification">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
@@ -58,22 +58,22 @@ type PendingRegistration = {
       </div>
 
       <!-- Page header -->
-      <div class="rounded-2xl border border-emerald-700/30 bg-[#0d2418] p-5">
+      <div class="rounded-2xl border border-[color:var(--tf-border)] p-5 shadow-card" style="background: var(--tf-card);">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-start gap-3">
-            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-700/30 border border-emerald-600/30 grid place-items-center">
-              <svg class="w-6 h-6 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500/20 to-primary-700/20 border border-primary-500/20 grid place-items-center">
+              <svg class="w-6 h-6 text-primary-700 dark:text-primary-200" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l7 4v6c0 5-3 8-7 8s-7-3-7-8V7l7-4z"/>
               </svg>
             </div>
             <div>
               <div class="flex items-center gap-2 flex-wrap">
                 <h1 class="text-2xl font-bold">Pending Registrations</h1>
-                <span class="inline-flex items-center rounded-full border border-emerald-600/40 bg-emerald-900/40 px-2.5 py-1 text-xs text-emerald-200">
+                <span class="inline-flex items-center rounded-full border border-[color:var(--tf-border)] bg-[var(--tf-surface-2)] px-2.5 py-1 text-xs text-[color:var(--tf-muted)]">
                   {{ pendingCount() }} Pending
                 </span>
               </div>
-              <p class="text-sm text-[#86b29a] mt-1">
+              <p class="text-sm text-[color:var(--tf-muted)] mt-1">
                 Review and manage new business owner registration requests
               </p>
             </div>
@@ -82,7 +82,8 @@ type PendingRegistration = {
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="h-10 px-4 rounded-xl border border-emerald-600/40 bg-[#0f2b1d] hover:bg-emerald-900/20 text-sm text-emerald-100"
+              class="h-10 px-4 rounded-xl border border-[color:var(--tf-border)] hover:bg-[var(--tf-surface-2)] text-sm text-[color:var(--tf-on-surface)]"
+              style="background: var(--tf-card);"
               (click)="refresh()"
               [disabled]="pageLoading()"
             >
@@ -93,7 +94,7 @@ type PendingRegistration = {
                 Refresh
               </span>
               <span *ngIf="pageLoading()" class="inline-flex items-center gap-2">
-                <span class="w-4 h-4 border-2 border-emerald-200/40 border-t-emerald-200 rounded-full animate-spin"></span>
+                <span class="w-4 h-4 border-2 border-[color:var(--tf-muted)] border-t-[color:var(--tf-primary)] rounded-full animate-spin"></span>
                 Loading
               </span>
             </button>
@@ -102,16 +103,16 @@ type PendingRegistration = {
 
         <!-- Stats row -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-          <div class="rounded-xl border border-emerald-700/30 bg-[#0f2b1d] p-4">
-            <div class="text-xs text-[#86b29a]">Total Pending</div>
+          <div class="rounded-xl border border-[color:var(--tf-border)] p-4" style="background: var(--tf-surface-2);">
+            <div class="text-xs text-[color:var(--tf-muted)]">Total Pending</div>
             <div class="text-2xl font-bold mt-1">{{ pendingCount() }}</div>
           </div>
-          <div class="rounded-xl border border-emerald-700/30 bg-[#0f2b1d] p-4">
-            <div class="text-xs text-[#86b29a]">Approved Today</div>
-            <div class="text-2xl font-bold mt-1 text-emerald-300">{{ approvedToday() }}</div>
+          <div class="rounded-xl border border-[color:var(--tf-border)] p-4" style="background: var(--tf-surface-2);">
+            <div class="text-xs text-[color:var(--tf-muted)]">Approved Today</div>
+            <div class="text-2xl font-bold mt-1 text-primary-700 dark:text-primary-200">{{ approvedToday() }}</div>
           </div>
-          <div class="rounded-xl border border-emerald-700/30 bg-[#0f2b1d] p-4">
-            <div class="text-xs text-[#86b29a]">Rejected Today</div>
+          <div class="rounded-xl border border-[color:var(--tf-border)] p-4" style="background: var(--tf-surface-2);">
+            <div class="text-xs text-[color:var(--tf-muted)]">Rejected Today</div>
             <div class="text-2xl font-bold mt-1 text-red-300">{{ rejectedToday() }}</div>
           </div>
         </div>
@@ -125,45 +126,47 @@ type PendingRegistration = {
       <!-- Empty state -->
       <div
         *ngIf="!pageLoading() && pendingCount() === 0"
-        class="mt-6 rounded-2xl border border-emerald-700/30 bg-[#0d2418] p-10 text-center"
+        class="mt-6 rounded-2xl border border-[color:var(--tf-border)] p-10 text-center shadow-card"
+        style="background: var(--tf-card);"
       >
-        <div class="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-700/20 border border-emerald-600/30 grid place-items-center">
-          <svg class="w-7 h-7 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <div class="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500/20 to-primary-700/20 border border-primary-500/20 grid place-items-center">
+          <svg class="w-7 h-7 text-primary-700 dark:text-primary-200" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5"/>
           </svg>
         </div>
         <div class="text-xl font-semibold mt-4">All caught up!</div>
-        <div class="text-sm text-[#86b29a] mt-1">No pending registrations.</div>
+        <div class="text-sm text-[color:var(--tf-muted)] mt-1">No pending registrations.</div>
       </div>
 
       <!-- Cards -->
       <div *ngIf="pendingCount() > 0" class="mt-6 grid grid-cols-1 gap-4">
         <div
           *ngFor="let u of registrations(); trackBy: trackById"
-          class="group rounded-2xl border border-emerald-700/30 bg-[#0d2418] hover:border-emerald-500/40 hover:shadow-[0_12px_50px_rgba(0,0,0,.35)] transition"
+          class="group rounded-2xl border border-[color:var(--tf-border)] hover:border-primary-500/40 hover:shadow-[0_12px_50px_rgba(0,0,0,.35)] transition"
+          style="background: var(--tf-card);"
         >
           <div class="p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-start gap-4">
               <!-- Avatar -->
-              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400/30 via-emerald-600/25 to-emerald-800/30 border border-emerald-600/30 grid place-items-center shrink-0">
-                <div class="font-bold text-emerald-100">{{ initials(u) }}</div>
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-400/25 via-primary-600/20 to-primary-800/20 border border-primary-500/20 grid place-items-center shrink-0">
+                <div class="font-bold text-[color:var(--tf-on-surface)]">{{ initials(u) }}</div>
               </div>
 
               <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <div class="font-semibold text-lg truncate">{{ u.firstName }} {{ u.lastName }}</div>
-                  <span *ngIf="u.companyCategory" class="inline-flex items-center rounded-full border border-emerald-600/40 bg-emerald-900/30 px-2.5 py-1 text-xs text-emerald-200">
+                  <span *ngIf="u.companyCategory" class="inline-flex items-center rounded-full border border-[color:var(--tf-border)] bg-[var(--tf-surface-2)] px-2.5 py-1 text-xs text-[color:var(--tf-muted)]">
                     {{ u.companyCategory }}
                   </span>
                 </div>
-                <div class="text-sm text-[#86b29a] truncate">{{ u.email }}</div>
-                <div class="text-sm text-emerald-100/90 mt-1 flex items-center gap-2 truncate">
-                  <svg class="w-4 h-4 text-emerald-300/80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <div class="text-sm text-[color:var(--tf-muted)] truncate">{{ u.email }}</div>
+                <div class="text-sm text-[color:var(--tf-on-surface)] mt-1 flex items-center gap-2 truncate">
+                  <svg class="w-4 h-4 text-[color:var(--tf-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21V7l9-4 9 4v14M9 21V9h6v12"/>
                   </svg>
                   <span class="truncate">{{ u.companyName || '—' }}</span>
                 </div>
-                <div class="text-xs text-[#86b29a] mt-2">
+                <div class="text-xs text-[color:var(--tf-muted)] mt-2">
                   Requested {{ requestedAgo(u.createdAt) }}
                 </div>
               </div>
@@ -173,7 +176,7 @@ type PendingRegistration = {
             <div class="flex items-center gap-2 sm:justify-end">
               <button
                 type="button"
-                class="h-10 px-4 rounded-xl bg-[#1e7a3e] hover:bg-[#22c55e] text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                class="h-10 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 (click)="approve(u)"
                 [disabled]="actionLoading()"
               >
@@ -204,16 +207,16 @@ type PendingRegistration = {
         *ngIf="rejectingUser()"
         class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
       >
-        <div class="w-[min(520px,96vw)] rounded-2xl border border-emerald-700/30 bg-[#0d2418] shadow-[0_30px_120px_rgba(0,0,0,.55)] overflow-hidden">
-          <div class="p-5 border-b border-emerald-700/30">
+        <div class="w-[min(520px,96vw)] rounded-2xl border border-[color:var(--tf-border)] shadow-[0_30px_120px_rgba(0,0,0,.55)] overflow-hidden" style="background: var(--tf-card);">
+          <div class="p-5 border-b border-[color:var(--tf-border)]">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <div class="text-lg font-semibold">Reject Registration</div>
-                <div class="text-sm text-[#86b29a] mt-1">
+                <div class="text-sm text-[color:var(--tf-muted)] mt-1">
                   {{ rejectingUser()!.firstName }} {{ rejectingUser()!.lastName }} • {{ rejectingUser()!.email }}
                 </div>
               </div>
-              <button class="text-[#86b29a] hover:text-white" (click)="closeReject()" aria-label="Close">
+              <button class="text-[color:var(--tf-muted)] hover:text-[color:var(--tf-on-surface)]" (click)="closeReject()" aria-label="Close">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -222,11 +225,12 @@ type PendingRegistration = {
           </div>
 
           <div class="p-5">
-            <label class="block text-sm text-[#86b29a] mb-2">Rejection reason <span class="text-red-300">*</span></label>
+            <label class="block text-sm text-[color:var(--tf-muted)] mb-2">Rejection reason <span class="text-red-300">*</span></label>
             <textarea
               [(ngModel)]="rejectReason"
               rows="4"
-              class="w-full rounded-xl bg-[#0f2b1d] border border-emerald-700/30 px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/60 focus:shadow-[0_0_0_3px_rgba(34,197,94,.12)]"
+              class="w-full rounded-xl border border-[color:var(--tf-border)] px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              style="background: var(--tf-surface); color: var(--tf-on-surface);"
               placeholder="Please provide a reason..."
             ></textarea>
             <div *ngIf="rejectReasonTouched && !rejectReasonTrimmed()" class="text-xs text-red-300 mt-2">
@@ -237,7 +241,7 @@ type PendingRegistration = {
           <div class="p-5 pt-0 flex items-center justify-end gap-2">
             <button
               type="button"
-              class="h-10 px-4 rounded-xl border border-emerald-600/40 bg-transparent text-emerald-100 hover:bg-emerald-900/20 text-sm"
+              class="h-10 px-4 rounded-xl border border-[color:var(--tf-border)] bg-transparent text-[color:var(--tf-on-surface)] hover:bg-[var(--tf-surface-2)] text-sm"
               (click)="closeReject()"
               [disabled]="actionLoading()"
             >

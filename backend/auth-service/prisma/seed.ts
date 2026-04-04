@@ -91,6 +91,40 @@ async function ensureMembership(params: {
   });
 }
 
+async function ensureTenantId(name: string): Promise<string> {
+  const base = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+  const safeName = name.trim() || 'Tenant';
+
+  // Try lookup by name (requires tenant-service route /tenants/by-name/:name)
+  try {
+    const r = await fetch(`${base}/tenants/by-name/${encodeURIComponent(safeName)}`);
+    if (r.ok) {
+      const t = await r.json();
+      if (t?.id) return String(t.id);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Create if not found
+  try {
+    const r = await fetch(`${base}/tenants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: safeName, country: 'TN', branding: {} }),
+    });
+    if (r.ok) {
+      const t = await r.json();
+      if (t?.id) return String(t.id);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Fallback: keep previous behavior so seed still works even if tenant-service is down.
+  return crypto.randomUUID();
+}
+
 async function main() {
   const seedUserEmail = (process.env.SEED_USER_EMAIL ?? 'demo@taskflow.local').trim().toLowerCase();
   const seedUserPassword = process.env.SEED_USER_PASSWORD ?? 'Demo1234!';
@@ -125,9 +159,9 @@ async function main() {
     isActive: true,
   });
 
-  // Tenant IDs are just UUID strings in this schema (no Tenant relation).
-  const tenantIdForAdmin = crypto.randomUUID();
-  const tenantIdForDemo = crypto.randomUUID();
+  // Membership uses a tenantId string; to keep Settings working, create matching tenants in tenant-service.
+  const tenantIdForAdmin = await ensureTenantId('TaskFlow Admin');
+  const tenantIdForDemo = await ensureTenantId('Demo Company');
 
   await ensureMembership({
     userId: adminUser.id,

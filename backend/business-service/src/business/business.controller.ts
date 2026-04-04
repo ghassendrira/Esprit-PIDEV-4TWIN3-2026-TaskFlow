@@ -25,6 +25,11 @@ export class BusinessController {
     return this.service.byTenant(tenantId);
   }
 
+  @Get(':id')
+  byId(@Param('id') id: string) {
+    return this.service.byId(id);
+  }
+
   @Get('count-by-tenant/:tenantId')
   async countByTenant(@Param('tenantId') tenantId: string) {
     const count = await this.service.countByTenant(tenantId);

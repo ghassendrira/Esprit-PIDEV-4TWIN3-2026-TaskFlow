@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Headers,
+  InternalServerErrorException,
   Param,
   Post,
   UnauthorizedException,
@@ -19,6 +20,23 @@ export class AdminController {
     private prisma: PrismaService,
     private jwt: JwtService,
   ) {}
+
+  private async resolveCompanyName(tenantId?: string): Promise<string> {
+    if (!tenantId) return '';
+
+    const tenantServiceBase = (
+      process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
+    ).replace(/\/+$/, '');
+
+    try {
+      const response = await fetch(`${tenantServiceBase}/tenants/${tenantId}`);
+      if (!response.ok) return '';
+      const tenant = await response.json();
+      return (tenant?.name as string) ?? '';
+    } catch {
+      return '';
+    }
+  }
 
   private async assertSuperAdmin(authHeader?: string): Promise<{
     userId: string;
@@ -116,6 +134,121 @@ export class AdminController {
     return results;
   }
 
+  @Get('blocked-accounts')
+  async blockedAccounts(
+    @Headers('authorization') authorization: string,
+  ): Promise<
+    Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      companyName: string;
+      roleName: string;
+      blockedUntil: Date;
+      loginAttempts: number;
+      createdAt: Date;
+    }>
+  > {
+    await this.assertSuperAdmin(authorization);
+
+    const now = new Date();
+    const blockedUsers = await this.prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        registrationStatus: 'ACTIVE',
+        blockedUntil: {
+          gt: now,
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        blockedUntil: true,
+        loginAttempts: true,
+        createdAt: true,
+        memberships: {
+          select: {
+            tenantId: true,
+            role: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          take: 1,
+        },
+      },
+      orderBy: { blockedUntil: 'desc' },
+    });
+
+    const results: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      companyName: string;
+      roleName: string;
+      blockedUntil: Date;
+      loginAttempts: number;
+      createdAt: Date;
+    }> = [];
+
+    for (const user of blockedUsers) {
+      const membership = user.memberships[0];
+      const companyName = await this.resolveCompanyName(membership?.tenantId);
+
+      results.push({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        companyName,
+        roleName: membership?.role?.name ?? 'USER',
+        blockedUntil: user.blockedUntil as Date,
+        loginAttempts: user.loginAttempts ?? 0,
+        createdAt: user.createdAt,
+      });
+    }
+
+    return results;
+  }
+
+  @Post('unblock/:userId')
+  async unblockAccount(
+    @Headers('authorization') authorization: string,
+    @Param('userId') userId: string,
+  ) {
+    await this.assertSuperAdmin(authorization);
+    if (!userId) throw new BadRequestException('userId is required');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true, blockedUntil: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        blockedUntil: null,
+        loginAttempts: 0,
+      },
+      select: { id: true },
+    });
+
+    return {
+      success: true,
+      message: `Compte débloqué pour ${user.email}`,
+    };
+  }
+
   @Post('approve/:userId')
   async approve(
     @Headers('authorization') authorization: string,
@@ -128,7 +261,6 @@ export class AdminController {
     if (!user) throw new BadRequestException('User not found');
 
     const tempPassword = Math.random().toString(36).slice(-8);
-    console.log('[admin.approve] tempPassword (plain) =', tempPassword);
 
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
     const bcrypt = (await import('bcrypt')).default;
@@ -148,8 +280,12 @@ export class AdminController {
     });
 
     // Notify applicant via notification-service
+    const notificationBase = (
+      process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004'
+    ).replace(/\/+$/, '');
+
     try {
-      await fetch('http://localhost:3004/notification/approval', {
+      const r = await fetch(`${notificationBase}/notification/approval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -158,13 +294,19 @@ export class AdminController {
           tempPassword,
         }),
       });
+
+      if (!r.ok) {
+        const text = await r.text().catch(() => '');
+        throw new Error(text || r.statusText);
+      }
     } catch (e) {
       console.log('Failed to send approval email:', e);
+      throw new InternalServerErrorException(
+        'Compte approuvé, mais envoi de l’email échoué (notification-service)'
+      );
     }
 
-    console.log('[admin.approve] password sent in email =', tempPassword);
-
-    return { success: true };
+    return { success: true, emailSent: true };
   }
 
   @Post('reject/:userId')
@@ -191,8 +333,12 @@ export class AdminController {
       },
     });
 
+    const notificationBase = (
+      process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004'
+    ).replace(/\/+$/, '');
+
     try {
-      await fetch('http://localhost:3004/notification/rejection', {
+      const r = await fetch(`${notificationBase}/notification/rejection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,11 +347,19 @@ export class AdminController {
           reason: reason || 'Your registration was not approved.',
         }),
       });
+
+      if (!r.ok) {
+        const text = await r.text().catch(() => '');
+        throw new Error(text || r.statusText);
+      }
     } catch (e) {
       console.log('Failed to send rejection email:', e);
+      throw new InternalServerErrorException(
+        'Compte refusé, mais envoi de l’email échoué (notification-service)'
+      );
     }
 
-    return { success: true };
+    return { success: true, emailSent: true };
   }
 }
 
