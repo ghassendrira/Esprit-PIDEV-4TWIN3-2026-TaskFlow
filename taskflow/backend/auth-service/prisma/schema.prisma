@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  firstName    String
+  lastName     String
+  email        String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+  welcomeEmailSent Boolean @default(false)
+  registrationStatus RegistrationStatus @default(PENDING)
+  mustChangePassword Boolean            @default(false)
+  tempPassword       String?
+  companyCategory    String?
+  rejectionReason    String?
+  avatar       String?
+  loginAttempts     Int      @default(0)
+  blockedUntil      DateTime?
+  resetTokenHash    String?
+  resetTokenExpires DateTime?
+  
+  // 2FA Fields
+  is2faEnabled     Boolean  @default(false)
+  twoFaSecret      String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  memberships  UserTenantMembership[]
+  securityQuestions SecurityQuestion[]
+  passwordResetRequests PasswordResetRequest[]
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  isStandard  Boolean  @default(false)
+  tenantId    String?  @db.Uuid           // Null for standard roles, UUID for custom company roles
+  company_id  String?  @db.Uuid           // Alias for tenantId to match requirements
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  memberships UserTenantMembership[]
+  permissions RolePermission[]
+
+  @@unique([name, tenantId])
+  @@unique([name, company_id])
+  @@index([tenantId])
+  @@index([company_id])
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique // e.g., Create_User, Read_User, etc.
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  assignedAt   DateTime   @default(now())
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserTenantMembership {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tenantId  String   @db.Uuid           // ← juste un UUID (pas de @relation)
+  roleId    String   @db.Uuid
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@index([roleId])
+}
+
+model PasswordResetRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  status      PasswordResetRequestStatus @default(PENDING)
+  requestedAt DateTime @default(now())
+  resolvedAt  DateTime?
+  adminNotes  String?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum PasswordResetRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RegistrationStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model Invitation {
+  id        String           @id @default(uuid()) @db.Uuid
+  tenantId  String           @db.Uuid
+  email     String
+  status    InvitationStatus @default(PENDING)
+  role      String
+  token     String           @unique
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  deletedAt DateTime?
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([token])
+}
+
+model SecurityQuestion {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  question   String
+  answerHash String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
