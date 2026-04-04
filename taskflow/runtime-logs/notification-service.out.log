@@ -1,0 +1,24 @@
+
+> notification-service@0.0.1 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m6:14:31 PM[0m] Starting compilation in watch mode...
+
+[[90m6:14:43 PM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +13ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +6ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationController {/}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationHttpController {/notification}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notification/welcome, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notification/admin-registration, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notification/approval, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notification/rejection, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notification/employee-welcome, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notification/reset-password, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notification/admin-password-request, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13852  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +3ms[39m

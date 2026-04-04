@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "otplib": "^13.4.0",
+    "speakeasy": "^2.0.0"
+  }
+}

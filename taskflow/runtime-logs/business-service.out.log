@@ -1,0 +1,25 @@
+
+> business-service@0.0.1 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m6:14:31 PM[0m] Starting compilation in watch mode...
+
+[[90m6:14:43 PM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +16ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +5ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +4ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBusinessController {/businesses}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/by-tenant/:tenantId, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/count-by-tenant/:tenantId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, PATCH} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mClientsController {/clients}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/clients, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/clients/by-business/:businessId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/clients/:id, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/clients/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:47 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/clients/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 34864  - [39m04/04/2026 6:14:48 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +136ms[39m
