@@ -31,4 +31,11 @@ export class ApiService {
   delete<T>(path: string, options?: { headers?: HttpHeaders; params?: HttpParams; context?: HttpContext }): Observable<T> {
     return this.http.delete<T>(this.url(path), options);
   }
+
+  postBlob(path: string, body: unknown, options?: { headers?: HttpHeaders; params?: HttpParams; context?: HttpContext }): Observable<Blob> {
+    return this.http.post(this.url(path), body, {
+      ...options,
+      responseType: 'blob',
+    });
+  }
 }

@@ -9,11 +9,11 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const loading = inject(LoadingService);
   const router = inject(Router);
-  const token = auth.token();
-  const activeTenantId = localStorage.getItem('activeTenantId');
-  
-  let setHeaders: any = {};
-  
+  const token = auth.token() || localStorage.getItem('token') || localStorage.getItem('taskflow-token') || '';
+  const activeTenantId = localStorage.getItem('activeTenantId') || localStorage.getItem('tenantId') || localStorage.getItem('businessTenantId');
+
+  let setHeaders: Record<string, string> = {};
+
   const hasAuthHeader = req.headers.has('Authorization');
   const hasTenantHeader = req.headers.has('X-Tenant-Id') || req.headers.has('x-tenant-id');
 
@@ -21,6 +21,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     setHeaders['Authorization'] = `Bearer ${token}`;
   }
 
+  // Always try to add X-Tenant-Id if it's missing in the request but present in storage
   if (activeTenantId && !hasTenantHeader) {
     setHeaders['X-Tenant-Id'] = activeTenantId;
   }

@@ -57,7 +57,7 @@ model InvoiceItem {
   createdAt   DateTime @default(now())
   deletedAt   DateTime?
 
-  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
 }
@@ -72,7 +72,7 @@ model Payment {
   createdAt   DateTime @default(now())
   deletedAt   DateTime?
 
-  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
 }

@@ -102,6 +102,12 @@ export class AuthService {
         mustChangePassword: !!decoded.mustChangePassword
       };
       localStorage.setItem(USER_KEY, JSON.stringify(user));
+      
+      // Multi-tenant context for interceptor
+      localStorage.setItem('userId', user.id);
+      localStorage.setItem('userRole', mappedRoles[0] || '');
+      localStorage.setItem('tenantId', decoded.businessId || decoded.tenantId || '');
+
       if (decoded.tenantName) {
         localStorage.setItem('companyName', decoded.tenantName);
       }
@@ -257,6 +263,14 @@ export class AuthService {
       localStorage.removeItem(TOKEN_KEY);
       try { localStorage.removeItem('taskflow-token'); } catch {}
       localStorage.removeItem(USER_KEY);
+      
+      // Clear multi-tenant context
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('tenantId');
+      localStorage.removeItem('activeTenantId');
+      localStorage.removeItem('companyName');
+
       this.tokenSig.set(null);
       this.userSig.set(null);
 

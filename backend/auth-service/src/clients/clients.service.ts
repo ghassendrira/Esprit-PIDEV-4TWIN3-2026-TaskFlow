@@ -65,14 +65,21 @@ export class ClientsService {
 
     const isElevated = !!elevatedMembership || isAdminEmail || hasElevatedJwtRole;
 
-    if (tenantId) {
+    let tid =
+      tenantId && tenantId !== 'undefined' && tenantId !== 'null' ? tenantId : null;
+
+    if (tid && tid.includes(',')) {
+      tid = tid.split(',')[0].trim();
+    }
+
+    if (tid) {
       const m = await this.prisma.userTenantMembership.findFirst({
-        where: { userId, tenantId, deletedAt: null },
+        where: { userId, tenantId: tid, deletedAt: null },
       });
       if (!m && !isElevated) {
         throw new UnauthorizedException('No membership found for this tenant');
       }
-      return { userId, tenantId };
+      return { userId, tenantId: tid };
     }
 
     const m = await this.prisma.userTenantMembership.findFirst({
@@ -110,7 +117,9 @@ export class ClientsService {
       businessId,
     )}`;
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, {
+        headers: { 'X-Tenant-Id': resolvedTenantId },
+      });
       if (!r.ok) {
         const txt = await r.text();
         throw new BadGatewayException(txt);
@@ -142,7 +151,10 @@ export class ClientsService {
     const url = `${this.businessBase()}/clients`;
     const r = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-Id': resolvedTenantId,
+      },
       body: JSON.stringify(body),
     });
 
@@ -154,9 +166,11 @@ export class ClientsService {
     return r.json();
   }
 
-  private async getClientFromBusinessService(id: string) {
+  private async getClientFromBusinessService(id: string, tenantId: string) {
     const url = `${this.businessBase()}/clients/${encodeURIComponent(id)}`;
-    const r = await fetch(url);
+    const r = await fetch(url, {
+      headers: { 'X-Tenant-Id': tenantId },
+    });
     if (r.status === 404) throw new NotFoundException('Client not found');
     if (!r.ok) {
       const txt = await r.text();
@@ -167,7 +181,7 @@ export class ClientsService {
 
   async get(auth: string, tenantId: string | undefined, id: string) {
     const { tenantId: resolvedTenantId } = await this.resolveTenant(auth, tenantId);
-    const client = await this.getClientFromBusinessService(id);
+    const client = await this.getClientFromBusinessService(id, resolvedTenantId);
     const ok = await this.assertBusinessAccess(resolvedTenantId, String(client?.businessId));
     if (!ok) throw new UnauthorizedException('Client not accessible for this tenant');
     return client;
@@ -186,16 +200,20 @@ export class ClientsService {
     },
   ) {
     const { tenantId: resolvedTenantId } = await this.resolveTenant(auth, tenantId);
-    const client = await this.getClientFromBusinessService(id);
+    const client = await this.getClientFromBusinessService(id, resolvedTenantId);
     const ok = await this.assertBusinessAccess(resolvedTenantId, String(client?.businessId));
     if (!ok) throw new UnauthorizedException('Client not accessible for this tenant');
 
     const url = `${this.businessBase()}/clients/${encodeURIComponent(id)}`;
     const r = await fetch(url, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-Id': resolvedTenantId,
+      },
       body: JSON.stringify(body),
     });
+
     if (!r.ok) {
       const txt = await r.text();
       throw new BadGatewayException(txt);
@@ -206,17 +224,21 @@ export class ClientsService {
 
   async remove(auth: string, tenantId: string | undefined, id: string) {
     const { tenantId: resolvedTenantId } = await this.resolveTenant(auth, tenantId);
-    const client = await this.getClientFromBusinessService(id);
+    const client = await this.getClientFromBusinessService(id, resolvedTenantId);
     const ok = await this.assertBusinessAccess(resolvedTenantId, String(client?.businessId));
     if (!ok) throw new UnauthorizedException('Client not accessible for this tenant');
 
     const url = `${this.businessBase()}/clients/${encodeURIComponent(id)}`;
-    const r = await fetch(url, { method: 'DELETE' });
+    const r = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'X-Tenant-Id': resolvedTenantId },
+    });
+
     if (!r.ok) {
       const txt = await r.text();
       throw new BadGatewayException(txt);
     }
 
-    return r.json();
+    return { success: true };
   }
 }

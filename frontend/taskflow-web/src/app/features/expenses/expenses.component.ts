@@ -5,6 +5,7 @@ import { TfCardComponent } from '../../shared/ui/card/tf-card.component';
 import { SettingsService } from '../../core/services/settings.service';
 import { ExpensesService } from '../../core/services/expenses.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BusinessSelectionService } from '../../core/services/business-selection.service';
 
 @Component({
   selector: 'tf-expenses',
@@ -12,58 +13,58 @@ import { AuthService } from '../../core/services/auth.service';
   imports: [CommonModule, FormsModule, TfCardComponent],
   template: `
     <tf-card>
-      <div class="flex items-center justify-between gap-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 style="margin: 0;">Dépenses</h2>
-          <p class="muted" style="margin: 6px 0 0;">Suivez les dépenses par business.</p>
+          <h2 class="text-xl font-bold">Dépenses</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Suivez les dépenses par business.</p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-3">
           <ng-container *ngIf="isAdmin()">
-            <label class="text-sm muted">Company</label>
-            <select
-              class="border rounded-lg px-3 py-2 text-sm"
-              style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
-              [ngModel]="activeTenantId()"
-              (ngModelChange)="onTenantChange($event)"
-            >
-              <option *ngFor="let t of tenants()" [value]="t.id">{{ t.name }}</option>
-            </select>
+            <div class="flex flex-col gap-1 min-w-[120px]">
+              <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Company</label>
+              <select
+                class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                [ngModel]="activeTenantId()"
+                (ngModelChange)="onTenantChange($event)"
+              >
+                <option *ngFor="let t of tenants()" [value]="t.id">{{ t.name }}</option>
+              </select>
+            </div>
           </ng-container>
 
-          <label class="text-sm muted">Business</label>
-          <select
-            class="border rounded-lg px-3 py-2 text-sm"
-            style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
-            [ngModel]="activeBusinessId()"
-            (ngModelChange)="onBusinessChange($event)"
-          >
-            <option *ngFor="let b of businesses()" [value]="b.id">{{ b.name }}</option>
-          </select>
+          <div class="flex flex-col gap-1 min-w-[120px]">
+            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Business</label>
+            <select
+              class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              [ngModel]="activeBusinessId()"
+              (ngModelChange)="onBusinessChange($event)"
+            >
+              <option *ngFor="let b of businesses()" [value]="b.id">{{ b.name }}</option>
+            </select>
+          </div>
         </div>
       </div>
     </tf-card>
 
-    <tf-card style="margin-top: 12px;" *ngIf="activeBusinessId()">
-      <div class="flex items-center justify-between" style="gap: 12px;">
+    <tf-card class="mt-4" *ngIf="activeBusinessId()">
+      <div class="flex items-center justify-between mb-4">
         <div>
-          <h3 style="margin: 0;">Créer / Modifier</h3>
-          <div *ngIf="!canWrite()" class="muted" style="margin-top: 6px;">Lecture seule (Business Owner).</div>
+          <h3 class="font-bold">Créer / Modifier</h3>
+          <div *ngIf="!canWrite()" class="text-sm text-slate-500 dark:text-slate-400 mt-1">Lecture seule (Business Owner).</div>
         </div>
-        <button (click)="reload()" class="border px-3 py-2 rounded-lg text-sm hover:bg-[var(--tf-surface-2)] transition" style="border-color: var(--tf-border);">Rafraîchir</button>
+        <button (click)="reload()" class="border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition font-medium">Rafraîchir</button>
       </div>
 
       <form
         *ngIf="canWrite()"
         (ngSubmit)="saveExpense()"
-        class="grid"
-        style="grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; align-items: end; margin-top: 10px;"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
       >
-        <div *ngIf="isAdmin()" style="grid-column: span 3;">
-          <label class="text-sm muted">Pour (employé)</label>
+        <div *ngIf="isAdmin()" class="sm:col-span-2">
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Pour (employé)</label>
           <select
-            class="w-full border rounded-lg px-3 py-2"
-            style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
+            class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             [(ngModel)]="selectedEmployeeId"
             name="selectedEmployeeId"
           >
@@ -72,50 +73,73 @@ import { AuthService } from '../../core/services/auth.service';
           </select>
         </div>
 
-        <div style="grid-column: span 4;">
-          <label class="text-sm muted">Description</label>
+        <div class="sm:col-span-2 lg:col-span-2">
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Description</label>
           <input
-            class="w-full border rounded-lg px-3 py-2"
-            style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
+            class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20"
             [(ngModel)]="form.description"
             name="description"
+            #description="ngModel"
             required
             minlength="3"
             maxlength="255"
+            placeholder="Ex: Fournitures bureau..."
+            [class.border-red-500]="(description.touched || submitted) && description.invalid"
           />
+          <div *ngIf="(description.touched || submitted) && description.errors?.['required']" class="text-red-500 text-[11px] mt-1">La description est obligatoire.</div>
+          <div *ngIf="(description.touched || submitted) && description.errors?.['minlength']" class="text-red-500 text-[11px] mt-1">Minimum 3 caractères.</div>
         </div>
 
-        <div style="grid-column: span 2;">
-          <label class="text-sm muted">Montant</label>
+        <div>
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Catégorie</label>
+          <select
+            class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20"
+            [(ngModel)]="form.categoryId"
+            name="categoryId"
+            #categoryId="ngModel"
+            required
+            [class.border-red-500]="(categoryId.touched || submitted) && categoryId.invalid"
+          >
+            <option value="" disabled>Sélectionner une catégorie</option>
+            <option *ngFor="let cat of expenseCategories()" [value]="cat.id">{{ cat.name }}</option>
+          </select>
+          <div *ngIf="(categoryId.touched || submitted) && categoryId.errors?.['required']" class="text-red-500 text-[11px] mt-1">La catégorie est obligatoire.</div>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Montant</label>
           <input
             type="number"
             min="0.01"
             step="0.01"
-            class="w-full border rounded-lg px-3 py-2"
-            style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
+            class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20"
             [(ngModel)]="form.amount"
             name="amount"
+            #amount="ngModel"
             required
+            [class.border-red-500]="(amount.touched || submitted) && amount.invalid"
           />
+          <div *ngIf="(amount.touched || submitted) && amount.errors?.['required']" class="text-red-500 text-[11px] mt-1">Le montant est obligatoire.</div>
         </div>
 
-        <div style="grid-column: span 2;">
-          <label class="text-sm muted">Date</label>
+        <div>
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Date</label>
           <input
             type="date"
-            class="w-full border rounded-lg px-3 py-2"
-            style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
+            class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20"
             [(ngModel)]="form.date"
             name="date"
+            #date="ngModel"
             required
+            [class.border-red-500]="(date.touched || submitted) && date.invalid"
           />
+          <div *ngIf="(date.touched || submitted) && date.errors?.['required']" class="text-red-500 text-[11px] mt-1">La date est obligatoire.</div>
         </div>
 
-        <div style="grid-column: span 2;">
-          <label class="text-sm muted">Statut</label>
+        <div>
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Statut</label>
           <select
-            class="w-full border rounded-lg px-3 py-2"
-            style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
+            class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             [(ngModel)]="form.status"
             name="status"
           >
@@ -125,27 +149,25 @@ import { AuthService } from '../../core/services/auth.service';
           </select>
         </div>
 
-        <div style="grid-column: span 6;">
-          <label class="text-sm muted">Receipt URL (optionnel)</label>
+        <div class="sm:col-span-2 lg:col-span-3">
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Receipt URL (optionnel)</label>
           <input
-            class="w-full border rounded-lg px-3 py-2"
-            style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
+            class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             [(ngModel)]="form.receiptUrl"
             name="receiptUrl"
             maxlength="500"
           />
         </div>
 
-        <div style="grid-column: span 2; display: flex; gap: 8px;">
-          <button type="submit" class="bg-[var(--tf-primary)] text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-95 transition">
+        <div class="sm:col-span-2 lg:col-span-1 flex gap-2">
+          <button type="submit" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition">
             {{ editingId() ? 'Mettre à jour' : 'Créer' }}
           </button>
           <button
             *ngIf="editingId()"
             type="button"
             (click)="cancelEdit()"
-            class="border px-4 py-2 rounded-lg text-sm hover:bg-[var(--tf-surface-2)] transition"
-            style="border-color: var(--tf-border);"
+            class="border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition"
           >
             Annuler
           </button>
@@ -154,43 +176,51 @@ import { AuthService } from '../../core/services/auth.service';
       <div *ngIf="errorMessage" class="mt-3 text-sm text-red-500">{{ errorMessage }}</div>
     </tf-card>
 
-    <tf-card style="margin-top: 12px;">
-      <div *ngIf="!activeBusinessId()" class="muted">Aucun business trouvé. Créez-en un dans Settings.</div>
+    <tf-card class="mt-4">
+      <div *ngIf="!activeBusinessId()" class="text-slate-500 italic">Aucun business trouvé. Créez-en un dans Settings.</div>
 
-      <div *ngIf="activeBusinessId()" class="overflow-auto rounded border" style="border-color: var(--tf-border);">
-        <table class="min-w-full text-sm" style="color: var(--tf-on-surface);">
-          <thead style="background: var(--tf-surface-2); color: var(--tf-muted);">
+      <div *ngIf="activeBusinessId()" class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
             <tr>
-              <th class="text-left font-medium px-3 py-2" style="border-bottom: 1px solid var(--tf-border);">Date</th>
-              <th class="text-left font-medium px-3 py-2" style="border-bottom: 1px solid var(--tf-border);">Description</th>
-              <th class="text-left font-medium px-3 py-2" style="border-bottom: 1px solid var(--tf-border);">Montant</th>
-              <th class="text-left font-medium px-3 py-2" style="border-bottom: 1px solid var(--tf-border);">Statut</th>
-              <th class="text-left font-medium px-3 py-2" style="border-bottom: 1px solid var(--tf-border);">Actions</th>
+              <th class="text-left py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Date</th>
+              <th class="text-left py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Description</th>
+              <th class="text-right py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Montant</th>
+              <th class="text-center py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Statut</th>
+              <th class="text-right py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-[color:var(--tf-border)]">
-            <tr *ngFor="let e of expenses();" class="hover:bg-[var(--tf-surface-2)] transition">
-              <td class="px-3 py-2">{{ e.date | date:'dd MMM yyyy' }}</td>
-              <td class="px-3 py-2">{{ e.description }}</td>
-              <td class="px-3 py-2">{{ e.amount }}</td>
-              <td class="px-3 py-2">{{ e.status }}</td>
-              <td class="px-3 py-2">
-                <div class="flex gap-2">
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            <tr *ngFor="let e of expenses();" class="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition">
+              <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ e.date | date:'dd MMM yyyy' }}</td>
+              <td class="py-3 px-4 font-medium">{{ e.description }}</td>
+              <td class="py-3 px-4 text-right font-bold">{{ e.amount }} TND</td>
+              <td class="py-3 px-4 text-center">
+                <span [class]="'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ' + (
+                  e.status === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                  e.status === 'REJECTED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                )">
+                  {{ e.status }}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-right">
+                <div class="flex items-center justify-end gap-2">
                   <button
                     *ngIf="canWrite()"
                     (click)="edit(e)"
-                    class="border px-2 py-1 rounded hover:bg-[var(--tf-surface-2)] transition"
-                    style="border-color: var(--tf-border);"
+                    class="text-blue-600 hover:text-blue-700 p-1"
+                    title="Modifier"
                   >
-                    Modifier
+                    <i class="fa-solid fa-pen"></i>
                   </button>
                   <button
                     *ngIf="canWrite()"
                     (click)="remove(e)"
-                    class="border px-2 py-1 rounded text-red-600 hover:bg-[var(--tf-surface-2)] transition"
-                    style="border-color: var(--tf-border);"
+                    class="text-slate-400 hover:text-red-600 p-1 transition"
+                    title="Supprimer"
                   >
-                    Supprimer
+                    <i class="fa-solid fa-trash-can"></i>
                   </button>
                 </div>
               </td>
@@ -199,22 +229,28 @@ import { AuthService } from '../../core/services/auth.service';
         </table>
       </div>
 
-      <div *ngIf="activeBusinessId() && expenses().length === 0" class="muted" style="margin-top: 10px;">Aucune dépense.</div>
+      <div *ngIf="activeBusinessId() && expenses().length === 0" class="text-slate-500 italic mt-4">Aucune dépense.</div>
     </tf-card>
-  `
+  `,
+  styles: [`
+    :host { display: block; }
+  `]
 })
 export class ExpensesComponent implements OnInit {
   private settings = inject(SettingsService);
   private expensesApi = inject(ExpensesService);
   private auth = inject(AuthService);
+  private businessSelection = inject(BusinessSelectionService);
 
-  businesses = signal<Array<{ id: string; name: string }>>([]);
+  businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
+  submitted = false;
   tenants = signal<Array<{ id: string; name: string }>>([]);
   activeTenantId = signal<string>(localStorage.getItem('activeTenantId') || '');
   employees = signal<Array<{ id: string; firstName: string; lastName: string; email: string }>>([]);
   selectedEmployeeId: string = '';
-  activeBusinessId = signal<string>('');
+  activeBusinessId = computed(() => this.businessSelection.selectedBusinessId());
   expenses = signal<any[]>([]);
+  expenseCategories = signal<any[]>([]);
   editingId = signal<string>('');
   errorMessage: string | null = null;
 
@@ -235,6 +271,7 @@ export class ExpensesComponent implements OnInit {
     date: '',
     status: 'PENDING',
     receiptUrl: '',
+    categoryId: '',
   };
 
   ngOnInit(): void {
@@ -254,10 +291,17 @@ export class ExpensesComponent implements OnInit {
 
     this.settings.getBusinesses().subscribe({
       next: (bs: any[]) => {
-        const simplified = (bs || []).map((b) => ({ id: b.id, name: b.name }));
+        const simplified = (bs || []).map((b) => ({ id: b.id, name: b.name, tenantId: b.tenantId }));
         this.businesses.set(simplified);
-        if (simplified.length && !this.activeBusinessId()) {
-          this.onBusinessChange(simplified[0].id);
+        if (simplified.length) {
+          const currentId = this.businessSelection.selectedBusinessId();
+          const found = simplified.find(b => b.id === currentId);
+          if (!currentId || !found) {
+            this.onBusinessChange(simplified[0].id);
+          } else {
+            this.businessSelection.setSelectedBusiness(found.id, found.tenantId);
+            this.reload();
+          }
         }
       },
       error: () => this.businesses.set([]),
@@ -273,13 +317,13 @@ export class ExpensesComponent implements OnInit {
     this.selectedEmployeeId = '';
     this.employees.set([]);
     this.businesses.set([]);
-    this.activeBusinessId.set('');
+    this.businessSelection.clearSelection();
 
     if (!tenantId) return;
 
     this.settings.getBusinessesForTenant(tenantId).subscribe({
       next: (bs: any[]) => {
-        const simplified = (bs || []).map((b) => ({ id: b.id, name: b.name }));
+        const simplified = (bs || []).map((b) => ({ id: b.id, name: b.name, tenantId: b.tenantId || tenantId }));
         this.businesses.set(simplified);
         if (simplified.length) this.onBusinessChange(simplified[0].id);
       },
@@ -297,7 +341,10 @@ export class ExpensesComponent implements OnInit {
   }
 
   onBusinessChange(id: string) {
-    this.activeBusinessId.set(id);
+    const business = this.businesses().find(b => b.id === id);
+    if (business) {
+      this.businessSelection.setSelectedBusiness(business.id, business.tenantId);
+    }
     this.cancelEdit();
     this.reload();
   }
@@ -307,6 +354,12 @@ export class ExpensesComponent implements OnInit {
     if (!businessId) return;
     const tenantId = this.resolveTenantId();
     if (this.isAdmin() && !tenantId) return;
+
+    this.expensesApi.getCategories(tenantId).subscribe({
+      next: (cats) => this.expenseCategories.set(cats || []),
+      error: () => this.expenseCategories.set([]),
+    });
+
     this.expensesApi.listByBusiness(businessId, tenantId).subscribe({
       next: (data) => this.expenses.set(data || []),
       error: () => this.expenses.set([]),
@@ -314,6 +367,7 @@ export class ExpensesComponent implements OnInit {
   }
 
   saveExpense() {
+    this.submitted = true;
     const businessId = this.activeBusinessId();
     if (!businessId) return;
 
@@ -337,6 +391,11 @@ export class ExpensesComponent implements OnInit {
       return;
     }
 
+    if (!this.form.categoryId) {
+      this.errorMessage = 'La catégorie est obligatoire.';
+      return;
+    }
+
     if (receiptUrl && !/^(https?:\/\/|data:image\/).+/i.test(receiptUrl)) {
       this.errorMessage = "L'URL du reçu est invalide.";
       return;
@@ -351,6 +410,7 @@ export class ExpensesComponent implements OnInit {
       date: new Date(date).toISOString(),
       status: this.form.status,
       receiptUrl,
+      categoryId: this.form.categoryId,
     };
 
     if (this.isAdmin() && this.selectedEmployeeId) {
@@ -362,6 +422,7 @@ export class ExpensesComponent implements OnInit {
     const obs$ = id ? this.expensesApi.update(id, payload, tenantId) : this.expensesApi.create(payload, tenantId);
     obs$.subscribe({
       next: () => {
+        this.submitted = false;
         this.cancelEdit();
         this.reload();
       },
@@ -377,12 +438,13 @@ export class ExpensesComponent implements OnInit {
       date: e.date ? String(e.date).slice(0, 10) : '',
       status: e.status,
       receiptUrl: e.receiptUrl,
+      categoryId: e.categoryId,
     };
   }
 
   cancelEdit() {
     this.editingId.set('');
-    this.form = { description: '', amount: 0, date: '', status: 'PENDING', receiptUrl: '' };
+    this.form = { description: '', amount: 0, date: '', status: 'PENDING', receiptUrl: '', categoryId: '' };
   }
 
   remove(e: any) {

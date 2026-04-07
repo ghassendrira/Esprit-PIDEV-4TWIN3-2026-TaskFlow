@@ -20,9 +20,13 @@ export class ExpensesProxyService {
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException();
 
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
+    let tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
       ? tenantIdFromHeader
       : null;
+
+    if (tenantId && tenantId.includes(',')) {
+      tenantId = tenantId.split(',')[0].trim();
+    }
 
     if (!tenantId) throw new BadRequestException('X-Tenant-Id header is required');
 
@@ -57,7 +61,11 @@ export class ExpensesProxyService {
     const isElevated = !!elevatedMembership || isAdminEmail || hasElevatedJwtRole;
 
     const membership = await this.prisma.userTenantMembership.findFirst({
-      where: { userId, tenantId, deletedAt: null },
+      where: {
+        userId,
+        tenantId,
+        deletedAt: null,
+      },
       include: { role: true },
     });
 
@@ -138,7 +146,10 @@ export class ExpensesProxyService {
     }
 
     const list = (await r.json()) as Array<{ id: string }>;
-    const ok = Array.isArray(list) && list.some((b) => b.id === businessId);
+    const bId = String(businessId).toLowerCase();
+    const ok =
+      Array.isArray(list) &&
+      list.some((b) => String(b.id).toLowerCase() === bId);
     if (!ok) throw new ForbiddenException('Business not in this tenant');
   }
 
@@ -146,10 +157,17 @@ export class ExpensesProxyService {
     return (process.env.EXPENSE_SERVICE_URL ?? 'http://localhost:3006').replace(/\/+$/, '');
   }
 
-  async listByBusiness(authHeader: string, tenantIdFromHeader: string, businessId: string) {
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
-      ? tenantIdFromHeader
-      : await this.resolveTenantIdFromBusiness(businessId);
+  async listByBusiness(
+    authHeader: string,
+    tenantIdFromHeader: string,
+    businessId: string,
+  ) {
+    const tenantId =
+      tenantIdFromHeader &&
+      tenantIdFromHeader !== 'null' &&
+      tenantIdFromHeader !== 'undefined'
+        ? tenantIdFromHeader
+        : await this.resolveTenantIdFromBusiness(businessId);
     const ctx = await this.getContext(authHeader, tenantId);
     await this.assertBusinessInTenant(ctx.tenantId, businessId);
 
@@ -157,7 +175,9 @@ export class ExpensesProxyService {
     let r: Response;
     let txt = '';
     try {
-      r = await fetch(url);
+      r = await fetch(url, {
+        headers: { 'X-Tenant-Id': ctx.tenantId },
+      });
       txt = await r.text();
     } catch {
       throw new BadGatewayException('Expense service unavailable');
@@ -172,39 +192,48 @@ export class ExpensesProxyService {
 
   async create(authHeader: string, tenantIdFromHeader: string, body: any) {
     const businessId = body?.businessId as string;
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
-      ? tenantIdFromHeader
-      : businessId
-        ? await this.resolveTenantIdFromBusiness(businessId)
-        : null;
+    const tenantId =
+      tenantIdFromHeader &&
+      tenantIdFromHeader !== 'null' &&
+      tenantIdFromHeader !== 'undefined'
+        ? tenantIdFromHeader
+        : businessId
+          ? await this.resolveTenantIdFromBusiness(businessId)
+          : null;
     const ctx = await this.getContext(authHeader, tenantId ?? undefined);
-    if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
+    if (!this.canWrite(ctx.roleName))
+      throw new ForbiddenException('Read-only for Business Owner');
 
     if (!businessId) throw new BadRequestException('businessId is required');
     await this.assertBusinessInTenant(ctx.tenantId, businessId);
 
     const url = `${this.expenseBase()}/expenses`;
 
-    const requestedCreatedBy = (body?.createdByUserId || body?.createdBy) as string | undefined;
+    const requestedCreatedBy = (body?.createdByUserId ||
+      body?.createdBy) as string | undefined;
     let createdBy = ctx.userId;
     if (requestedCreatedBy) {
-      if (!this.canAssignToOtherUser(ctx.roleName)) throw new ForbiddenException('Only admin can assign to another user');
+      if (!this.canAssignToOtherUser(ctx.roleName))
+        throw new ForbiddenException('Only admin can assign to another user');
       await this.assertUserInTenant(ctx.tenantId, requestedCreatedBy);
       createdBy = requestedCreatedBy;
     }
 
     const payload = {
       ...body,
-      createdBy,
+      tenantId: ctx.tenantId,
+      createdByUserId: createdBy,
     };
-    delete (payload as any).createdByUserId;
 
     let r: Response;
     let txt = '';
     try {
       r = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-Id': ctx.tenantId,
+        },
         body: JSON.stringify(payload),
       });
       txt = await r.text();
@@ -219,30 +248,26 @@ export class ExpensesProxyService {
     }
   }
 
-  async update(authHeader: string, tenantIdFromHeader: string, id: string, body: any) {
-    const businessId = body?.businessId as string | undefined;
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
-      ? tenantIdFromHeader
-      : businessId
-        ? await this.resolveTenantIdFromBusiness(businessId)
-        : null;
-    const ctx = await this.getContext(authHeader, tenantId ?? undefined);
-    if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
-
-    if (businessId) await this.assertBusinessInTenant(ctx.tenantId, businessId);
+  async update(
+    authHeader: string,
+    tenantIdFromHeader: string,
+    id: string,
+    body: any,
+  ) {
+    const ctx = await this.getContext(authHeader, tenantIdFromHeader);
+    if (!this.canWrite(ctx.roleName))
+      throw new ForbiddenException('Read-only for Business Owner');
 
     const url = `${this.expenseBase()}/expenses/${encodeURIComponent(id)}`;
-    // Never allow changing createdBy through the proxy.
-    if (body && typeof body === 'object') {
-      delete body.createdBy;
-      delete body.createdByUserId;
-    }
     let r: Response;
     let txt = '';
     try {
       r = await fetch(url, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-Id': ctx.tenantId,
+        },
         body: JSON.stringify(body),
       });
       txt = await r.text();
@@ -259,12 +284,26 @@ export class ExpensesProxyService {
 
   async remove(authHeader: string, tenantIdFromHeader: string, id: string) {
     const ctx = await this.getContext(authHeader, tenantIdFromHeader);
-    if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
+    if (!this.canWrite(ctx.roleName))
+      throw new ForbiddenException('Read-only for Business Owner');
 
     const url = `${this.expenseBase()}/expenses/${encodeURIComponent(id)}`;
-    const r = await fetch(url, { method: 'DELETE' });
-    const txt = await r.text();
+    let r: Response;
+    let txt = '';
+    try {
+      r = await fetch(url, {
+        method: 'DELETE',
+        headers: { 'X-Tenant-Id': ctx.tenantId },
+      });
+      txt = await r.text();
+    } catch {
+      throw new BadGatewayException('Expense service unavailable');
+    }
     if (!r.ok) throw new BadGatewayException(txt || 'Expense service error');
-    return txt ? JSON.parse(txt) : { success: true };
+    try {
+      return JSON.parse(txt);
+    } catch {
+      return { success: true };
+    }
   }
 }

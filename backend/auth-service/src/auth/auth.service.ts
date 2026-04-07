@@ -293,8 +293,7 @@ export class AuthService {
     // Login protection (account lock)
     const now = new Date();
     if (user.blockedUntil && user.blockedUntil.getTime() > now.getTime()) {
-      const mins = Math.ceil((user.blockedUntil.getTime() - now.getTime()) / 60000);
-      throw new ForbiddenException(`Compte bloqué. Réessayez dans ${mins} minutes.`);
+      throw new ForbiddenException('Your account is locked. Try again after 1 hour.');
     }
 
     // Auto unlock if lock expired
@@ -313,21 +312,22 @@ export class AuthService {
       const currentAttempts = Number(user.loginAttempts ?? 0);
       const nextAttempts = currentAttempts + 1;
 
-      if (nextAttempts >= 5) {
-        const blockedUntil = new Date(now.getTime() + 30 * 60 * 1000);
+      if (nextAttempts >= 3) {
+        const blockedUntil = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
         await this.prisma.user.update({
           where: { id: user.id },
           data: { loginAttempts: 0, blockedUntil },
           select: { id: true },
         });
-        throw new ForbiddenException('Trop de tentatives. Compte bloqué pour 30 minutes.');
+        throw new ForbiddenException('Your account is locked. Try again after 1 hour.');
       } else {
         await this.prisma.user.update({
           where: { id: user.id },
           data: { loginAttempts: nextAttempts },
           select: { id: true },
         });
-        throw new BadRequestException(`Mot de passe incorrect. Tentatives restantes : ${5 - nextAttempts}`);
+        const remaining = 3 - nextAttempts;
+        throw new BadRequestException(`Incorrect password. Attempts remaining: ${remaining}`);
       }
     }
 

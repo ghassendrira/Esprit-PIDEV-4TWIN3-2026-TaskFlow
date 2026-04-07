@@ -114,14 +114,21 @@ export class SettingsService {
 
     const isElevated = !!elevatedMembership || isAdminEmail || hasElevatedJwtRole;
 
-    if (tenantId) {
+    let tid =
+      tenantId && tenantId !== 'undefined' && tenantId !== 'null' ? tenantId : null;
+
+    if (tid && tid.includes(',')) {
+      tid = tid.split(',')[0].trim();
+    }
+
+    if (tid) {
       const m = await this.prisma.userTenantMembership.findFirst({
-        where: { userId, tenantId, deletedAt: null },
+        where: { userId, tenantId: tid, deletedAt: null },
       });
       if (!m && !isElevated) {
         throw new UnauthorizedException('No membership found for this tenant');
       }
-      return { userId, tenantId };
+      return { userId, tenantId: tid };
     }
 
     // If no tenantId provided in headers, look for the first membership
@@ -285,31 +292,38 @@ export class SettingsService {
     auth: string,
     tenantId?: string,
   ): Promise<
-    Array<{ id: string; name: string; currency: string; taxRate: number; category: string }>
+    Array<{
+      id: string;
+      name: string;
+      currency: string;
+      taxRate: number;
+      category: string;
+      tenantId: string;
+    }>
   > {
     const { tenantId: resolvedTenantId } = await this.resolveTenant(
       auth,
       tenantId,
     );
     const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const url = `${base.replace(/\/+$/, '')}/businesses/by-tenant/${resolvedTenantId}`;
+    const url = `${base.replace(
+      /\/+$/,
+      '',
+    )}/businesses/by-tenant/${resolvedTenantId}`;
     try {
       const r = await fetch(url);
-      const list = r.ok ? await r.json() : [];
-      if (!Array.isArray(list)) return [];
-      return list
-        .filter((b: any) => !b?.deletedAt)
-        .map((b: any) => ({
-          id: String(b.id),
-          name: String(b.name ?? ''),
-          currency: String(b.currency ?? ''),
-          taxRate: Number(b.taxRate ?? 0),
-          category: String(b.category ?? 'Autre'),
-        }));
+      if (!r.ok) return [];
+      const list = (await r.json()) as any[];
+      return list.map((b) => ({
+        id: b.id,
+        name: b.name,
+        currency: b.currency,
+        taxRate: b.taxRate,
+        category: b.category,
+        tenantId: b.tenantId || resolvedTenantId,
+      }));
     } catch {
-      throw new BadGatewayException(
-        'Business service unreachable. Start business-service or set BUSINESS_SERVICE_URL.',
-      );
+      return [];
     }
   }
 

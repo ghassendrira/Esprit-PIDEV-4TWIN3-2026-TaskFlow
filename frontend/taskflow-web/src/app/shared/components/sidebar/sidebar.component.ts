@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { NgFor } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 
 type MenuItem = { label: string; icon: string; path: string; roles?: ('OWNER'|'ACCOUNTANT'|'TEAM'|'SUPER_ADMIN')[] };
@@ -8,30 +8,33 @@ type MenuItem = { label: string; icon: string; path: string; roles?: ('OWNER'|'A
 @Component({
   selector: 'tf-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, NgFor],
+  imports: [RouterLink, RouterLinkActive, NgFor, NgIf],
   template: `
     <nav class="h-full px-4 py-5">
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-2">
         <a *ngFor="let item of visibleItems()"
            [routerLink]="item.path"
-           routerLinkActive="!bg-[var(--tf-surface-2)] !text-[color:var(--tf-on-surface)]"
+           routerLinkActive="!bg-primary-50 !text-primary-700 dark:!bg-primary-900/10 dark:!text-primary-400"
            #rla="routerLinkActive"
            (click)="navigate.emit()"
-           class="flex items-center gap-3 px-5 py-3.5 rounded-xl transition-all group hover:bg-[var(--tf-surface-2)]"
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all group hover:bg-[var(--tf-surface-2)]"
            style="color: var(--tf-muted);">
-          <span class="w-2 h-2 rounded-full transition-all" 
-                [style.background]="rla.isActive ? 'var(--tf-primary)' : 'transparent'"
-                [class.opacity-0]="!rla.isActive"
-                [class.opacity-100]="rla.isActive">
-          </span>
-          <span class="text-sm font-medium" [class.text-primary-700]="rla.isActive" [class.dark:text-primary-300]="rla.isActive">{{ item.label }}</span>
+          <div class="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+               [class.bg-primary-100]="rla.isActive"
+               [class.text-primary-700]="rla.isActive"
+               [class.dark:bg-primary-900/30]="rla.isActive"
+               [class.dark:text-primary-400]="rla.isActive">
+            <i class="fa-solid" [class]="item.icon"></i>
+          </div>
+          <span class="text-sm font-semibold tracking-tight">{{ item.label }}</span>
+          
+          <div *ngIf="rla.isActive" class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(var(--tf-primary-rgb),0.6)]"></div>
         </a>
       </div>
     </nav>
   `,
   styles: [`
     :host { display: block; }
-    a.active { background: var(--tf-surface-2); }
   `]
 })
 export class SidebarComponent {
@@ -39,17 +42,17 @@ export class SidebarComponent {
   private auth = inject(AuthService);
 
   items: MenuItem[] = [
-    { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
-    { label: 'Settings', icon: 'settings', path: '/settings', roles: ['OWNER'] },
-    { label: 'Invoices', icon: 'receipt_long', path: '/invoices', roles: ['OWNER','ACCOUNTANT','TEAM'] },
-    { label: 'Expenses', icon: 'account_balance_wallet', path: '/expenses', roles: ['OWNER','ACCOUNTANT','TEAM'] },
-    { label: 'Clients', icon: 'group', path: '/clients', roles: ['OWNER','ACCOUNTANT','TEAM'] },
-    { label: 'Team', icon: 'diversity_3', path: '/team', roles: ['OWNER'] },
-    { label: 'Employees', icon: 'person_add', path: '/employees', roles: ['OWNER'] },
-    { label: 'Admin Panel', icon: 'shield', path: '/admin/registrations', roles: ['SUPER_ADMIN'] },
-    { label: 'Password Requests', icon: 'key', path: '/admin/password-requests', roles: ['SUPER_ADMIN'] },
-    { label: 'Blocked Accounts', icon: 'lock', path: '/admin/blocked-accounts', roles: ['SUPER_ADMIN'] },
-    { label: 'Roles & permissions', icon: 'key', path: '/admin/roles', roles: ['SUPER_ADMIN'] }
+    { label: 'Dashboard', icon: 'fa-gauge-high', path: '/dashboard' },
+    { label: 'Invoices', icon: 'fa-file-invoice', path: '/invoices', roles: ['OWNER','ACCOUNTANT','TEAM'] },
+    { label: 'Expenses', icon: 'fa-wallet', path: '/expenses', roles: ['OWNER','ACCOUNTANT','TEAM'] },
+    { label: 'Clients', icon: 'fa-users', path: '/clients', roles: ['OWNER','ACCOUNTANT','TEAM'] },
+    { label: 'Team', icon: 'fa-people-group', path: '/team', roles: ['OWNER'] },
+    { label: 'Employees', icon: 'fa-user-plus', path: '/employees', roles: ['OWNER'] },
+    { label: 'Settings', icon: 'fa-gear', path: '/settings', roles: ['OWNER'] },
+    { label: 'Admin Panel', icon: 'fa-shield-halved', path: '/admin/registrations', roles: ['SUPER_ADMIN'] },
+    { label: 'Password Requests', icon: 'fa-key', path: '/admin/password-requests', roles: ['SUPER_ADMIN'] },
+    { label: 'Blocked Accounts', icon: 'fa-user-lock', path: '/admin/blocked-accounts', roles: ['SUPER_ADMIN'] },
+    { label: 'Roles & permissions', icon: 'fa-user-shield', path: '/admin/roles', roles: ['SUPER_ADMIN'] }
   ];
 
   visibleItems() {

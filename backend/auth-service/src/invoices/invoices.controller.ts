@@ -41,4 +41,22 @@ export class InvoicesController {
   ) {
     return this.service.remove(authorization, tenantId, id);
   }
+
+  @Get(':id')
+  getById(
+    @Headers('authorization') authorization: string,
+    @Headers('x-tenant-id') tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.service.getById(authorization, tenantId, id);
+  }
+
+  @Post(':id/send')
+  sendByEmail(
+    @Headers('authorization') authorization: string,
+    @Headers('x-tenant-id') tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.service.sendByEmail(authorization, tenantId, id);
+  }
 }

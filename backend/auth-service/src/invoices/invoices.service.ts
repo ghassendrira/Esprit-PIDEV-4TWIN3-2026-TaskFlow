@@ -1,4 +1,4 @@
-import { BadGatewayException, BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 
@@ -20,9 +20,13 @@ export class InvoicesProxyService {
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException();
 
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
+    let tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
       ? tenantIdFromHeader
       : null;
+
+    if (tenantId && tenantId.includes(',')) {
+      tenantId = tenantId.split(',')[0].trim();
+    }
 
     if (!tenantId) throw new BadRequestException('X-Tenant-Id header is required');
 
@@ -57,7 +61,11 @@ export class InvoicesProxyService {
     const isElevated = !!elevatedMembership || isAdminEmail || hasElevatedJwtRole;
 
     const membership = await this.prisma.userTenantMembership.findFirst({
-      where: { userId, tenantId, deletedAt: null },
+      where: {
+        userId,
+        tenantId,
+        deletedAt: null,
+      },
       include: { role: true },
     });
 
@@ -139,7 +147,10 @@ export class InvoicesProxyService {
     }
 
     const list = (await r.json()) as Array<{ id: string }>;
-    const ok = Array.isArray(list) && list.some((b) => b.id === businessId);
+    const bId = String(businessId).toLowerCase();
+    const ok =
+      Array.isArray(list) &&
+      list.some((b) => String(b.id).toLowerCase() === bId);
     if (!ok) throw new ForbiddenException('Business not in this tenant');
   }
 
@@ -147,10 +158,14 @@ export class InvoicesProxyService {
     return (process.env.INVOICE_SERVICE_URL ?? 'http://localhost:3005').replace(/\/+$/, '');
   }
 
-  async listByBusiness(authHeader: string, tenantIdFromHeader: string, businessId: string) {
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
-      ? tenantIdFromHeader
-      : await this.resolveTenantIdFromBusiness(businessId);
+  async listByBusiness(authHeader: string, tenantIdFromHeader: string | undefined, businessId: string) {
+    const tenantId =
+      tenantIdFromHeader &&
+      tenantIdFromHeader !== 'null' &&
+      tenantIdFromHeader !== 'undefined'
+        ? tenantIdFromHeader
+        : await this.resolveTenantIdFromBusiness(businessId);
+
     const ctx = await this.getContext(authHeader, tenantId);
     await this.assertBusinessInTenant(ctx.tenantId, businessId);
 
@@ -158,12 +173,24 @@ export class InvoicesProxyService {
     let r: Response;
     let txt = '';
     try {
-      r = await fetch(url);
+      r = await fetch(url, {
+        headers: { 'X-Tenant-Id': ctx.tenantId },
+      });
       txt = await r.text();
     } catch {
       throw new BadGatewayException('Invoice service unavailable');
     }
-    if (!r.ok) throw new BadGatewayException(txt || 'Invoice service error');
+    if (!r.ok) {
+      if (r.status === 400)
+        throw new BadRequestException(txt || 'Invalid input for invoice service');
+      if (r.status === 401)
+        throw new UnauthorizedException(txt || 'Invoice service unauthorized');
+      if (r.status === 403)
+        throw new ForbiddenException(txt || 'Invoice service forbidden');
+      if (r.status === 404)
+        throw new NotFoundException(txt || 'Invoice not found');
+      throw new BadGatewayException(txt || 'Invoice service error');
+    }
     try {
       return JSON.parse(txt);
     } catch {
@@ -171,45 +198,66 @@ export class InvoicesProxyService {
     }
   }
 
-  async create(authHeader: string, tenantIdFromHeader: string, body: any) {
+  async create(
+    authHeader: string,
+    tenantIdFromHeader: string | undefined,
+    body: any,
+  ) {
     const businessId = body?.businessId as string;
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
-      ? tenantIdFromHeader
-      : businessId
-        ? await this.resolveTenantIdFromBusiness(businessId)
-        : null;
+    const tenantId =
+      tenantIdFromHeader &&
+      tenantIdFromHeader !== 'null' &&
+      tenantIdFromHeader !== 'undefined'
+        ? tenantIdFromHeader
+        : businessId
+          ? await this.resolveTenantIdFromBusiness(businessId)
+          : null;
+
     const ctx = await this.getContext(authHeader, tenantId ?? undefined);
-    if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
+    if (!this.canWrite(ctx.roleName))
+      throw new ForbiddenException('Read-only for Business Owner');
 
     if (!businessId) throw new BadRequestException('businessId is required');
     await this.assertBusinessInTenant(ctx.tenantId, businessId);
 
     const url = `${this.invoiceBase()}/invoices`;
 
-    const requestedCreatedBy = (body?.createdByUserId || body?.createdBy) as string | undefined;
+    const requestedCreatedBy = (body?.createdByUserId ||
+      body?.createdBy) as string | undefined;
     let createdBy = ctx.userId;
     if (requestedCreatedBy) {
-      if (!this.canAssignToOtherUser(ctx.roleName)) throw new ForbiddenException('Only admin can assign to another user');
+      if (!this.canAssignToOtherUser(ctx.roleName))
+        throw new ForbiddenException('Only admin can assign to another user');
       await this.assertUserInTenant(ctx.tenantId, requestedCreatedBy);
       createdBy = requestedCreatedBy;
     }
 
-    const payload = { ...body, createdBy };
-    delete (payload as any).createdByUserId;
+    const finalBody = {
+      ...body,
+      tenantId: ctx.tenantId,
+      createdByUserId: createdBy,
+    };
 
     let r: Response;
     let txt = '';
     try {
       r = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-Id': ctx.tenantId,
+        },
+        body: JSON.stringify(finalBody),
       });
       txt = await r.text();
     } catch {
       throw new BadGatewayException('Invoice service unavailable');
     }
-    if (!r.ok) throw new BadGatewayException(txt || 'Invoice service error');
+    if (!r.ok) {
+      if (r.status === 400)
+        throw new BadRequestException(txt || 'Invalid input for invoice service');
+      throw new BadGatewayException(txt || 'Invoice service error');
+    }
     try {
       return JSON.parse(txt);
     } catch {
@@ -217,37 +265,38 @@ export class InvoicesProxyService {
     }
   }
 
-  async update(authHeader: string, tenantIdFromHeader: string, id: string, body: any) {
-    const businessId = body?.businessId as string | undefined;
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
-      ? tenantIdFromHeader
-      : businessId
-        ? await this.resolveTenantIdFromBusiness(businessId)
-        : null;
-    const ctx = await this.getContext(authHeader, tenantId ?? undefined);
-    if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
-
-    if (businessId) await this.assertBusinessInTenant(ctx.tenantId, businessId);
+  async update(
+    authHeader: string,
+    tenantIdFromHeader: string | undefined,
+    id: string,
+    body: any,
+  ) {
+    const ctx = await this.getContext(authHeader, tenantIdFromHeader);
+    if (!this.canWrite(ctx.roleName))
+      throw new ForbiddenException('Read-only for Business Owner');
 
     const url = `${this.invoiceBase()}/invoices/${encodeURIComponent(id)}`;
-    // Never allow changing createdBy through the proxy.
-    if (body && typeof body === 'object') {
-      delete body.createdBy;
-      delete body.createdByUserId;
-    }
     let r: Response;
     let txt = '';
     try {
       r = await fetch(url, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-Id': ctx.tenantId,
+        },
         body: JSON.stringify(body),
       });
       txt = await r.text();
     } catch {
       throw new BadGatewayException('Invoice service unavailable');
     }
-    if (!r.ok) throw new BadGatewayException(txt || 'Invoice service error');
+    if (!r.ok) {
+      if (r.status === 400)
+        throw new BadRequestException(txt || 'Invalid input for invoice service');
+      if (r.status === 404) throw new NotFoundException(txt || 'Invoice not found');
+      throw new BadGatewayException(txt || 'Invoice service error');
+    }
     try {
       return JSON.parse(txt);
     } catch {
@@ -255,14 +304,91 @@ export class InvoicesProxyService {
     }
   }
 
-  async remove(authHeader: string, tenantIdFromHeader: string, id: string) {
+  async remove(
+    authHeader: string,
+    tenantIdFromHeader: string | undefined,
+    id: string,
+  ) {
     const ctx = await this.getContext(authHeader, tenantIdFromHeader);
-    if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
+    if (!this.canWrite(ctx.roleName))
+      throw new ForbiddenException('Read-only for Business Owner');
 
     const url = `${this.invoiceBase()}/invoices/${encodeURIComponent(id)}`;
-    const r = await fetch(url, { method: 'DELETE' });
-    const txt = await r.text();
-    if (!r.ok) throw new BadGatewayException(txt || 'Invoice service error');
-    return txt ? JSON.parse(txt) : { success: true };
+    let r: Response;
+    let txt = '';
+    try {
+      r = await fetch(url, {
+        method: 'DELETE',
+        headers: { 'X-Tenant-Id': ctx.tenantId },
+      });
+      txt = await r.text();
+    } catch {
+      throw new BadGatewayException('Invoice service unavailable');
+    }
+    if (!r.ok) {
+      if (r.status === 404) throw new NotFoundException(txt || 'Invoice not found');
+      throw new BadGatewayException(txt || 'Invoice service error');
+    }
+    try {
+      return JSON.parse(txt);
+    } catch {
+      return { success: true };
+    }
+  }
+
+  async getById(
+    authHeader: string,
+    tenantIdFromHeader: string | undefined,
+    id: string,
+  ) {
+    const ctx = await this.getContext(authHeader, tenantIdFromHeader);
+    const url = `${this.invoiceBase()}/invoices/${encodeURIComponent(id)}`;
+    let r: Response;
+    let txt = '';
+    try {
+      r = await fetch(url, {
+        headers: { 'X-Tenant-Id': ctx.tenantId },
+      });
+      txt = await r.text();
+    } catch {
+      throw new BadGatewayException('Invoice service unavailable');
+    }
+    if (!r.ok) {
+      if (r.status === 404) throw new NotFoundException(txt || 'Invoice not found');
+      throw new BadGatewayException(txt || 'Invoice service error');
+    }
+    try {
+      return JSON.parse(txt);
+    } catch {
+      throw new BadGatewayException('Invalid response from invoice service');
+    }
+  }
+
+  async sendByEmail(
+    authHeader: string,
+    tenantIdFromHeader: string | undefined,
+    id: string,
+  ) {
+    const ctx = await this.getContext(authHeader, tenantIdFromHeader);
+    const url = `${this.invoiceBase()}/invoices/${encodeURIComponent(id)}/send`;
+    let r: Response;
+    let txt = '';
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-Tenant-Id': ctx.tenantId },
+      });
+      txt = await r.text();
+    } catch {
+      throw new BadGatewayException('Invoice service unavailable');
+    }
+    if (!r.ok) {
+      throw new BadGatewayException(txt || 'Invoice service error');
+    }
+    try {
+      return JSON.parse(txt);
+    } catch {
+      return { success: true };
+    }
   }
 }

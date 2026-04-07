@@ -46,28 +46,32 @@ type CountryOption = { label: string; value: string; currency: string; taxRate: 
           </div>
           <div>
             <label class="block text-sm mb-1">Address <span class="text-red-500">*</span></label>
-            <textarea formControlName="address" rows="3" minlength="5" maxlength="255" placeholder="123 Main Street, City..." class="w-full rounded-xl border px-4 py-2 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"></textarea>
-            <div *ngIf="submitted && form.controls.address.invalid" class="text-red-400 text-xs mt-1">This field is required</div>
+            <textarea formControlName="address" rows="3" minlength="2" maxlength="255" placeholder="123 Rue de la Liberté, Tunis..." class="w-full rounded-xl border px-4 py-2 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('address')?.touched || submitted) && form.get('address')?.invalid"></textarea>
+            <div *ngIf="(form.get('address')?.touched || submitted) && form.get('address')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">L'adresse est obligatoire.</div>
+            <div *ngIf="(form.get('address')?.touched || submitted) && form.get('address')?.errors?.['minlength']" class="text-red-500 text-[11px] mt-1 ml-1">L'adresse doit faire au moins 2 caractères.</div>
           </div>
           <div>
             <label class="block text-sm mb-1">Country <span class="text-red-500">*</span></label>
-            <select formControlName="country" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);">
+            <select formControlName="country" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('country')?.touched || submitted) && form.get('country')?.invalid">
               <option *ngFor="let c of countries" [value]="c.value">{{ c.emoji }} {{ c.label }}</option>
             </select>
-            <div *ngIf="submitted && form.controls.country.invalid" class="text-red-400 text-xs mt-1">This field is required</div>
+            <div *ngIf="(form.get('country')?.touched || submitted) && form.get('country')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le pays est obligatoire.</div>
           </div>
           <div>
-            <label class="block text-sm mb-1">Phone</label>
-            <input formControlName="phone" minlength="8" maxlength="20" placeholder="+216 XX XXX XXX" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"/>
+            <label class="block text-sm mb-1">Phone <span class="text-red-500">*</span></label>
+            <input formControlName="phone" placeholder="ex: 22111333" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('phone')?.touched || submitted) && form.get('phone')?.invalid"/>
+            <div *ngIf="(form.get('phone')?.touched || submitted) && form.get('phone')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le numéro de téléphone est obligatoire.</div>
+            <div *ngIf="(form.get('phone')?.touched || submitted) && form.get('phone')?.errors?.['pattern']" class="text-red-500 text-[11px] mt-1 ml-1">Le numéro doit contenir exactement 8 chiffres.</div>
           </div>
           
           <div>
             <label class="block text-sm mb-1">Logo URL <span class="text-red-500">*</span></label>
-            <input formControlName="logoUrl" placeholder="https://yourlogo.com/logo.png" (blur)="previewLogo()" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"/>
-            <div *ngIf="submitted && form.controls.logoUrl.invalid" class="text-red-400 text-xs mt-1">This field is required</div>
+            <input formControlName="logoUrl" placeholder="https://votre-logo.com/logo.png" (blur)="previewLogo()" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('logoUrl')?.touched || submitted) && form.get('logoUrl')?.invalid"/>
+            <div *ngIf="(form.get('logoUrl')?.touched || submitted) && form.get('logoUrl')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">L'URL du logo est obligatoire.</div>
+            <div *ngIf="(form.get('logoUrl')?.touched || submitted) && form.get('logoUrl')?.errors?.['pattern']" class="text-red-500 text-[11px] mt-1 ml-1">Format d'URL invalide.</div>
             <div class="mt-2">
-              <img *ngIf="logoValid()" [src]="form.value.logoUrl" alt="logo" class="h-10 rounded border" style="background: var(--tf-surface); border-color: var(--tf-border);"/>
-              <div *ngIf="!logoValid()" class="text-xs muted">Invalid image URL</div>
+              <img *ngIf="logoValid()" [src]="form.get('logoUrl')?.value" alt="logo" class="h-10 rounded border" style="background: var(--tf-surface); border-color: var(--tf-border);"/>
+              <div *ngIf="form.get('logoUrl')?.value && !logoValid()" class="text-red-500 text-[11px]">Format d'image non supporté (.png, .jpg, etc.).</div>
             </div>
           </div>
           <button class="w-full h-11 rounded-xl bg-[var(--tf-primary)] text-white dark:text-slate-900 font-semibold hover:brightness-95 transition disabled:opacity-50" [disabled]="form.invalid || saving">
@@ -97,9 +101,9 @@ export class CompanySetupComponent implements OnInit {
   ];
   form = this.fb.group({
     name: [{ value: '', disabled: true }],
-    address: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(255)]],
+    address: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
     country: ['TN', Validators.required],
-    phone: ['', [Validators.pattern(/^$|^[+0-9()\-\s]{8,20}$/)]],
+    phone: ['', [Validators.required, Validators.pattern(/^[0-9]{8}$/)]],
     
     logoUrl: ['', [Validators.required, Validators.pattern(/^(https?:\/\/|data:image\/).+/i)]],
   });
@@ -111,7 +115,12 @@ export class CompanySetupComponent implements OnInit {
   previewLogo() {}
   onSubmit() {
     this.submitted = true;
+    console.log('--- Formulaire Company Setup ---');
+    console.log('Valide:', this.form.valid);
+    console.log('Valeurs:', this.form.value);
+
     if (this.form.invalid) {
+      console.log('Erreurs:', this.getFormErrors());
       this.form.markAllAsTouched();
       return;
     }
@@ -129,5 +138,16 @@ export class CompanySetupComponent implements OnInit {
         this.errorMessage.set('Failed to save. Please try again.');
       }
     });
+  }
+
+  private getFormErrors() {
+    const errors: any = {};
+    Object.keys(this.form.controls).forEach(key => {
+      const controlErrors = this.form.get(key)?.errors;
+      if (controlErrors) {
+        errors[key] = controlErrors;
+      }
+    });
+    return errors;
   }
 }

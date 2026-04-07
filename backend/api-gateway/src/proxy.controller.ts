@@ -29,7 +29,15 @@ export class ProxyController {
       req.header('X-Tenant-Id') ??
       this.firstHeaderValue(req.headers['x-tenant-id']);
 
-    if (tenantId) headers['x-tenant-id'] = tenantId;
+    if (tenantId) {
+      headers['x-tenant-id'] = tenantId;
+    }
+
+    const userId = req.header('x-user-id') || req.header('X-User-Id');
+    if (userId) headers['x-user-id'] = userId;
+
+    const userRole = req.header('x-user-role') || req.header('X-User-Role');
+    if (userRole) headers['x-user-role'] = userRole;
 
     return headers;
   }
@@ -299,6 +307,38 @@ export class ProxyController {
     }
   }
 
+  @Get('invoices/:id')
+  async getInvoice(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const url = `http://localhost:3001/invoices/${encodeURIComponent(id)}`;
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Post('invoices/:id/send')
+  async sendInvoice(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const url = `http://localhost:3001/invoices/${encodeURIComponent(id)}/send`;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
   @Patch('invoices/:id')
   async updateInvoice(
     @Param('id') id: string,
@@ -340,13 +380,97 @@ export class ProxyController {
     }
   }
 
+  @Get('expenses/categories')
+  async listExpenseCategories(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3006/expense-categories';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Post('expense-categories')
+  async createExpenseCategory(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3006/expense-categories';
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('expenses')
+  async listAllExpenses(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3006/expenses';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('expenses/:id')
+  async getExpense(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const url = `http://localhost:3006/expenses/${encodeURIComponent(id)}`;
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('expenses/by-business')
+  async listExpensesByBusinessHeader(
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = 'http://localhost:3006/expenses/by-business';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
   @Get('expenses/by-business/:businessId')
   async listExpensesByBusiness(
     @Param('businessId') businessId: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const url = `http://localhost:3001/expenses/by-business/${encodeURIComponent(businessId)}`;
+    const url = `http://localhost:3006/expenses/by-business/${encodeURIComponent(businessId)}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -362,7 +486,7 @@ export class ProxyController {
 
   @Post('expenses')
   async createExpense(@Body() body: any, @Req() req: Request, @Res() res: Response) {
-    const url = 'http://localhost:3001/expenses';
+    const url = 'http://localhost:3006/expenses';
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -370,10 +494,7 @@ export class ProxyController {
         body: JSON.stringify(body),
       });
       const text = await r.text();
-      res
-        .status(r.status)
-        .setHeader('Content-Type', r.headers.get('content-type') ?? 'application/json')
-        .send(text);
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
     } catch (e: unknown) {
       const err = e instanceof Error ? e.message : String(e);
       res.status(502).json({ message: 'Upstream error', error: err });
@@ -387,7 +508,7 @@ export class ProxyController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const url = `http://localhost:3001/expenses/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3006/expenses/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'PATCH',
@@ -395,10 +516,7 @@ export class ProxyController {
         body: JSON.stringify(body),
       });
       const text = await r.text();
-      res
-        .status(r.status)
-        .setHeader('Content-Type', r.headers.get('content-type') ?? 'application/json')
-        .send(text);
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
     } catch (e: unknown) {
       const err = e instanceof Error ? e.message : String(e);
       res.status(502).json({ message: 'Upstream error', error: err });
@@ -407,11 +525,49 @@ export class ProxyController {
 
   @Delete('expenses/:id')
   async deleteExpense(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
-    const url = `http://localhost:3001/expenses/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3006/expenses/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'DELETE',
         headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Patch('expenses/:id/approve')
+  async approveExpense(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const url = `http://localhost:3006/expenses/${encodeURIComponent(id)}/approve`;
+    try {
+      const r = await fetch(url, {
+        method: 'PATCH',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Patch('expenses/:id/reject')
+  async rejectExpense(
+    @Param('id') id: string,
+    @Body() body: any,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3006/expenses/${encodeURIComponent(id)}/reject`;
+    try {
+      const r = await fetch(url, {
+        method: 'PATCH',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
       });
       const text = await r.text();
       res.status(r.status).setHeader('Content-Type', 'application/json').send(text);

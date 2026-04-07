@@ -52,23 +52,23 @@ import { ThemeService } from '../../core/services/theme.service';
               <input
                 type="email"
                 formControlName="email"
-                required
-                maxlength="254"
                 autocomplete="email"
                 placeholder="ex: nom@entreprise.com"
                 class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] pl-12 pr-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"
+                [class.border-red-500]="(form.get('email')?.touched || submitted) && form.get('email')?.invalid"
               />
             </div>
+            <div *ngIf="(form.get('email')?.touched || submitted) && form.get('email')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">L'email est obligatoire.</div>
+            <div *ngIf="(form.get('email')?.touched || submitted) && form.get('email')?.errors?.['email']" class="text-red-500 text-[11px] mt-1 ml-1">Veuillez saisir une adresse email valide.</div>
           </div>
           <div>
             <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">Mot de passe</label>
             <div class="relative">
-              <input [type]="showPwd ? 'text' : 'password'" formControlName="password" required
-                minlength="8"
-                maxlength="128"
+              <input [type]="showPwd ? 'text' : 'password'" formControlName="password"
                      autocomplete="current-password"
                      placeholder="Votre mot de passe"
-                     class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 pr-12 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
+                     class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 pr-12 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"
+                     [class.border-red-500]="(form.get('password')?.touched || submitted) && form.get('password')?.invalid"/>
               <button type="button" (click)="showPwd = !showPwd" aria-label="Afficher le mot de passe"
                       class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--tf-muted)] hover:text-[var(--tf-on-surface)] transition-colors duration-200 cursor-pointer">
                 <ng-container *ngIf="!showPwd; else eyeOff">
@@ -87,6 +87,7 @@ import { ThemeService } from '../../core/services/theme.service';
                 </ng-template>
               </button>
             </div>
+            <div *ngIf="(form.get('password')?.touched || submitted) && form.get('password')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le mot de passe est obligatoire.</div>
           </div>
           <div class="flex items-center justify-between gap-3">
             <label class="flex items-center gap-2 text-sm text-[var(--tf-muted)] select-none">
@@ -154,6 +155,7 @@ export class LoginComponent {
   protected theme = inject(ThemeService);
 
   showPwd = false;
+  submitted = false;
   errorMessage: string | null = null;
   lockoutActive = false;
   private unlockTimer: any = null;
@@ -174,6 +176,7 @@ export class LoginComponent {
   });
 
   onSubmit() {
+    this.submitted = true;
     if (this.form.invalid || this.lockoutActive) return;
     this.errorMessage = null;
     const email = this.form.value.email!;
@@ -218,7 +221,7 @@ export class LoginComponent {
     const lower = msg.toLowerCase();
 
     if (err?.status === 403 && (lower.includes('bloqué') || lower.includes('blocked'))) {
-      return msg || 'Compte bloqué temporairement.';
+      return msg || 'Account temporarily locked.';
     }
 
     if (err?.status === 400) {

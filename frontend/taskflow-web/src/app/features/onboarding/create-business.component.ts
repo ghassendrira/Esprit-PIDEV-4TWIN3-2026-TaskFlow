@@ -35,25 +35,31 @@ import { OnboardingLayoutComponent } from './onboarding.layout';
         <form class="space-y-4" [formGroup]="form" (ngSubmit)="onSubmit()">
           <div>
             <label class="block text-sm mb-1">Business Name <span class="text-red-500">*</span></label>
-            <input formControlName="name" minlength="2" maxlength="120" placeholder="e.g. Hasni Consulting" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" autofocus/>
+            <input formControlName="name" minlength="2" maxlength="120" placeholder="Nom de votre entreprise" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('name')?.touched || submitted) && form.get('name')?.invalid" autofocus/>
+            <div *ngIf="(form.get('name')?.touched || submitted) && form.get('name')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le nom de l'entreprise est obligatoire.</div>
+            <div *ngIf="(form.get('name')?.touched || submitted) && form.get('name')?.errors?.['minlength']" class="text-red-500 text-[11px] mt-1 ml-1">Le nom de l'entreprise doit contenir au moins 2 caractères.</div>
           </div>
           <div>
             <label class="block text-sm mb-1">Currency <span class="text-red-500">*</span></label>
-            <select formControlName="currency" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);">
+            <select formControlName="currency" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('currency')?.touched || submitted) && form.get('currency')?.invalid">
               <option value="TND">TND 🇹🇳</option>
               <option value="USD">USD 🇺🇸</option>
               <option value="EUR">EUR 🇪🇺</option>
               <option value="GBP">GBP 🇬🇧</option>
             </select>
+            <div *ngIf="(form.get('currency')?.touched || submitted) && form.get('currency')?.errors?.['required']" class="text-red-400 text-xs mt-1">La devise est requise</div>
             <div class="text-xs muted mt-1">Auto-selected based on your country</div>
           </div>
           <div>
             <label class="block text-sm mb-1">Default Tax Rate (%) <span class="text-red-500">*</span></label>
-            <input type="number" formControlName="taxRate" min="0" max="100" step="0.5" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"/>
+            <input type="number" formControlName="taxRate" min="0" max="100" step="0.5" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('taxRate')?.touched || submitted) && form.get('taxRate')?.invalid"/>
+            <div *ngIf="(form.get('taxRate')?.touched || submitted) && form.get('taxRate')?.errors?.['required']" class="text-red-400 text-xs mt-1">Le taux de taxe est requis</div>
+            <div *ngIf="(form.get('taxRate')?.touched || submitted) && (form.get('taxRate')?.errors?.['min'] || form.get('taxRate')?.errors?.['max'])" class="text-red-400 text-xs mt-1">Le taux doit être entre 0 et 100</div>
           </div>
           <div>
             <label class="block text-sm mb-1">Business Logo URL</label>
-            <input formControlName="logoUrl" placeholder="https://yourlogo.com/logo.png" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);"/>
+            <input formControlName="logoUrl" placeholder="https://yourlogo.com/logo.png" class="w-full h-11 rounded-xl border px-4 outline-none transition focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" style="background: var(--tf-surface); border-color: var(--tf-border); color: var(--tf-on-surface);" [class.border-red-500]="(form.get('logoUrl')?.touched || submitted) && form.get('logoUrl')?.invalid"/>
+            <div *ngIf="(form.get('logoUrl')?.touched || submitted) && form.get('logoUrl')?.errors?.['pattern']" class="text-red-400 text-xs mt-1">Format d'URL invalide</div>
             <div class="text-xs muted mt-1">Optional — you can add this later</div>
           </div>
 
@@ -80,6 +86,7 @@ export class CreateBusinessComponent implements OnInit {
   private router = inject(Router);
   private api = inject(OnboardingService);
   saving = false;
+  submitted = false;
   errorMessage: string | null = null;
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
@@ -97,7 +104,13 @@ export class CreateBusinessComponent implements OnInit {
     } catch {}
   }
   onSubmit() {
+    this.submitted = true;
+    console.log('--- Formulaire Créer Business ---');
+    console.log('Valide:', this.form.valid);
+    console.log('Valeurs:', this.form.value);
+    
     if (this.form.invalid) {
+      console.log('Erreurs:', this.getFormErrors());
       this.form.markAllAsTouched();
       return;
     }
@@ -113,5 +126,16 @@ export class CreateBusinessComponent implements OnInit {
         this.errorMessage = 'Failed to create business. Please try again.';
       }
     });
+  }
+
+  private getFormErrors() {
+    const errors: any = {};
+    Object.keys(this.form.controls).forEach(key => {
+      const controlErrors = this.form.get(key)?.errors;
+      if (controlErrors) {
+        errors[key] = controlErrors;
+      }
+    });
+    return errors;
   }
 }

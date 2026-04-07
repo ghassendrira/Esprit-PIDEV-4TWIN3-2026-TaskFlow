@@ -1,10 +1,11 @@
 import { Component, OnInit, inject, signal, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormsModule, FormGroup } from '@angular/forms';
 import { NgIf, NgFor } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -76,9 +77,6 @@ import { finalize } from 'rxjs';
                   [class.border-primary-500]="tab === 'security'"
                   [class.muted]="tab !== 'security'">
             <span>🛡️</span> Security
-          </button>
-          <button class="w-full px-3 py-2 rounded-lg text-sm flex items-center gap-3 muted opacity-60 cursor-not-allowed text-left">
-            <span>👥</span> Team and roles
           </button>
         </div>
 
@@ -368,22 +366,26 @@ import { finalize } from 'rxjs';
           <div class="grid grid-cols-2 gap-6">
             <div class="col-span-2">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Business name</label>
-              <input formControlName="name" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
-                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"/>
+              <input formControlName="name" placeholder="Nom de votre business" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
+                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);" [class.border-red-500]="(newBusinessForm.get('name')?.touched || submittedBusiness) && newBusinessForm.get('name')?.invalid"/>
+              <div *ngIf="(newBusinessForm.get('name')?.touched || submittedBusiness) && newBusinessForm.get('name')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le nom du business est obligatoire.</div>
+              <div *ngIf="(newBusinessForm.get('name')?.touched || submittedBusiness) && newBusinessForm.get('name')?.errors?.['minlength']" class="text-red-500 text-[11px] mt-1 ml-1">Le nom doit contenir au moins 2 caractères.</div>
             </div>
             <div class="col-span-1">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Currency</label>
               <select formControlName="currency" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
-                      style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);">
+                      style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);" [class.border-red-500]="(newBusinessForm.get('currency')?.touched || submittedBusiness) && newBusinessForm.get('currency')?.invalid">
                 <option value="TND">TND 🇹🇳</option>
                 <option value="USD">USD 🇺🇸</option>
                 <option value="EUR">EUR 🇪🇺</option>
               </select>
+              <div *ngIf="(newBusinessForm.get('currency')?.touched || submittedBusiness) && newBusinessForm.get('currency')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">La devise est obligatoire.</div>
             </div>
             <div class="col-span-1">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Tax Rate (%)</label>
               <input type="number" formControlName="taxRate" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
-                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"/>
+                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);" [class.border-red-500]="(newBusinessForm.get('taxRate')?.touched || submittedBusiness) && newBusinessForm.get('taxRate')?.invalid"/>
+              <div *ngIf="(newBusinessForm.get('taxRate')?.touched || submittedBusiness) && newBusinessForm.get('taxRate')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le taux de taxe est obligatoire.</div>
             </div>
             <div class="col-span-2">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Category</label>
@@ -416,23 +418,31 @@ import { finalize } from 'rxjs';
           <div class="grid grid-cols-2 gap-6">
             <div class="col-span-2">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Company name</label>
-              <input formControlName="name" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
-                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"/>
+              <input formControlName="name" placeholder="Nom de votre entreprise" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
+                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);" [class.border-red-500]="(newTenantForm.get('name')?.touched || submittedTenant) && newTenantForm.get('name')?.invalid"/>
+              <div *ngIf="(newTenantForm.get('name')?.touched || submittedTenant) && newTenantForm.get('name')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le nom de l'entreprise est obligatoire.</div>
+              <div *ngIf="(newTenantForm.get('name')?.touched || submittedTenant) && newTenantForm.get('name')?.errors?.['minlength']" class="text-red-500 text-[11px] mt-1 ml-1">Le nom de l'entreprise doit contenir au moins 2 caractères.</div>
             </div>
             <div class="col-span-1">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Tax ID / Matricule</label>
-              <input formControlName="matricule" placeholder="e.g. 1234567/A/M/000" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
-                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"/>
+              <input formControlName="matricule" placeholder="13 caractères (ex: 1234567ABC000)" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
+                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);" [class.border-red-500]="(newTenantForm.get('matricule')?.touched || submittedTenant) && newTenantForm.get('matricule')?.invalid"/>
+              <div *ngIf="(newTenantForm.get('matricule')?.touched || submittedTenant) && newTenantForm.get('matricule')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le matricule est obligatoire.</div>
+              <div *ngIf="(newTenantForm.get('matricule')?.touched || submittedTenant) && newTenantForm.get('matricule')?.errors?.['pattern']" class="text-red-500 text-[11px] mt-1 ml-1">Le matricule doit contenir exactement 13 lettres ou chiffres.</div>
             </div>
             <div class="col-span-1">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Phone</label>
-              <input formControlName="phone" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
-                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"/>
+              <input formControlName="phone" placeholder="ex: 22111333" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
+                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);" [class.border-red-500]="(newTenantForm.get('phone')?.touched || submittedTenant) && newTenantForm.get('phone')?.invalid"/>
+              <div *ngIf="(newTenantForm.get('phone')?.touched || submittedTenant) && newTenantForm.get('phone')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">Le numéro de téléphone est obligatoire.</div>
+              <div *ngIf="(newTenantForm.get('phone')?.touched || submittedTenant) && newTenantForm.get('phone')?.errors?.['pattern']" class="text-red-500 text-[11px] mt-1 ml-1">Le numéro doit contenir exactement 8 chiffres.</div>
             </div>
             <div class="col-span-2">
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Address</label>
-              <input formControlName="address" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
-                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"/>
+              <input formControlName="address" placeholder="123 Rue de la Liberté, Tunis..." class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
+                     style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);" [class.border-red-500]="(newTenantForm.get('address')?.touched || submittedTenant) && newTenantForm.get('address')?.invalid"/>
+              <div *ngIf="(newTenantForm.get('address')?.touched || submittedTenant) && newTenantForm.get('address')?.errors?.['required']" class="text-red-500 text-[11px] mt-1 ml-1">L'adresse est obligatoire.</div>
+              <div *ngIf="(newTenantForm.get('address')?.touched || submittedTenant) && newTenantForm.get('address')?.errors?.['minlength']" class="text-red-500 text-[11px] mt-1 ml-1">L'adresse doit faire au moins 2 caractères.</div>
             </div>
           </div>
 
@@ -455,6 +465,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   public tenantService = inject(TenantService);
+  public theme = inject(ThemeService);
   public user = this.auth.user;
 
   tab: 'company' | 'business' | 'security' = 'company';
@@ -465,6 +476,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   allTenants: any[] = [];
   showTenantDropdown = signal(false);
   showTenantModal = false;
+  submittedTenant = false;
   isRequestingTenant = false;
 
   // Businesses
@@ -472,6 +484,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   activeBusinessId: string | null = null;
   activeBusinessName = '';
   showBusinessModal = false;
+  submittedBusiness = false;
   isCreatingBusiness = false;
 
   // Security
@@ -515,9 +528,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   newTenantForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
-    address: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(255)]],
-    phone: ['', [Validators.pattern(/^$|^[+0-9()\-\s]{8,20}$/)]],
-    matricule: ['', [Validators.maxLength(40)]],
+    address: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
+    phone: ['', [Validators.required, Validators.pattern(/^[0-9]{8}$/)]],
+    matricule: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9]{13}$/)]],
     country: ['TN', Validators.required],
   });
 
@@ -756,7 +769,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   createBusiness() {
+    this.submittedBusiness = true;
+    console.log('--- Formulaire Business (Settings) ---');
+    console.log('Valide:', this.newBusinessForm.valid);
+    console.log('Valeurs:', this.newBusinessForm.value);
+
     if (this.newBusinessForm.invalid) {
+      console.log('Erreurs:', this.getFormErrors(this.newBusinessForm));
       this.newBusinessForm.markAllAsTouched();
       return;
     }
@@ -777,7 +796,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   requestTenant() {
+    this.submittedTenant = true;
+    console.log('--- Formulaire Tenant (Settings) ---');
+    console.log('Valide:', this.newTenantForm.valid);
+    console.log('Valeurs:', this.newTenantForm.value);
+
     if (this.newTenantForm.invalid) {
+      console.log('Erreurs:', this.getFormErrors(this.newTenantForm));
       this.newTenantForm.markAllAsTouched();
       return;
     }
@@ -864,4 +889,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {}
+
+  private getFormErrors(form: FormGroup) {
+    const errors: any = {};
+    Object.keys(form.controls).forEach(key => {
+      const controlErrors = form.get(key)?.errors;
+      if (controlErrors) {
+        errors[key] = controlErrors;
+      }
+    });
+    return errors;
+  }
 }

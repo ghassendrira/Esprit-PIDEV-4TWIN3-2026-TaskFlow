@@ -30,7 +30,7 @@ export class ClientsService {
     phone?: string;
     address?: string;
     taxNumber?: string;
-  }) {
+  }, tenantId?: string) {
     return this.api.post<ClientDto>('/clients', payload);
   }
 
@@ -43,11 +43,12 @@ export class ClientsService {
       address?: string;
       taxNumber?: string;
     },
+    tenantId?: string
   ) {
     return this.api.patch<ClientDto>(`/clients/${encodeURIComponent(id)}`, payload);
   }
 
-  remove(id: string) {
+  remove(id: string, tenantId?: string) {
     return this.api.delete<{ success: boolean }>(`/clients/${encodeURIComponent(id)}`);
   }
 }

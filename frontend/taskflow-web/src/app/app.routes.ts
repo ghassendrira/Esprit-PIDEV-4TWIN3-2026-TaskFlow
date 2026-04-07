@@ -53,6 +53,7 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
       { path: 'invoices', loadComponent: () => import('./features/invoices/invoices.component').then(m => m.InvoicesComponent) },
+      { path: 'invoices/:id', loadComponent: () => import('./features/invoices/detail/invoice-detail.component').then(m => m.InvoiceDetailComponent) },
       { path: 'expenses', loadComponent: () => import('./features/expenses/expenses.component').then(m => m.ExpensesComponent) },
       { path: 'clients', loadComponent: () => import('./features/clients/clients.component').then(m => m.ClientsComponent) },
       { path: 'team', loadComponent: () => import('./features/team/team.component').then(m => m.TeamComponent) },

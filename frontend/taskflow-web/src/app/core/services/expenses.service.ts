@@ -19,22 +19,22 @@ export class ExpensesService {
   private api = inject(ApiService);
 
   listByBusiness(businessId: string, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.get<any[]>(`/expenses/by-business/${encodeURIComponent(businessId)}`, headers ? { headers } : undefined);
+    return this.api.get<any[]>(`/expenses/by-business/${encodeURIComponent(businessId)}`);
+  }
+
+  getCategories(tenantId?: string) {
+    return this.api.get<any[]>('/expenses/categories');
   }
 
   create(payload: any, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.post<any>('/expenses', payload, headers ? { headers } : undefined);
+    return this.api.post<any>('/expenses', payload);
   }
 
   update(id: string, payload: any, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.patch<any>(`/expenses/${encodeURIComponent(id)}`, payload, headers ? { headers } : undefined);
+    return this.api.patch<any>(`/expenses/${encodeURIComponent(id)}`, payload);
   }
 
   remove(id: string, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.delete<{ success: boolean }>(`/expenses/${encodeURIComponent(id)}`, headers ? { headers } : undefined);
+    return this.api.delete<{ success: boolean }>(`/expenses/${encodeURIComponent(id)}`);
   }
 }

@@ -185,7 +185,8 @@ async function main() {
   console.log('[prisma seed] demo_after', afterDemo);
   console.log('[prisma seed] demo login email:', seedUserEmail);
   console.log('[prisma seed] admin login email:', seedAdminEmail);
-}
+
+  
 
 main()
   .catch((e) => {
@@ -196,3 +197,4 @@ main()
     await prisma.$disconnect();
   });
 
+}

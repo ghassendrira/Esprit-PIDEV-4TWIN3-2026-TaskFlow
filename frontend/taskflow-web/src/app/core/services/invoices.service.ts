@@ -21,22 +21,26 @@ export class InvoicesService {
   private api = inject(ApiService);
 
   listByBusiness(businessId: string, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.get<any[]>(`/invoices/by-business/${encodeURIComponent(businessId)}`, headers ? { headers } : undefined);
+    return this.api.get<any[]>(`/invoices/by-business/${encodeURIComponent(businessId)}`);
   }
 
   create(payload: any, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.post<any>('/invoices', payload, headers ? { headers } : undefined);
+    return this.api.post<any>('/invoices', payload);
   }
 
   update(id: string, payload: any, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.patch<any>(`/invoices/${encodeURIComponent(id)}`, payload, headers ? { headers } : undefined);
+    return this.api.patch<any>(`/invoices/${encodeURIComponent(id)}`, payload);
   }
 
   remove(id: string, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
-    return this.api.delete<{ success: boolean }>(`/invoices/${encodeURIComponent(id)}`, headers ? { headers } : undefined);
+    return this.api.delete<{ success: boolean }>(`/invoices/${encodeURIComponent(id)}`);
+  }
+
+  getById(id: string, tenantId?: string) {
+    return this.api.get<any>(`/invoices/${encodeURIComponent(id)}`);
+  }
+
+  sendByEmail(id: string, tenantId?: string) {
+    return this.api.post<{ success: boolean }>(`/invoices/${encodeURIComponent(id)}/send`, {});
   }
 }

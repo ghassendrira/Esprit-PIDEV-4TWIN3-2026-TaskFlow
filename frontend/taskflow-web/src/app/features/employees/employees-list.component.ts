@@ -20,17 +20,17 @@ interface Employee {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen bg-[var(--tf-surface)] text-[var(--tf-on-surface)] font-['Syne'] selection:bg-primary/20 p-8 relative overflow-hidden">
+    <div class="min-h-screen bg-[var(--tf-surface)] text-[var(--tf-on-surface)] font-['Syne'] selection:bg-primary/20 p-4 md:p-8 relative overflow-hidden">
       <!-- Radial Glow Background -->
       <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
       
       <!-- Topbar -->
-      <div class="flex items-center justify-between mb-12">
+      <div class="flex items-center justify-between mb-8 md:mb-12">
         <div class="font-['DM_Mono'] text-[var(--tf-muted)] text-sm tracking-tighter opacity-80">
           /employees
         </div>
         <div class="flex items-center gap-4 bg-[var(--tf-card)] py-2 px-4 rounded-full border border-[var(--tf-border)]">
-          <span class="text-xs font-bold uppercase tracking-widest text-[var(--tf-muted)]">{{ userName() }}</span>
+          <span class="hidden sm:inline text-xs font-bold uppercase tracking-widest text-[var(--tf-muted)]">{{ userName() }}</span>
           <div class="w-2 h-2 bg-[var(--tf-primary)] rounded-full animate-pulse"></div>
           <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-[10px] font-black text-white">
             {{ userName().substring(0, 2).toUpperCase() }}
@@ -39,36 +39,36 @@ interface Employee {
       </div>
 
       <!-- Header -->
-      <div class="flex items-end justify-between mb-10">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 md:mb-10 gap-6">
         <div>
-          <h1 class="text-5xl font-black mb-2 tracking-tighter uppercase leading-none">Team <span class="text-[var(--tf-primary)]">Hub</span></h1>
+          <h1 class="text-3xl md:text-5xl font-black mb-2 tracking-tighter uppercase leading-none">Team <span class="text-[var(--tf-primary)]">Hub</span></h1>
           <p class="text-[var(--tf-muted)] font-medium tracking-tight">Gérez les accès et les rôles de votre équipe</p>
         </div>
         <button 
           (click)="openCreateModal()"
-          class="bg-[var(--tf-primary)] text-white px-8 py-4 rounded-xl font-black uppercase text-sm hover:scale-[1.02] active:scale-95 transition-all"
+          class="w-full sm:w-auto bg-[var(--tf-primary)] text-white px-8 py-4 rounded-xl font-black uppercase text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
         >
           Nouvel employé
         </button>
       </div>
 
       <!-- Stats Bar -->
-      <div class="grid grid-cols-4 gap-6 mb-12">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
         <div class="bg-[var(--tf-card)] p-6 rounded-2xl border border-[var(--tf-border)] group hover:border-primary/30 transition-all">
           <div class="text-[var(--tf-muted)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Total Employees</div>
-          <div class="text-4xl font-black leading-none">{{ stats().total }}</div>
+          <div class="text-3xl md:text-4xl font-black leading-none">{{ stats().total }}</div>
         </div>
         <div class="bg-[var(--tf-card)] p-6 rounded-2xl border-t-2 border-t-[var(--tf-primary)] border-x border-x-[var(--tf-border)] border-b border-b-[var(--tf-border)]">
           <div class="text-[var(--tf-primary)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Active Now</div>
-          <div class="text-4xl font-black leading-none">{{ stats().active }}</div>
+          <div class="text-3xl md:text-4xl font-black leading-none">{{ stats().active }}</div>
         </div>
         <div class="bg-[var(--tf-card)] p-6 rounded-2xl border border-[var(--tf-border)] group hover:border-primary/30 transition-all">
           <div class="text-[var(--tf-muted)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Total Roles</div>
-          <div class="text-4xl font-black leading-none">{{ stats().roles }}</div>
+          <div class="text-3xl md:text-4xl font-black leading-none">{{ stats().roles }}</div>
         </div>
         <div class="bg-[var(--tf-card)] p-6 rounded-2xl border border-[var(--tf-border)] group hover:border-primary/30 transition-all">
           <div class="text-[var(--tf-muted)] text-[10px] font-black uppercase tracking-[0.2em] mb-4">Added this month</div>
-          <div class="text-4xl font-black leading-none">+{{ stats().addedMonth }}</div>
+          <div class="text-3xl md:text-4xl font-black leading-none">+{{ stats().addedMonth }}</div>
         </div>
       </div>
 
@@ -79,7 +79,7 @@ interface Employee {
             type="text" 
             [(ngModel)]="searchQuery"
             placeholder="Rechercher par nom ou email..." 
-            class="w-full bg-[var(--tf-card)] border border-[var(--tf-border)] rounded-2xl px-14 py-5 text-lg font-medium focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-[var(--tf-muted)] placeholder:opacity-60"
+            class="w-full bg-[var(--tf-card)] border border-[var(--tf-border)] rounded-2xl px-14 py-4 md:py-5 text-base md:text-lg font-medium focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-[var(--tf-muted)] placeholder:opacity-60"
           >
           <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-[var(--tf-muted)] text-xl group-focus-within:text-primary-500 transition-colors"></i>
         </div>
@@ -102,92 +102,94 @@ interface Employee {
       </div>
 
       <!-- Table Container -->
-      <div class="bg-[var(--tf-card)] rounded-[2rem] border border-[var(--tf-border)] overflow-hidden mb-8">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-[var(--tf-border)]">
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Employé</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Email</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Rôle</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Statut</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Ajouté le</th>
-              <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr 
-              *ngFor="let emp of filteredEmployees(); let i = index" 
-              class="group hover:bg-[var(--tf-surface-2)] transition-colors border-b border-[var(--tf-border)] last:border-0 animate-fadeIn"
-              [style.animation-delay]="i * 50 + 'ms'"
-            >
-              <td class="px-8 py-5">
-                <div class="flex items-center gap-4">
-                  <div 
-                    [ngClass]="getRoleGradient(emp.role)"
-                    class="w-12 h-12 rounded-xl flex items-center justify-center text-xs font-black text-white shadow-lg"
+      <div class="bg-[var(--tf-card)] rounded-[1.5rem] md:rounded-[2rem] border border-[var(--tf-border)] overflow-hidden mb-8">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[800px]">
+            <thead>
+              <tr class="border-b border-[var(--tf-border)]">
+                <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Employé</th>
+                <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Email</th>
+                <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Rôle</th>
+                <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Statut</th>
+                <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Ajouté le</th>
+                <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--tf-muted)]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                *ngFor="let emp of filteredEmployees(); let i = index" 
+                class="group hover:bg-[var(--tf-surface-2)] transition-colors border-b border-[var(--tf-border)] last:border-0 animate-fadeIn"
+                [style.animation-delay]="i * 50 + 'ms'"
+              >
+                <td class="px-8 py-5">
+                  <div class="flex items-center gap-4">
+                    <div 
+                      [ngClass]="getRoleGradient(emp.role)"
+                      class="w-12 h-12 rounded-xl flex items-center justify-center text-xs font-black text-white shadow-lg"
+                    >
+                      {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="font-black tracking-tight">{{ emp.firstName }} {{ emp.lastName }}</div>
+                      <div class="text-[10px] font-['DM_Mono'] text-[var(--tf-muted)] mt-0.5 tracking-tighter">#{{ emp.id.substring(0, 8) }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-8 py-5">
+                  <span class="font-['DM_Mono'] text-sm text-[var(--tf-muted)]">{{ emp.email }}</span>
+                </td>
+                <td class="px-8 py-5">
+                  <span 
+                    [ngClass]="getRoleBadgeClass(emp.role)"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border"
                   >
-                    {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
-                  </div>
-                  <div>
-                    <div class="font-black tracking-tight">{{ emp.firstName }} {{ emp.lastName }}</div>
-                    <div class="text-[10px] font-['DM_Mono'] text-[var(--tf-muted)] mt-0.5 tracking-tighter">#{{ emp.id.substring(0, 8) }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-8 py-5">
-                <span class="font-['DM_Mono'] text-sm text-[var(--tf-muted)]">{{ emp.email }}</span>
-              </td>
-              <td class="px-8 py-5">
-                <span 
-                  [ngClass]="getRoleBadgeClass(emp.role)"
-                  class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border"
-                >
-                  {{ emp.role }}
-                </span>
-              </td>
-              <td class="px-8 py-5">
-                <div class="flex items-center gap-2.5">
-                  <div 
-                    [class.bg-primary-500]="emp.isActive"
-                    [class.bg-[var(--tf-border)]]="!emp.isActive"
-                    class="w-2 h-2 rounded-full"
-                  ></div>
-                  <span class="text-xs font-bold tracking-tight" [class.text-[var(--tf-on-surface)]]="emp.isActive" [class.text-[var(--tf-muted)]]="!emp.isActive">
-                    {{ emp.isActive ? 'Actif' : 'Inactif' }}
+                    {{ emp.role }}
                   </span>
-                </div>
-              </td>
-              <td class="px-8 py-5">
-                <span class="font-['DM_Mono'] text-sm text-[var(--tf-muted)]">{{ emp.createdAt | date:'dd MMM yyyy' }}</span>
-              </td>
-              <td class="px-8 py-5">
-                <div class="flex items-center gap-3">
-                  <button 
-                    (click)="showEmployee(emp)"
-                    class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-[var(--tf-primary)] flex items-center justify-center hover:bg-[var(--tf-primary)] hover:text-white transition-all"
-                    title="Voir"
-                  >
-                    <i class="fa-solid fa-eye text-xs"></i>
-                  </button>
-                  <button 
-                    (click)="editEmployee(emp)"
-                    class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-blue-400 flex items-center justify-center hover:bg-blue-400 hover:text-white transition-all"
-                    title="Modifier"
-                  >
-                    <i class="fa-solid fa-pen text-xs"></i>
-                  </button>
-                  <button 
-                    (click)="deleteEmployee(emp)"
-                    class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-red-400 flex items-center justify-center hover:bg-red-400 hover:text-white transition-all"
-                    title="Supprimer"
-                  >
-                    <i class="fa-solid fa-trash text-xs"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <td class="px-8 py-5">
+                  <div class="flex items-center gap-2.5">
+                    <div 
+                      [class.bg-primary-500]="emp.isActive"
+                      [class.bg-[var(--tf-border)]]="!emp.isActive"
+                      class="w-2 h-2 rounded-full"
+                    ></div>
+                    <span class="text-xs font-bold tracking-tight" [class.text-[var(--tf-on-surface)]]="emp.isActive" [class.text-[var(--tf-muted)]]="!emp.isActive">
+                      {{ emp.isActive ? 'Actif' : 'Inactif' }}
+                    </span>
+                  </div>
+                </td>
+                <td class="px-8 py-5">
+                  <span class="font-['DM_Mono'] text-sm text-[var(--tf-muted)]">{{ emp.createdAt | date:'dd MMM yyyy' }}</span>
+                </td>
+                <td class="px-8 py-5">
+                  <div class="flex items-center gap-3">
+                    <button 
+                      (click)="showEmployee(emp)"
+                      class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-[var(--tf-primary)] flex items-center justify-center hover:bg-[var(--tf-primary)] hover:text-white transition-all"
+                      title="Voir"
+                    >
+                      <i class="fa-solid fa-eye text-xs"></i>
+                    </button>
+                    <button 
+                      (click)="editEmployee(emp)"
+                      class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-blue-400 flex items-center justify-center hover:bg-blue-400 hover:text-white transition-all"
+                      title="Modifier"
+                    >
+                      <i class="fa-solid fa-pen text-xs"></i>
+                    </button>
+                    <button 
+                      (click)="deleteEmployee(emp)"
+                      class="w-8 h-8 rounded-lg bg-[var(--tf-surface-2)] text-red-400 flex items-center justify-center hover:bg-red-400 hover:text-white transition-all"
+                      title="Supprimer"
+                    >
+                      <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         
         <!-- Empty State -->
         <div *ngIf="filteredEmployees().length === 0" class="py-24 text-center">
@@ -197,7 +199,7 @@ interface Employee {
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between px-4">
+      <div class="flex flex-col sm:flex-row items-center justify-between px-4 gap-4">
         <div class="text-[10px] font-black uppercase tracking-widest text-[var(--tf-muted)]">
           Affichage 1–{{ filteredEmployees().length }} sur {{ employees().length }} employés
         </div>

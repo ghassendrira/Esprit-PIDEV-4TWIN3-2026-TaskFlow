@@ -7,97 +7,71 @@ import { TfTableComponent } from '../../shared/ui/table/tf-table.component';
   standalone: true,
   imports: [TfCardComponent, TfTableComponent],
   template: `
-    <header class="dash-header">
+    <header class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 mb-6">
       <div>
-        <h1 class="dash-title">Dashboard</h1>
-        <p class="dash-subtitle">Aperçu rapide de votre activité.</p>
+        <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Aperçu rapide de votre activité.</p>
       </div>
-      <div class="dash-pill" aria-label="Période">
-        <span class="dot"></span>
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-primary-500"></span>
         <span>Ce mois</span>
       </div>
     </header>
 
-    <section class="dash-grid metrics">
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <tf-card>
-        <div class="metric">
-          <div class="k">Revenu</div>
-          <div class="v">12 450 TND</div>
-          <div class="h">+8% vs mois dernier</div>
+        <div class="flex flex-col gap-1">
+          <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Revenu</div>
+          <div class="text-2xl font-extrabold tracking-tight">12 450 TND</div>
+          <div class="text-xs text-green-600 dark:text-green-400 font-medium">+8% vs mois dernier</div>
         </div>
       </tf-card>
       <tf-card>
-        <div class="metric">
-          <div class="k">Dépenses</div>
-          <div class="v">7 820 TND</div>
-          <div class="h">-2% vs mois dernier</div>
+        <div class="flex flex-col gap-1">
+          <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dépenses</div>
+          <div class="text-2xl font-extrabold tracking-tight">7 820 TND</div>
+          <div class="text-xs text-red-600 dark:text-red-400 font-medium">-2% vs mois dernier</div>
         </div>
       </tf-card>
       <tf-card>
-        <div class="metric">
-          <div class="k">Profit</div>
-          <div class="v">4 630 TND</div>
-          <div class="h">Marge 37%</div>
-        </div>
-      </tf-card>
-    </section>
-
-    <section class="dash-grid blocks">
-      <tf-card class="chart-card">
-        <div class="block-title">Performance</div>
-        <div class="chart tf-skeleton" aria-label="Chart placeholder"></div>
-      </tf-card>
-      <tf-card>
-        <div class="block-title">Raccourcis</div>
-        <div class="mini-grid">
-          <div class="mini tf-skeleton"></div>
-          <div class="mini tf-skeleton"></div>
-          <div class="mini tf-skeleton"></div>
-          <div class="mini tf-skeleton"></div>
+        <div class="flex flex-col gap-1">
+          <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profit</div>
+          <div class="text-2xl font-extrabold tracking-tight">4 630 TND</div>
+          <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">Marge 37%</div>
         </div>
       </tf-card>
     </section>
 
-    <tf-card class="table-card">
-      <div class="table-head">
-        <h3 style="margin: 0;">Factures récentes</h3>
-        <span class="muted">Dernières activités</span>
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <tf-card class="lg:col-span-2">
+        <div class="font-bold mb-4">Performance</div>
+        <div class="h-[220px] rounded-xl border border-dashed border-slate-200 dark:border-slate-700 tf-skeleton"></div>
+      </tf-card>
+      <tf-card>
+        <div class="font-bold mb-4">Raccourcis</div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="h-14 rounded-xl tf-skeleton"></div>
+          <div class="h-14 rounded-xl tf-skeleton"></div>
+          <div class="h-14 rounded-xl tf-skeleton"></div>
+          <div class="h-14 rounded-xl tf-skeleton"></div>
+        </div>
+      </tf-card>
+    </section>
+
+    <tf-card>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="font-bold">Factures récentes</h3>
+          <span class="text-xs text-slate-500 dark:text-slate-400">Dernières activités</span>
+        </div>
       </div>
-      <tf-table [columns]="invoiceColumns" [data]="invoiceData"></tf-table>
+      <div class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <tf-table [columns]="invoiceColumns" [data]="invoiceData"></tf-table>
+      </div>
     </tf-card>
   `,
   styles: [`
     :host { display: block; }
-
-    .dash-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-    .dash-title { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.02em; }
-    .dash-subtitle { margin: 6px 0 0; color: var(--tf-muted); font-size: 13px; }
-
-    .dash-pill { display: inline-flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--tf-border); background: var(--tf-card); color: var(--tf-muted); font-size: 12px; }
-    .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--tf-primary); opacity: .9; }
-
-    .dash-grid { display: grid; gap: 12px; }
-    .dash-grid.metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .dash-grid.blocks { grid-template-columns: 2fr 1fr; margin-top: 12px; }
-
-    .metric { display: grid; gap: 6px; }
-    .metric .k { color: var(--tf-muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
-    .metric .v { font-size: 26px; font-weight: 750; letter-spacing: -0.02em; }
-    .metric .h { color: var(--tf-muted); font-size: 12px; }
-
-    .block-title { font-weight: 700; margin-bottom: 10px; }
-    .chart { height: 220px; border-radius: 10px; border: 1px dashed var(--tf-border); }
-    .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .mini { height: 58px; border-radius: 10px; }
-
-    .table-card { margin-top: 12px; }
-    .table-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-
-    @media (max-width: 900px) {
-      .dash-header { align-items: flex-start; flex-direction: column; }
-      .dash-grid.metrics { grid-template-columns: 1fr; }
-      .dash-grid.blocks { grid-template-columns: 1fr; }
-    }
   `]
 })
 export class DashboardComponent {
