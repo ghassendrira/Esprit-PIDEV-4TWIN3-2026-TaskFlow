@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ChatRoomType {
+  BUSINESS_TEAM
+  SUPPORT
+}
+
+enum ChatMessageKind {
+  FREE_TEXT
+  PREDEFINED_QUESTION
+  AUTOMATED_RESPONSE
+}
+
+enum PredefinedQuestionCategory {
+  INVOICE
+  PAYMENT
+  BUSINESS
+  SUPPORT
+  ADMIN
+  GENERAL
+}
+
+enum PredefinedQuestionResponseType {
+  STATIC
+  DYNAMIC
+  MIXED
+}
+
+model PredefinedQuestion {
+  id             String                         @id @default(uuid()) @db.Uuid
+  code           String                         @unique
+  label          String
+  category       PredefinedQuestionCategory
+  allowedRoles   String[]
+  active         Boolean                        @default(true)
+  displayOrder   Int
+  responseType   PredefinedQuestionResponseType
+  staticResponse String?
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+}
+
+model ChatRoom {
+  id         String       @id @default(uuid()) @db.Uuid
+  type       ChatRoomType
+  businessId String?      @db.Uuid
+  ownerId    String?      @db.Uuid
+  name       String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  messages   ChatMessage[]
+
+  @@unique([type, businessId])
+  @@index([type])
+  @@index([ownerId])
+}
+
+model ChatMessage {
+  id          String          @id @default(uuid()) @db.Uuid
+  roomId       String          @db.Uuid
+  senderId     String          @db.Uuid
+  senderName   String
+  senderRole   String
+  content      String
+  kind         ChatMessageKind @default(FREE_TEXT)
+  questionCode String?
+  metadata     Json?
+  isRead       Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+
+  room         ChatRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([senderId])
+  @@index([kind])
+  @@index([questionCode])
+}
