@@ -66,6 +66,10 @@ type AdminPasswordRequestParams = {
 export class NotificationService {
   async sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<void> {
     const apiKey = process.env.BREVO_API_KEY ?? '';
+    if (!apiKey) {
+      console.warn('BREVO_API_KEY is not set — skipping email send. Add BREVO_API_KEY to notification-service .env to enable emails.');
+      return;
+    }
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
     const client = SibApiV3Sdk.ApiClient.instance;
     (client.authentications as any)['api-key'].apiKey = apiKey;
@@ -400,6 +404,48 @@ export class NotificationService {
       return { name: m[1].trim().replace(/(^"|"$)/g, ''), email: m[2].trim() };
     }
     return { email: from.trim() };
+  }
+
+  /**
+   * Send a plain-text AI-generated email with an attached invoice PDF via Brevo.
+   */
+  async sendSmartInvoiceEmail(params: {
+    email: string;
+    clientName: string;
+    subject: string;
+    textBody: string;
+    pdfBase64: string;
+    invoiceNumber: string;
+  }): Promise<void> {
+    const apiKey = process.env.BREVO_API_KEY ?? '';
+    if (!apiKey) {
+      console.warn('BREVO_API_KEY is not set — skipping smart email send.');
+      return;
+    }
+    const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
+    const client = SibApiV3Sdk.ApiClient.instance;
+    (client.authentications as any)['api-key'].apiKey = apiKey;
+    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
+
+    try {
+      const sender = this.parseSender(from);
+      await api.sendTransacEmail({
+        sender,
+        to: [{ email: params.email, name: params.clientName }],
+        subject: params.subject,
+        textContent: params.textBody,
+        attachment: [
+          {
+            content: params.pdfBase64,
+            name: `invoice-${params.invoiceNumber}.pdf`,
+          },
+        ],
+      });
+      console.log(`Smart invoice email sent to ${params.email} for invoice ${params.invoiceNumber}`);
+    } catch (e) {
+      console.error('Brevo smart email error:', e);
+      throw new Error('Failed to send smart invoice email');
+    }
   }
 
   async sendAdminRegistrationNotification(params: AdminRegistrationParams): Promise<void> {

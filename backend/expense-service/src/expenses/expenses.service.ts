@@ -35,10 +35,11 @@ export class ExpensesService {
     expenseId?: string,
     details?: any,
   ) {
+    const businessId = ctx.businessId || undefined;
     await this.prisma.auditLog.create({
       data: {
         userId: ctx.userId,
-        businessId: ctx.businessId,
+        ...(businessId ? { businessId } : {}),
         action,
         expenseId,
         details: details || {},
@@ -156,12 +157,16 @@ export class ExpensesService {
 
   async initializeDefaultCategories(businessId: string) {
     const defaultCategories = [
-      { name: 'Transport', description: 'Frais de transport' },
-      { name: 'Repas', description: 'Frais de repas' },
-      { name: 'Hébergement', description: 'Frais hébergement' },
-      { name: 'Matériel', description: 'Achat matériel' },
-      { name: 'Logiciel', description: 'Achat logiciel' },
-      { name: 'Autre', description: 'Autres dépenses' },
+      { name: 'Retail & Commerce', description: 'Achats, fournitures, marchandises' },
+      { name: 'Professional Services', description: 'Consulting, comptabilité, juridique' },
+      { name: 'Technology & Software', description: 'Licences, abonnements SaaS, matériel IT' },
+      { name: 'Restaurant & Food', description: 'Repas d\'affaires, restauration' },
+      { name: 'Freelance & Consulting', description: 'Prestataires, missions freelance' },
+      { name: 'Healthcare', description: 'Santé, mutuelle, prévoyance' },
+      { name: 'Education & Training', description: 'Formations, certifications, conférences' },
+      { name: 'Construction & Real Estate', description: 'Immobilier, travaux, aménagement' },
+      { name: 'Transport & Logistics', description: 'Déplacements, carburant, livraisons' },
+      { name: 'Other', description: 'Autres dépenses' },
     ];
 
     return this.prisma.expenseCategory.createMany({
@@ -174,8 +179,12 @@ export class ExpensesService {
   }
 
   async findOne(id: string, ctx: UserContext) {
+    const where: any = { id, deletedAt: null };
+    if (ctx.businessId) {
+      where.businessId = ctx.businessId;
+    }
     const expense = await this.prisma.expense.findFirst({
-      where: { id, businessId: ctx.businessId, deletedAt: null },
+      where,
       include: { category: true },
     });
 
@@ -235,6 +244,7 @@ export class ExpensesService {
         ...(dto.description !== undefined ? { description: dto.description } : {}),
         ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
         ...(dto.receiptUrl !== undefined ? { receiptUrl: dto.receiptUrl } : {}),
+        ...(dto.status !== undefined ? { status: dto.status as any } : {}),
       },
       include: { category: true },
     });

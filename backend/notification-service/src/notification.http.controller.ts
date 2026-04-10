@@ -176,6 +176,12 @@ export class NotificationHttpController {
     return { success: true };
   }
 
+  @Post('smart-email')
+  async sendSmartEmail(@Body() body: { email: string; clientName: string; subject: string; textBody: string; pdfBase64: string; invoiceNumber: string }) {
+    await this.service.sendSmartInvoiceEmail(body);
+    return { success: true };
+  }
+
   @Post('expense-approved')
   async expenseApproved(@Body() body: any) {
     await this.service.sendExpenseApprovedEmail(body);

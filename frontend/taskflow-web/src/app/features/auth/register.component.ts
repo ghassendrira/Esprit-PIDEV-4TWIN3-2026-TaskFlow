@@ -97,14 +97,16 @@ import { finalize, timeout } from 'rxjs/operators';
             <select formControlName="companyCategory"
                     class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 text-[var(--tf-on-surface)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition">
               <option value="">Sélectionner une catégorie</option>
-              <option value="Retail">Retail</option>
-              <option value="Services">Services</option>
-              <option value="Technology">Technology</option>
-              <option value="Restaurant">Restaurant</option>
-              <option value="Freelance">Freelance</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Education">Education</option>
-              <option value="Other">Other</option>
+              <option value="RETAIL">Retail & Commerce</option>
+              <option value="SERVICES">Professional Services</option>
+              <option value="TECH">Technology & Software</option>
+              <option value="RESTAURANT">Restaurant & Food</option>
+              <option value="FREELANCE">Freelance & Consulting</option>
+              <option value="HEALTHCARE">Healthcare</option>
+              <option value="EDUCATION">Education & Training</option>
+              <option value="CONSTRUCTION">Construction & Real Estate</option>
+              <option value="TRANSPORT">Transport & Logistics</option>
+              <option value="OTHER">Other</option>
             </select>
           </div>
           <div>

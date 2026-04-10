@@ -349,7 +349,7 @@ export class SettingsService {
           logoUrl: dto.logoUrl ?? '',
           currency: dto.currency,
           taxRate: dto.taxRate,
-          category: dto.category ?? 'Autre',
+          category: dto.category ?? 'OTHER',
         }),
       });
     } catch {

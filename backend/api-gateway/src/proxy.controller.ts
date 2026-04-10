@@ -39,6 +39,17 @@ export class ProxyController {
     const userRole = req.header('x-user-role') || req.header('X-User-Role');
     if (userRole) headers['x-user-role'] = userRole;
 
+    // If multi-tenant headers are missing, try to extract from JWT
+    if (authorization && (!headers['x-tenant-id'] || !headers['x-user-id'] || !headers['x-user-role'])) {
+      try {
+        const token = authorization.replace('Bearer ', '');
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+        if (!headers['x-tenant-id'] && payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
+        if (!headers['x-user-id'] && payload.sub) headers['x-user-id'] = payload.sub;
+        if (!headers['x-user-role'] && payload.roles?.[0]) headers['x-user-role'] = payload.roles[0];
+      } catch {}
+    }
+
     return headers;
   }
 
@@ -307,6 +318,26 @@ export class ProxyController {
     }
   }
 
+  @Post('invoices/report/unpaid')
+  async generateUnpaidReport(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3005/invoices/report/unpaid';
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res
+        .status(r.status)
+        .setHeader('Content-Type', r.headers.get('content-type') ?? 'application/json')
+        .send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
   @Get('invoices/:id')
   async getInvoice(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
     const url = `http://localhost:3001/invoices/${encodeURIComponent(id)}`;
@@ -325,7 +356,23 @@ export class ProxyController {
 
   @Post('invoices/:id/send')
   async sendInvoice(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
-    const url = `http://localhost:3001/invoices/${encodeURIComponent(id)}/send`;
+    const url = `http://localhost:3005/invoices/${encodeURIComponent(id)}/send`;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Post('invoices/:id/smart-send')
+  async smartSendInvoice(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const url = `http://localhost:3005/invoices/${encodeURIComponent(id)}/smart-send`;
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -756,6 +803,193 @@ export class ProxyController {
     } catch (e: unknown) {
       const err = e instanceof Error ? e.message : String(e);
       res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  // ─── CHAT (Team + Support) → notification-service:3004 ───
+
+  @Get('chat/team/:businessId/messages')
+  async chatTeamMessages(
+    @Param('businessId') businessId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3004/chat/team/${encodeURIComponent(businessId)}/messages${qs ? '?' + qs : ''}`;
+    try {
+      const r = await fetch(url, { method: 'GET', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Post('chat/team/:businessId/messages')
+  async chatTeamSend(
+    @Param('businessId') businessId: string,
+    @Body() body: any,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/team/${encodeURIComponent(businessId)}/messages`;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Get('chat/team/:businessId/room')
+  async chatTeamRoom(
+    @Param('businessId') businessId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/team/${encodeURIComponent(businessId)}/room`;
+    try {
+      const r = await fetch(url, { method: 'GET', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Get('chat/team/:businessId/questions')
+  async chatTeamQuestions(
+    @Param('businessId') businessId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/team/${encodeURIComponent(businessId)}/questions`;
+    try {
+      const r = await fetch(url, { method: 'GET', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Post('chat/team/:businessId/questions/:questionCode/ask')
+  async chatTeamAskQuestion(
+    @Param('businessId') businessId: string,
+    @Param('questionCode') questionCode: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/team/${encodeURIComponent(businessId)}/questions/${encodeURIComponent(questionCode)}/ask`;
+    try {
+      const r = await fetch(url, { method: 'POST', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Get('chat/support/rooms')
+  async chatSupportRooms(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3004/chat/support/rooms';
+    try {
+      const r = await fetch(url, { method: 'GET', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Post('chat/support/:businessId/init')
+  async chatSupportInit(
+    @Param('businessId') businessId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/support/${encodeURIComponent(businessId)}/init`;
+    try {
+      const r = await fetch(url, { method: 'POST', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Get('chat/support/:roomId/messages')
+  async chatSupportMessages(
+    @Param('roomId') roomId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3004/chat/support/${encodeURIComponent(roomId)}/messages${qs ? '?' + qs : ''}`;
+    try {
+      const r = await fetch(url, { method: 'GET', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Post('chat/support/:roomId/messages')
+  async chatSupportSend(
+    @Param('roomId') roomId: string,
+    @Body() body: any,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/support/${encodeURIComponent(roomId)}/messages`;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Post('chat/support/:roomId/read')
+  async chatSupportMarkRead(
+    @Param('roomId') roomId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/support/${encodeURIComponent(roomId)}/read`;
+    try {
+      const r = await fetch(url, { method: 'POST', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Get('chat/support/:roomId/unread')
+  async chatSupportUnread(
+    @Param('roomId') roomId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3004/chat/support/${encodeURIComponent(roomId)}/unread`;
+    try {
+      const r = await fetch(url, { method: 'GET', headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
     }
   }
 }

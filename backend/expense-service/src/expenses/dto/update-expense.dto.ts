@@ -1,4 +1,4 @@
-import { IsNumber, IsString, IsUUID, IsOptional, IsDateString, IsUrl, Min } from 'class-validator';
+import { IsNumber, IsString, IsUUID, IsOptional, IsDateString, IsUrl, IsIn, Min } from 'class-validator';
 
 export class UpdateExpenseDto {
   @IsOptional()
@@ -21,4 +21,8 @@ export class UpdateExpenseDto {
   @IsOptional()
   @IsUrl()
   receiptUrl?: string;
+
+  @IsOptional()
+  @IsIn(['PENDING', 'APPROVED', 'REJECTED'])
+  status?: string;
 }

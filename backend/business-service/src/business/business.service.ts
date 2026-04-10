@@ -20,7 +20,7 @@ export class BusinessService {
         logoUrl: data.logoUrl ?? '',
         currency: data.currency,
         taxRate: data.taxRate,
-        category: data.category ?? 'Autre',
+        category: data.category ?? 'OTHER',
       },
       select: {
         id: true,

@@ -64,6 +64,16 @@ export class PdfService {
   private browser: any | null = null;
 
   async initBrowser(): Promise<void> {
+    // Check if existing browser is still usable
+    if (this.browser) {
+      try {
+        // Quick connectivity check
+        await this.browser.version();
+      } catch {
+        // Browser crashed or disconnected – discard it
+        this.browser = null;
+      }
+    }
     if (!this.browser) {
       if (!puppeteerModule) {
         throw new Error(
@@ -72,7 +82,12 @@ export class PdfService {
       }
       this.browser = await puppeteerModule.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
       });
     }
   }
@@ -112,30 +127,40 @@ export class PdfService {
   }
 
   async generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
-    await this.initBrowser();
-    const page = await this.browser!.newPage();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await this.initBrowser();
+      let page: any;
+      try {
+        page = await this.browser!.newPage();
+        const logoBase64 = await this.getLogoBase64();
+        const html = this.generateInvoiceHtml(data, logoBase64);
+        await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
+        await page.emulateMediaType('print');
 
-    try {
-      const logoBase64 = await this.getLogoBase64();
-      const html = this.generateInvoiceHtml(data, logoBase64);
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      await page.emulateMediaType('print');
+        const pdf = await page.pdf({
+          format: 'A4',
+          margin: {
+            top: '0.5in',
+            right: '0.5in',
+            bottom: '0.5in',
+            left: '0.5in',
+          },
+          printBackground: true,
+        });
 
-      const pdf = await page.pdf({
-        format: 'A4',
-        margin: {
-          top: '0.5in',
-          right: '0.5in',
-          bottom: '0.5in',
-          left: '0.5in',
-        },
-        printBackground: true,
-      });
-
-      return pdf;
-    } finally {
-      await page.close();
+        return pdf;
+      } catch (err) {
+        if (attempt === 0 && (err.message?.includes('closed') || err.message?.includes('timeout') || err.message?.includes('Timeout'))) {
+          console.warn('Browser connection lost, retrying...');
+          this.browser = null;
+          continue;
+        }
+        throw err;
+      } finally {
+        try { await page?.close(); } catch {}
+      }
     }
+    throw new Error('PDF generation failed after retries');
   }
 
   async generateExpenseReportPdf(data: ExpenseReportData): Promise<Buffer> {
@@ -145,7 +170,7 @@ export class PdfService {
     try {
       const logoBase64 = await this.getLogoBase64();
       const html = this.generateExpenseReportHtml(data, logoBase64);
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
       await page.emulateMediaType('print');
 
       const pdf = await page.pdf({

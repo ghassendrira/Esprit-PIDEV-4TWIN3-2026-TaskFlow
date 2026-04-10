@@ -1,10 +1,9 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestMatch, loggedInMatch } from './core/guards/auth.guard';
+import { guestMatch, loggedInMatch } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
     path: 'home',
-    canMatch: [guestMatch], // guard ici
     loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent)
   },
   {
@@ -85,6 +84,10 @@ export const routes: Routes = [
       {
         path: 'admin/roles',
         loadComponent: () => import('./features/admin/roles-permissions.component').then(m => m.RolesPermissionsComponent)
+      },
+      {
+        path: 'support',
+        loadComponent: () => import('./features/chat/support-chat.component').then(m => m.SupportChatComponent)
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' } // OK
     ]

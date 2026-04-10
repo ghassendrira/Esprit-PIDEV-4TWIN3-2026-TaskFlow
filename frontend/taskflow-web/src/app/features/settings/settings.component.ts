@@ -221,7 +221,7 @@ import { finalize } from 'rxjs';
                   <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Category</label>
                   <select formControlName="category" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
                           style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);">
-                    <option *ngFor="let cat of businessCategories" [value]="cat">{{ cat }}</option>
+                    <option *ngFor="let cat of businessCategories" [value]="cat.value">{{ cat.label }}</option>
                   </select>
                 </div>
               </form>
@@ -391,7 +391,7 @@ import { finalize } from 'rxjs';
               <label class="block text-xs font-semibold muted uppercase mb-2 tracking-widest">Category</label>
               <select formControlName="category" class="w-full h-11 rounded-xl border px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
                       style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);">
-                <option *ngFor="let cat of businessCategories" [value]="cat">{{ cat }}</option>
+                <option *ngFor="let cat of businessCategories" [value]="cat.value">{{ cat.label }}</option>
               </select>
             </div>
           </div>
@@ -516,14 +516,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
     currency: ['TND', Validators.required],
     taxRate: [19, [Validators.required, Validators.min(0), Validators.max(100)]],
-    category: ['Autre', Validators.required],
+    category: ['OTHER', Validators.required],
   });
 
   newBusinessForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
     currency: ['TND', Validators.required],
     taxRate: [19, [Validators.required, Validators.min(0), Validators.max(100)]],
-    category: ['Autre', Validators.required],
+    category: ['OTHER', Validators.required],
   });
 
   newTenantForm = this.fb.group({
@@ -534,7 +534,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     country: ['TN', Validators.required],
   });
 
-  businessCategories: string[] = [];
+  businessCategories: {value: string, label: string}[] = [];
   countries: any[] = [];
   companyLogo: string | null = null;
 
@@ -557,7 +557,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.settings.categories().subscribe({
       next: (cats) => {
         setTimeout(() => {
-          this.businessCategories = cats.map((c: any) => c.label || c);
+          this.businessCategories = cats.map((c: any) => ({ value: c.value || c, label: c.label || c }));
           this.cdr.detectChanges();
         });
       },
@@ -689,7 +689,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       name: b.name,
       currency: b.currency,
       taxRate: b.taxRate,
-      category: b.category || 'Autre'
+      category: b.category || 'OTHER'
     });
   }
 
@@ -785,7 +785,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.isCreatingBusiness = false;
         this.showBusinessModal = false;
         this.businesses.push(res.business);
-        this.newBusinessForm.reset({ currency: 'TND', taxRate: 19, category: 'Autre' });
+        this.newBusinessForm.reset({ currency: 'TND', taxRate: 19, category: 'OTHER' });
         this.showToast('Business créé avec succès', 'success');
       },
       error: () => {

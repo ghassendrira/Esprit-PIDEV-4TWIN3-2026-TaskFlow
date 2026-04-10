@@ -176,6 +176,99 @@ import { BusinessSelectionService } from '../../core/services/business-selection
       <div *ngIf="errorMessage" class="mt-3 text-sm text-red-500">{{ errorMessage }}</div>
     </tf-card>
 
+    <!-- STATISTIQUES -->
+    <tf-card class="mt-4" *ngIf="activeBusinessId() && expenses().length > 0">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-bold text-lg">📊 Statistiques du mois</h3>
+        <div class="flex items-center gap-2">
+          <button (click)="prevMonth()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition text-slate-500">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <span class="text-sm font-semibold min-w-[120px] text-center">{{ statsMonthLabel() }}</span>
+          <button (click)="nextMonth()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition text-slate-500">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-blue-500 mb-1">Total dépensé</p>
+          <p class="text-xl font-black text-blue-600 dark:text-blue-400">{{ statsTotal() | number:'1.2-2' }} <span class="text-xs font-medium">TND</span></p>
+          <p class="text-[10px] text-slate-500 mt-1">{{ statsMonthExpenses().length }} dépense(s)</p>
+        </div>
+        <div class="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-200 dark:border-green-800 rounded-xl p-4">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-green-500 mb-1">Approuvé</p>
+          <p class="text-xl font-black text-green-600 dark:text-green-400">{{ statsApproved() | number:'1.2-2' }} <span class="text-xs font-medium">TND</span></p>
+          <p class="text-[10px] text-slate-500 mt-1">{{ statsApprovedCount() }} dépense(s)</p>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-yellow-500 mb-1">En attente</p>
+          <p class="text-xl font-black text-yellow-600 dark:text-yellow-400">{{ statsPending() | number:'1.2-2' }} <span class="text-xs font-medium">TND</span></p>
+          <p class="text-[10px] text-slate-500 mt-1">{{ statsPendingCount() }} dépense(s)</p>
+        </div>
+        <div class="bg-gradient-to-br from-red-500/10 to-red-600/5 border border-red-200 dark:border-red-800 rounded-xl p-4">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-red-500 mb-1">Rejeté</p>
+          <p class="text-xl font-black text-red-600 dark:text-red-400">{{ statsRejected() | number:'1.2-2' }} <span class="text-xs font-medium">TND</span></p>
+          <p class="text-[10px] text-slate-500 mt-1">{{ statsRejectedCount() }} dépense(s)</p>
+        </div>
+      </div>
+
+      <!-- Répartition par statut -->
+      <div class="mb-6">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Répartition par statut</h4>
+        <div class="flex h-6 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+          <div
+            *ngIf="statsApprovedPct() > 0"
+            class="bg-green-500 transition-all duration-500 flex items-center justify-center"
+            [style.width.%]="statsApprovedPct()"
+          >
+            <span *ngIf="statsApprovedPct() > 10" class="text-[9px] font-bold text-white">{{ statsApprovedPct() | number:'1.0-0' }}%</span>
+          </div>
+          <div
+            *ngIf="statsPendingPct() > 0"
+            class="bg-yellow-500 transition-all duration-500 flex items-center justify-center"
+            [style.width.%]="statsPendingPct()"
+          >
+            <span *ngIf="statsPendingPct() > 10" class="text-[9px] font-bold text-white">{{ statsPendingPct() | number:'1.0-0' }}%</span>
+          </div>
+          <div
+            *ngIf="statsRejectedPct() > 0"
+            class="bg-red-500 transition-all duration-500 flex items-center justify-center"
+            [style.width.%]="statsRejectedPct()"
+          >
+            <span *ngIf="statsRejectedPct() > 10" class="text-[9px] font-bold text-white">{{ statsRejectedPct() | number:'1.0-0' }}%</span>
+          </div>
+        </div>
+        <div class="flex gap-4 mt-2">
+          <span class="text-[10px] text-slate-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Approuvé</span>
+          <span class="text-[10px] text-slate-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span> En attente</span>
+          <span class="text-[10px] text-slate-500 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Rejeté</span>
+        </div>
+      </div>
+
+      <!-- Dépenses par catégorie -->
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Dépenses par catégorie</h4>
+        <div class="space-y-2">
+          <div *ngFor="let cat of statsByCategory()" class="flex items-center gap-3">
+            <span class="text-xs w-40 truncate text-slate-600 dark:text-slate-300 font-medium">{{ cat.name }}</span>
+            <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-5 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-500 flex items-center px-2"
+                [style.width.%]="cat.pct"
+                [class]="cat.color"
+              >
+                <span *ngIf="cat.pct > 12" class="text-[9px] font-bold text-white">{{ cat.total | number:'1.0-0' }} TND</span>
+              </div>
+            </div>
+            <span class="text-xs text-slate-500 w-20 text-right">{{ cat.total | number:'1.2-2' }} TND</span>
+          </div>
+        </div>
+      </div>
+    </tf-card>
+
     <tf-card class="mt-4">
       <div *ngIf="!activeBusinessId()" class="text-slate-500 italic">Aucun business trouvé. Créez-en un dans Settings.</div>
 
@@ -253,6 +346,70 @@ export class ExpensesComponent implements OnInit {
   expenseCategories = signal<any[]>([]);
   editingId = signal<string>('');
   errorMessage: string | null = null;
+  statsMonth = signal<number>(new Date().getMonth());
+  statsYear = signal<number>(new Date().getFullYear());
+
+  private catColors = [
+    'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-orange-500', 'bg-pink-500',
+    'bg-cyan-500', 'bg-amber-500', 'bg-indigo-500', 'bg-teal-500', 'bg-rose-500',
+  ];
+
+  statsMonthLabel = computed(() => {
+    const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    return `${months[this.statsMonth()]} ${this.statsYear()}`;
+  });
+
+  statsMonthExpenses = computed(() => {
+    const m = this.statsMonth();
+    const y = this.statsYear();
+    return this.expenses().filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === m && d.getFullYear() === y;
+    });
+  });
+
+  statsTotal = computed(() => this.statsMonthExpenses().reduce((s: number, e: any) => s + (e.amount || 0), 0));
+  statsApproved = computed(() => this.statsMonthExpenses().filter((e: any) => e.status === 'APPROVED').reduce((s: number, e: any) => s + e.amount, 0));
+  statsApprovedCount = computed(() => this.statsMonthExpenses().filter((e: any) => e.status === 'APPROVED').length);
+  statsPending = computed(() => this.statsMonthExpenses().filter((e: any) => e.status === 'PENDING').reduce((s: number, e: any) => s + e.amount, 0));
+  statsPendingCount = computed(() => this.statsMonthExpenses().filter((e: any) => e.status === 'PENDING').length);
+  statsRejected = computed(() => this.statsMonthExpenses().filter((e: any) => e.status === 'REJECTED').reduce((s: number, e: any) => s + e.amount, 0));
+  statsRejectedCount = computed(() => this.statsMonthExpenses().filter((e: any) => e.status === 'REJECTED').length);
+
+  statsApprovedPct = computed(() => this.statsTotal() ? (this.statsApproved() / this.statsTotal()) * 100 : 0);
+  statsPendingPct = computed(() => this.statsTotal() ? (this.statsPending() / this.statsTotal()) * 100 : 0);
+  statsRejectedPct = computed(() => this.statsTotal() ? (this.statsRejected() / this.statsTotal()) * 100 : 0);
+
+  statsByCategory = computed(() => {
+    const exps = this.statsMonthExpenses();
+    const total = this.statsTotal();
+    const map = new Map<string, { name: string; total: number }>();
+    for (const e of exps) {
+      const name = e.category?.name || 'Sans catégorie';
+      const entry = map.get(name) || { name, total: 0 };
+      entry.total += e.amount || 0;
+      map.set(name, entry);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => b.total - a.total)
+      .map((c, i) => ({ ...c, pct: total ? (c.total / total) * 100 : 0, color: this.catColors[i % this.catColors.length] }));
+  });
+
+  prevMonth() {
+    let m = this.statsMonth() - 1;
+    let y = this.statsYear();
+    if (m < 0) { m = 11; y--; }
+    this.statsMonth.set(m);
+    this.statsYear.set(y);
+  }
+
+  nextMonth() {
+    let m = this.statsMonth() + 1;
+    let y = this.statsYear();
+    if (m > 11) { m = 0; y++; }
+    this.statsMonth.set(m);
+    this.statsYear.set(y);
+  }
 
   isBusinessOwner = computed(() => {
     const roles = this.auth.roles() as any[];

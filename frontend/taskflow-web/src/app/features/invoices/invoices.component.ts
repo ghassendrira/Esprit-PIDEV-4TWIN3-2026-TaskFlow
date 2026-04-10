@@ -272,6 +272,10 @@ import { BusinessSelectionService } from '../../core/services/business-selection
         </div>
         
         <div class="flex items-center gap-2">
+          <button (click)="generateReport()" [disabled]="reportLoading()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/20 transition-all disabled:opacity-50 disabled:cursor-wait">
+            <i class="fa-solid" [ngClass]="reportLoading() ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'"></i>
+            {{ reportLoading() ? 'Generating...' : 'Generate a report.' }}
+          </button>
           <button (click)="resetFilters()" *ngIf="activeFilterCount() > 0" class="text-xs font-bold text-rose-500 hover:underline">Effacer les filtres</button>
           <button (click)="reload()" class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
             <i class="fa-solid fa-rotate"></i>
@@ -366,6 +370,29 @@ import { BusinessSelectionService } from '../../core/services/business-selection
         </button>
       </div>
     </tf-card>
+
+    <!-- AI Report Modal -->
+    <div *ngIf="reportVisible()" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+      <div class="relative w-full max-w-3xl max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden" style="background: var(--tf-surface); color: var(--tf-on-surface);">
+        <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color: var(--tf-border);">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg">AI Report — Unpaid Invoices</h3>
+              <p class="text-xs text-slate-500" *ngIf="reportMetadata()">{{ reportMetadata().totalUnpaid }} invoices · {{ reportMetadata().totalAmount | number:'1.2-2' }} TND · {{ reportMetadata().overdueCount }} overdue</p>
+            </div>
+          </div>
+          <button (click)="reportVisible.set(false)" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="px-6 py-5 overflow-y-auto" style="max-height: calc(85vh - 72px);">
+          <div class="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">{{ reportText() }}</div>
+        </div>
+      </div>
+    </div>
   `
 })
 export class InvoicesComponent implements OnInit {
@@ -390,6 +417,12 @@ export class InvoicesComponent implements OnInit {
   invoices = signal<any[]>([]);
   editingId = signal<string>('');
   errorMessage: string | null = null;
+
+  // AI Report
+  reportText = signal('');
+  reportMetadata = signal<any>(null);
+  reportLoading = signal(false);
+  reportVisible = signal(false);
 
   // Filters
   searchTerm = signal('');
@@ -772,6 +805,29 @@ export class InvoicesComponent implements OnInit {
 
   goToDetail(id: string) {
     this.router.navigate(['/invoices', id]);
+  }
+
+  generateReport() {
+    const businessId = this.activeBusinessId();
+    if (!businessId) {
+      alert('Please select a business first.');
+      return;
+    }
+    this.reportLoading.set(true);
+    this.reportText.set('');
+    this.reportMetadata.set(null);
+    this.invoicesApi.generateUnpaidReport(businessId).subscribe({
+      next: (res) => {
+        this.reportText.set(res.report);
+        this.reportMetadata.set(res.metadata || null);
+        this.reportVisible.set(true);
+        this.reportLoading.set(false);
+      },
+      error: (err) => {
+        this.reportLoading.set(false);
+        alert(err?.error?.message || 'Error generating the AI report.');
+      },
+    });
   }
 }
 

@@ -1,0 +1,547 @@
+.
+├── architecture_projet.txt
+├── backend
+│   ├── .gitignore
+│   ├── api-gateway
+│   │   ├── .env
+│   │   ├── .gitignore
+│   │   ├── .prettierrc
+│   │   ├── eslint.config.mjs
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.ts
+│   │   │   ├── auth.proxy.controller.ts
+│   │   │   ├── main.ts
+│   │   │   └── proxy.controller.ts
+│   │   ├── test
+│   │   │   ├── app.e2e-spec.ts
+│   │   │   └── jest-e2e.json
+│   │   ├── tsconfig.build.json
+│   │   └── tsconfig.json
+│   ├── audit-service
+│   │   ├── .env
+│   │   ├── .gitignore
+│   │   ├── .prettierrc
+│   │   ├── eslint.config.mjs
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── prisma
+│   │   │   └── schema.prisma
+│   │   ├── prisma.config.ts
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.ts
+│   │   │   └── main.ts
+│   │   ├── test
+│   │   │   ├── app.e2e-spec.ts
+│   │   │   └── jest-e2e.json
+│   │   ├── tsconfig.build.json
+│   │   └── tsconfig.json
+│   ├── auth-service
+│   │   ├── .env
+│   │   ├── .gitignore
+│   │   ├── .prettierrc
+│   │   ├── eslint.config.mjs
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── prisma
+│   │   │   ├── migrations
+│   │   │   │   ├── 20260224230954_add_tenant_and_membership
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20260322203051_init_security_questions
+│   │   │   │   │   └── migration.sql
+│   │   │   │   └── migration_lock.toml
+│   │   │   ├── schema.prisma
+│   │   │   ├── seed.d.ts
+│   │   │   ├── seed.js
+│   │   │   ├── seed.js.map
+│   │   │   └── seed.ts
+│   │   ├── prisma.config.ts
+│   │   ├── prisma.ts
+│   │   ├── README.md
+│   │   ├── scripts
+│   │   │   ├── check-user.js
+│   │   │   ├── debug-permissions.js
+│   │   │   ├── fix-duplicate-roles.js
+│   │   │   ├── fix-isstandard.js
+│   │   │   ├── fix-user.js
+│   │   │   ├── migrate-owner-to-bo.js
+│   │   │   └── reset-admin.js
+│   │   ├── src
+│   │   │   ├── admin
+│   │   │   │   ├── admin.controller.ts
+│   │   │   │   └── admin.module.ts
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.ts
+│   │   │   ├── auth
+│   │   │   │   ├── auth.controller.ts
+│   │   │   │   ├── auth.module.ts
+│   │   │   │   ├── auth.service.ts
+│   │   │   │   └── dto
+│   │   │   │       ├── change-password.dto.ts
+│   │   │   │       ├── forgot-password.dto.ts
+│   │   │   │       ├── security-questions.dto.ts
+│   │   │   │       └── signup.dto.ts
+│   │   │   ├── clients
+│   │   │   │   ├── clients.controller.ts
+│   │   │   │   ├── clients.module.ts
+│   │   │   │   └── clients.service.ts
+│   │   │   ├── expenses
+│   │   │   │   ├── expenses.controller.ts
+│   │   │   │   ├── expenses.module.ts
+│   │   │   │   └── expenses.service.ts
+│   │   │   ├── invoices
+│   │   │   │   ├── invoices.controller.ts
+│   │   │   │   ├── invoices.module.ts
+│   │   │   │   └── invoices.service.ts
+│   │   │   ├── main.ts
+│   │   │   ├── onboarding
+│   │   │   │   ├── dto
+│   │   │   │   │   ├── company-setup.dto.ts
+│   │   │   │   │   └── create-business.dto.ts
+│   │   │   │   ├── onboarding.controller.ts
+│   │   │   │   ├── onboarding.module.ts
+│   │   │   │   └── onboarding.service.ts
+│   │   │   ├── prisma.service.ts
+│   │   │   ├── roles
+│   │   │   │   ├── decorators
+│   │   │   │   │   └── permissions.decorator.ts
+│   │   │   │   ├── dto
+│   │   │   │   │   ├── assign-permission.dto.ts
+│   │   │   │   │   └── create-role.dto.ts
+│   │   │   │   ├── rbac.guard.ts
+│   │   │   │   ├── roles.controller.ts
+│   │   │   │   ├── roles.module.ts
+│   │   │   │   └── roles.service.ts
+│   │   │   ├── settings
+│   │   │   │   ├── dto
+│   │   │   │   │   ├── create-business.dto.ts
+│   │   │   │   │   ├── update-business.dto.ts
+│   │   │   │   │   └── update-tenant.dto.ts
+│   │   │   │   ├── settings.controller.ts
+│   │   │   │   ├── settings.module.ts
+│   │   │   │   └── settings.service.ts
+│   │   │   ├── types
+│   │   │   │   └── bcrypt.d.ts
+│   │   │   └── users
+│   │   │       ├── dto
+│   │   │       │   └── create-employee.dto.ts
+│   │   │       └── users.controller.ts
+│   │   ├── test
+│   │   │   ├── app.e2e-spec.ts
+│   │   │   └── jest-e2e.json
+│   │   ├── tsconfig.build.json
+│   │   ├── tsconfig.build.tsbuildinfo
+│   │   └── tsconfig.json
+│   ├── business-service
+│   │   ├── .env
+│   │   ├── .gitignore
+│   │   ├── .prettierrc
+│   │   ├── eslint.config.mjs
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── prisma
+│   │   │   └── schema.prisma
+│   │   ├── prisma.config.ts
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.ts
+│   │   │   ├── business
+│   │   │   │   ├── business.controller.ts
+│   │   │   │   └── business.service.ts
+│   │   │   ├── clients
+│   │   │   │   ├── clients.controller.ts
+│   │   │   │   └── clients.service.ts
+│   │   │   ├── main.ts
+│   │   │   └── prisma.service.ts
+│   │   ├── test
+│   │   │   ├── app.e2e-spec.ts
+│   │   │   └── jest-e2e.json
+│   │   ├── tsconfig.build.json
+│   │   └── tsconfig.json
+│   ├── expense-service
+│   │   ├── .env
+│   │   ├── .gitignore
+│   │   ├── .prettierrc
+│   │   ├── eslint.config.mjs
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── prisma
+│   │   │   └── schema.prisma
+│   │   ├── prisma.config.ts
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.ts
+│   │   │   ├── expenses
+│   │   │   │   ├── categories.controller.ts
+│   │   │   │   ├── dto
+│   │   │   │   │   ├── approve-reject-expense.dto.ts
+│   │   │   │   │   ├── create-category.dto.ts
+│   │   │   │   │   ├── create-expense.dto.ts
+│   │   │   │   │   ├── index.ts
+│   │   │   │   │   ├── list-expenses.dto.ts
+│   │   │   │   │   └── update-expense.dto.ts
+│   │   │   │   ├── dto.ts
+│   │   │   │   ├── expenses.controller.ts
+│   │   │   │   ├── expenses.module.ts
+│   │   │   │   ├── expenses.service.ts
+│   │   │   │   └── guards
+│   │   │   │       └── expense-ownership.guard.ts
+│   │   │   ├── main.ts
+│   │   │   ├── prisma.service.ts
+│   │   │   └── roles
+│   │   │       ├── role.enum.ts
+│   │   │       ├── roles.decorator.ts
+│   │   │       └── roles.guard.ts
+│   │   ├── test
+│   │   │   ├── app.e2e-spec.ts
+│   │   │   └── jest-e2e.json
+│   │   ├── tsconfig.build.json
+│   │   └── tsconfig.json
+│   ├── invoice-service
+│   │   ├── .env
+│   │   ├── .gitignore
+│   │   ├── .prettierrc
+│   │   ├── eslint.config.mjs
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── prisma
+│   │   │   └── schema.prisma
+│   │   ├── prisma.config.ts
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.ts
+│   │   │   ├── invoices
+│   │   │   │   ├── dto.ts
+│   │   │   │   ├── invoices.controller.ts
+│   │   │   │   ├── invoices.module.ts
+│   │   │   │   ├── invoices.service.ts
+│   │   │   │   └── tenant.guard.ts
+│   │   │   ├── main.ts
+│   │   │   └── prisma.service.ts
+│   │   ├── test
+│   │   │   ├── app.e2e-spec.ts
+│   │   │   └── jest-e2e.json
+│   │   ├── tsconfig.build.json
+│   │   └── tsconfig.json
+│   ├── multi-tenant-design
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── schema.sql
+│   │   ├── src
+│   │   │   ├── app.module.ts
+│   │   │   ├── auth
+│   │   │   │   ├── auth.controller.ts
+│   │   │   │   ├── auth.module.ts
+│   │   │   │   ├── auth.service.ts
+│   │   │   │   └── jwt.strategy.ts
+│   │   │   ├── business
+│   │   │   │   ├── business.controller.ts
+│   │   │   │   ├── business.module.ts
+│   │   │   │   └── business.service.ts
+│   │   │   ├── common
+│   │   │   │   ├── decorators
+│   │   │   │   │   └── current-company-id.decorator.ts
+│   │   │   │   └── guards
+│   │   │   │       └── tenant.guard.ts
+│   │   │   ├── entities
+│   │   │   │   ├── BaseTenant.entity.ts
+│   │   │   │   ├── Client.entity.ts
+│   │   │   │   ├── Company.entity.ts
+│   │   │   │   ├── Expense.entity.ts
+│   │   │   │   ├── Invoice.entity.ts
+│   │   │   │   └── User.entity.ts
+│   │   │   ├── main.ts
+│   │   │   └── users
+│   │   │       └── users.controller.ts
+│   │   └── tsconfig.json
+│   ├── notification-service
+│   │   ├── .env
+│   │   ├── .gitignore
+│   │   ├── .prettierrc
+│   │   ├── eslint.config.mjs
+│   │   ├── nest-cli.json
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── prisma
+│   │   │   └── schema.prisma
+│   │   ├── prisma.config.ts
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.ts
+│   │   │   ├── auth
+│   │   │   │   └── jwt.strategy.ts
+│   │   │   ├── chat
+│   │   │   │   ├── chat.controller.ts
+│   │   │   │   ├── chat.gateway.ts
+│   │   │   │   ├── chat.module.ts
+│   │   │   │   ├── chat.service.ts
+│   │   │   │   └── prisma.service.ts
+│   │   │   ├── main.ts
+│   │   │   ├── notification.controller.ts
+│   │   │   ├── notification.http.controller.ts
+│   │   │   ├── notification.service.ts
+│   │   │   └── pdf
+│   │   │       ├── pdf.controller.ts
+│   │   │       ├── pdf.module.ts
+│   │   │       ├── pdf.service.ts
+│   │   │       └── README.md
+│   │   ├── test
+│   │   │   ├── app.e2e-spec.ts
+│   │   │   └── jest-e2e.json
+│   │   ├── test_pdf.js
+│   │   ├── test-invoice.pdf
+│   │   ├── tsconfig.build.json
+│   │   └── tsconfig.json
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── prisma.config.ts
+│   └── tenant-service
+│       ├── .env
+│       ├── .gitignore
+│       ├── .prettierrc
+│       ├── eslint.config.mjs
+│       ├── nest-cli.json
+│       ├── package-lock.json
+│       ├── package.json
+│       ├── prisma
+│       │   └── schema.prisma
+│       ├── prisma.config.ts
+│       ├── prisma.ts
+│       ├── README.md
+│       ├── src
+│       │   ├── app.controller.spec.ts
+│       │   ├── app.controller.ts
+│       │   ├── app.module.ts
+│       │   ├── app.service.ts
+│       │   ├── main.ts
+│       │   ├── prisma.service.ts
+│       │   └── tenants
+│       │       ├── tenants.controller.ts
+│       │       ├── tenants.module.ts
+│       │       └── tenants.service.ts
+│       ├── test
+│       │   ├── app.e2e-spec.ts
+│       │   └── jest-e2e.json
+│       ├── tsconfig.build.json
+│       └── tsconfig.json
+├── docker-compose.yml
+├── frontend
+│   └── taskflow-web
+│       ├── .angular
+│       │   └── cache
+│       │       └── 21.1.4
+│       │           └── taskflow-web
+│       │               ├── .tsbuildinfo
+│       │               ├── angular-compiler.db
+│       │               ├── angular-compiler.db-lock
+│       │               └── vite
+│       │                   └── deps
+│       │                       ├── _metadata.json
+│       │                       ├── @angular_common_http.js
+│       │                       ├── @angular_common_http.js.map
+│       │                       ├── @angular_common.js
+│       │                       ├── @angular_common.js.map
+│       │                       ├── @angular_core.js
+│       │                       ├── @angular_core.js.map
+│       │                       ├── @angular_forms.js
+│       │                       ├── @angular_forms.js.map
+│       │                       ├── @angular_platform-browser.js
+│       │                       ├── @angular_platform-browser.js.map
+│       │                       ├── @angular_router.js
+│       │                       ├── @angular_router.js.map
+│       │                       ├── chunk-5ZTQV5RS.js
+│       │                       ├── chunk-5ZTQV5RS.js.map
+│       │                       ├── chunk-JD2PXFJQ.js
+│       │                       ├── chunk-JD2PXFJQ.js.map
+│       │                       ├── chunk-KWSTWQNB.js
+│       │                       ├── chunk-KWSTWQNB.js.map
+│       │                       ├── chunk-LCDYGO6L.js
+│       │                       ├── chunk-LCDYGO6L.js.map
+│       │                       ├── chunk-LITY4MWS.js
+│       │                       ├── chunk-LITY4MWS.js.map
+│       │                       ├── chunk-M5ZLSGPI.js
+│       │                       ├── chunk-M5ZLSGPI.js.map
+│       │                       ├── chunk-RLIOHDHE.js
+│       │                       ├── chunk-RLIOHDHE.js.map
+│       │                       ├── chunk-SXKVFKH7.js
+│       │                       ├── chunk-SXKVFKH7.js.map
+│       │                       ├── chunk-TABYTPUO.js
+│       │                       ├── chunk-TABYTPUO.js.map
+│       │                       ├── package.json
+│       │                       ├── rxjs_operators.js
+│       │                       ├── rxjs_operators.js.map
+│       │                       ├── rxjs.js
+│       │                       ├── rxjs.js.map
+│       │                       ├── socket__io-client.js
+│       │                       └── socket__io-client.js.map
+│       ├── .editorconfig
+│       ├── .gitignore
+│       ├── angular.json
+│       ├── package-lock.json
+│       ├── package.json
+│       ├── postcss.config.js
+│       ├── public
+│       │   ├── favicon.ico
+│       │   ├── TASKFLOW-removebg-preview-removebg-preview.png
+│       │   ├── TASKFLOW-removebg-preview.png
+│       │   └── TASKFLOW.png
+│       ├── README.md
+│       ├── src
+│       │   ├── app
+│       │   │   ├── app.config.ts
+│       │   │   ├── app.css
+│       │   │   ├── app.html
+│       │   │   ├── app.routes.ts
+│       │   │   ├── app.spec.ts
+│       │   │   ├── app.ts
+│       │   │   ├── core
+│       │   │   │   ├── guards
+│       │   │   │   │   ├── auth.guard.ts
+│       │   │   │   │   └── role.guard.ts
+│       │   │   │   ├── interceptors
+│       │   │   │   │   ├── jwt.interceptor.ts
+│       │   │   │   │   └── tenant.interceptor.ts
+│       │   │   │   ├── models
+│       │   │   │   │   └── index.ts
+│       │   │   │   └── services
+│       │   │   │       ├── api.service.ts
+│       │   │   │       ├── auth.service.ts
+│       │   │   │       ├── business-selection.service.ts
+│       │   │   │       ├── chat.service.ts
+│       │   │   │       ├── clients.service.ts
+│       │   │   │       ├── expenses.service.ts
+│       │   │   │       ├── invoice-pdf.service.ts
+│       │   │   │       ├── invoices.service.ts
+│       │   │   │       ├── loading.service.ts
+│       │   │   │       ├── onboarding-state.service.ts
+│       │   │   │       ├── onboarding.service.ts
+│       │   │   │       ├── settings.service.ts
+│       │   │   │       ├── tenant.service.ts
+│       │   │   │       └── theme.service.ts
+│       │   │   ├── features
+│       │   │   │   ├── admin
+│       │   │   │   │   ├── admin-password-requests.component.ts
+│       │   │   │   │   ├── admin-registrations.component.ts
+│       │   │   │   │   ├── blocked-accounts.component.ts
+│       │   │   │   │   └── roles-permissions.component.ts
+│       │   │   │   ├── auth
+│       │   │   │   │   ├── change-password.component.ts
+│       │   │   │   │   ├── forgot-password.component.ts
+│       │   │   │   │   ├── login.component.ts
+│       │   │   │   │   ├── register.component.ts
+│       │   │   │   │   └── reset-password.component.ts
+│       │   │   │   ├── chat
+│       │   │   │   │   ├── support-chat.component.ts
+│       │   │   │   │   └── team-chat.component.ts
+│       │   │   │   ├── clients
+│       │   │   │   │   └── clients.component.ts
+│       │   │   │   ├── dashboard
+│       │   │   │   │   └── dashboard.component.ts
+│       │   │   │   ├── employees
+│       │   │   │   │   ├── create-employee.component.ts
+│       │   │   │   │   └── employees-list.component.ts
+│       │   │   │   ├── expenses
+│       │   │   │   │   └── expenses.component.ts
+│       │   │   │   ├── home
+│       │   │   │   │   └── home.component.ts
+│       │   │   │   ├── invoices
+│       │   │   │   │   ├── detail
+│       │   │   │   │   │   └── invoice-detail.component.ts
+│       │   │   │   │   └── invoices.component.ts
+│       │   │   │   ├── onboarding
+│       │   │   │   │   ├── company-setup.component.ts
+│       │   │   │   │   ├── create-business.component.ts
+│       │   │   │   │   └── onboarding.layout.ts
+│       │   │   │   ├── security
+│       │   │   │   │   └── security-questions.component.ts
+│       │   │   │   ├── settings
+│       │   │   │   │   └── settings.component.ts
+│       │   │   │   └── team
+│       │   │   │       └── team.component.ts
+│       │   │   └── shared
+│       │   │       ├── components
+│       │   │       │   ├── layout
+│       │   │       │   │   └── layout.component.ts
+│       │   │       │   ├── loader
+│       │   │       │   │   └── loader.component.ts
+│       │   │       │   ├── modal
+│       │   │       │   │   └── modal.component.ts
+│       │   │       │   ├── navbar
+│       │   │       │   │   └── navbar.component.ts
+│       │   │       │   └── sidebar
+│       │   │       │       └── sidebar.component.ts
+│       │   │       └── ui
+│       │   │           ├── badge
+│       │   │           │   └── tf-badge.component.ts
+│       │   │           ├── button
+│       │   │           │   └── tf-button.component.ts
+│       │   │           ├── card
+│       │   │           │   └── tf-card.component.ts
+│       │   │           └── table
+│       │   │               └── tf-table.component.ts
+│       │   ├── index.html
+│       │   ├── main.ts
+│       │   └── styles.scss
+│       ├── tailwind.config.js
+│       ├── tsconfig.app.json
+│       ├── tsconfig.json
+│       └── tsconfig.spec.json
+├── INVOICE_DESIGN_GUIDE.md
+├── INVOICE_PDF_INTEGRATION.md
+├── invoice-generator.js
+├── invoice-pdf-example.js
+├── invoice-template.html
+├── package-lock.json
+├── package.json
+├── runtime-logs
+│   ├── api-gateway.err.log
+│   ├── api-gateway.out.log
+│   ├── audit-service.err.log
+│   ├── audit-service.out.log
+│   ├── auth-service.err.log
+│   ├── auth-service.out.log
+│   ├── business-service.err.log
+│   ├── business-service.out.log
+│   ├── expense-service.err.log
+│   ├── expense-service.out.log
+│   ├── frontend.err.log
+│   ├── frontend.out.log
+│   ├── invoice-service.err.log
+│   ├── invoice-service.out.log
+│   ├── notification-service.err.log
+│   ├── notification-service.out.log
+│   ├── tenant-service.err.log
+│   └── tenant-service.out.log
+└── test-invoice-pdf.js
+
+117 directories, 428 files

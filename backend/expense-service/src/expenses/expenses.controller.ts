@@ -44,7 +44,7 @@ export class ExpensesController {
   }
 
   @Get('by-business')
-  @Roles(Role.BUSINESS_OWNER, Role.BUSINESS_ADMIN, Role.ACCOUNTANT, Role.TEAM_MEMBER)
+  @Roles(Role.SUPER_ADMIN, Role.BUSINESS_OWNER, Role.BUSINESS_ADMIN, Role.ACCOUNTANT, Role.TEAM_MEMBER)
   async getExpensesByBusinessByHeader(
     @Headers('x-tenant-id') businessId: string,
     @Headers('x-user-id') userId: string,
@@ -65,7 +65,7 @@ export class ExpensesController {
   }
 
   @Get('by-business/:businessId')
-  @Roles(Role.BUSINESS_OWNER, Role.BUSINESS_ADMIN, Role.ACCOUNTANT, Role.TEAM_MEMBER)
+  @Roles(Role.SUPER_ADMIN, Role.BUSINESS_OWNER, Role.BUSINESS_ADMIN, Role.ACCOUNTANT, Role.TEAM_MEMBER)
   getExpensesByBusiness(
     @Param('businessId') businessId: string,
     @Req() req: any,

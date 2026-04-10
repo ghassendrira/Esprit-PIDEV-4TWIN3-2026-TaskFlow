@@ -8,6 +8,7 @@ import { NotificationController } from './notification.controller';
 import { NotificationHttpController } from './notification.http.controller';
 import { NotificationService } from './notification.service';
 import { PdfModule } from './pdf/pdf.module';
+import { ChatModule } from './chat/chat.module';
 import { JwtStrategy } from './auth/jwt.strategy';
 
 @Module({
@@ -20,6 +21,7 @@ import { JwtStrategy } from './auth/jwt.strategy';
       signOptions: { expiresIn: '1h' },
     }),
     PdfModule,
+    ChatModule,
   ],
   controllers: [AppController, NotificationController, NotificationHttpController],
   providers: [AppService, NotificationService, JwtStrategy],

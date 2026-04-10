@@ -54,7 +54,7 @@ model ExpenseCategory {
 model AuditLog {
   id          String   @id @default(uuid()) @db.Uuid
   userId      String   @db.Uuid
-  businessId  String   @db.Uuid
+  businessId  String?  @db.Uuid
   action      String
   expenseId   String?  @db.Uuid
   details     Json?

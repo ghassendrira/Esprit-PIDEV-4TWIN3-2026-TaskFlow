@@ -43,4 +43,8 @@ export class InvoicesService {
   sendByEmail(id: string, tenantId?: string) {
     return this.api.post<{ success: boolean }>(`/invoices/${encodeURIComponent(id)}/send`, {});
   }
+
+  generateUnpaidReport(businessId: string) {
+    return this.api.post<{ report: string; metadata: any }>('/invoices/report/unpaid', { businessId });
+  }
 }
