@@ -50,6 +50,7 @@ export class SidebarComponent {
     { label: 'Employees', icon: 'fa-user-plus', path: '/employees', roles: ['OWNER'] },
     { label: 'Settings', icon: 'fa-gear', path: '/settings', roles: ['OWNER'] },
     { label: 'Support', icon: 'fa-headset', path: '/support', roles: ['OWNER','SUPER_ADMIN'] },
+    { label: 'AI Assistant', icon: 'fa-robot', path: '/ai-assistant', roles: ['OWNER','ACCOUNTANT','TEAM'] },
     { label: 'Admin Panel', icon: 'fa-shield-halved', path: '/admin/registrations', roles: ['SUPER_ADMIN'] },
     { label: 'Password Requests', icon: 'fa-key', path: '/admin/password-requests', roles: ['SUPER_ADMIN'] },
     { label: 'Blocked Accounts', icon: 'fa-user-lock', path: '/admin/blocked-accounts', roles: ['SUPER_ADMIN'] },

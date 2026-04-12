@@ -1,0 +1,49 @@
+Revenue / Chiffre d'affaires
+Définition : Total des ventes générées par une entreprise
+Synonymes : revenue, chiffre d'affaires, revenue metric, chiffre d'affaires financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+EBITDA / EBITDA
+Définition : Résultat avant intérêts, impôts, dépréciation et amortissement
+Synonymes : ebitda, ebitda, ebitda metric, ebitda financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Net Income / Résultat net
+Définition : Profit final après toutes les charges
+Synonymes : net income, résultat net, net income metric, résultat net financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Cash Flow / Flux de trésorerie
+Définition : Entrées et sorties de liquidités
+Synonymes : cash flow, flux de trésorerie, cash flow metric, flux de trésorerie financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Bond / Obligation
+Définition : Titre de dette émis par une entité
+Synonymes : bond, obligation, bond metric, obligation financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Stock / Action
+Définition : Part de propriété dans une entreprise
+Synonymes : stock, action, stock metric, action financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Volatility / Volatilité
+Définition : Mesure des fluctuations des prix
+Synonymes : volatility, volatilité, volatility metric, volatilité financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Liquidity / Liquidité
+Définition : Capacité à acheter/vendre rapidement sans impacter le prix
+Synonymes : liquidity, liquidité, liquidity metric, liquidité financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Option / Option
+Définition : Produit dérivé donnant un droit d'achat ou de vente
+Synonymes : option, option, option metric, option financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation
+
+Interest Rate / Taux d'intérêt
+Définition : Coût de l'argent dans le temps
+Synonymes : interest rate, taux d'intérêt, interest rate metric, taux d'intérêt financier
+Tags : accounting, corporate_finance, derivatives, macro, risk, trading, valuation

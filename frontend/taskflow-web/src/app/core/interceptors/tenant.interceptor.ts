@@ -1,6 +1,11 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
+  // Skip interceptor for external APIs (RAG chatbot, etc.)
+  if (!req.url.startsWith('/') && !req.url.includes('localhost:3')) {
+    return next(req);
+  }
+
   const userId = localStorage.getItem('userId');
   const userRole = localStorage.getItem('userRole');
   const tenantId = localStorage.getItem('tenantId') || localStorage.getItem('activeTenantId') || localStorage.getItem('businessTenantId');

@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
 import { ThemeService } from '../../core/services/theme.service';
 
@@ -31,7 +31,7 @@ import { ThemeService } from '../../core/services/theme.service';
         <div class="hidden md:inline text-sm muted">TN | FR</div>
         <button class="hidden md:inline-flex items-center rounded-lg px-4 py-2.5 text-sm border transition hover:bg-[var(--tf-surface-2)]"
                 style="border-color: var(--tf-border);"
-                routerLink="/auth/login">Connexion</button>
+                (click)="goToLogin()">Connexion</button>
         <a class="inline-flex items-center rounded-lg px-5 py-2.5 text-sm font-medium bg-primary-600 text-white hover:bg-primary-700"
            routerLink="/auth/register">Essai Gratuit</a>
       </div>
@@ -325,6 +325,7 @@ import { ThemeService } from '../../core/services/theme.service';
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private theme = inject(ThemeService);
+  private router = inject(Router);
 
   year = new Date().getFullYear();
   subscribed = signal(false);
@@ -563,6 +564,12 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.agents.set(copy);
       }, 900);
     });
+  }
+  goToLogin() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('taskflow-token');
+    localStorage.removeItem('taskflow-user');
+    this.router.navigateByUrl('/auth/login');
   }
   donutBg(): string {
     const d = this.donut();

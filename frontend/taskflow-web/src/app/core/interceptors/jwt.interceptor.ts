@@ -6,6 +6,11 @@ import { catchError, finalize, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
+  // Skip interceptor for external APIs (RAG chatbot, etc.)
+  if (!req.url.startsWith('/') && !req.url.includes('localhost:3')) {
+    return next(req);
+  }
+
   const auth = inject(AuthService);
   const loading = inject(LoadingService);
   const router = inject(Router);

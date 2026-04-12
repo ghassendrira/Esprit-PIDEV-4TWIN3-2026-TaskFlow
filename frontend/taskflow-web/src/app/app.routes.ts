@@ -89,6 +89,10 @@ export const routes: Routes = [
         path: 'support',
         loadComponent: () => import('./features/chat/support-chat.component').then(m => m.SupportChatComponent)
       },
+      {
+        path: 'ai-assistant',
+        loadComponent: () => import('./features/ai-assistant/ai-assistant.component').then(m => m.AiAssistantComponent)
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' } // OK
     ]
   },
