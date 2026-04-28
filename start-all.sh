@@ -5,16 +5,17 @@
 #
 #  Ce script lance TOUT le projet :
 #   1. Docker (PostgreSQL + PgAdmin)
-#   2. Création des bases de données
-#   3. Installation des dépendances backend (npm)
-#   4. Fichiers .env pour chaque service
+#   2. Création des 7 bases de données (par service)
+#   3. Fichiers .env pour chaque service
+#   4. Installation des dépendances backend (npm)
 #   5. Prisma generate + db push
 #   6. Installation des dépendances frontend (npm)
 #   7. Seed de toutes les bases de données
 #   8. Ollama (LLM local pour chatbot + invoice)
-#   9. Démarrage des 8 micro-services backend
-#  10. Démarrage du frontend Angular
-#  11. Démarrage du chatbot Finance (Python FastAPI)
+#   9. ML Service (Python/FastAPI — port 8000)
+#  10. Démarrage des 8 micro-services backend
+#  11. Démarrage du frontend Angular
+#  12. Démarrage du chatbot Finance (Python FastAPI)
 ###############################################################################
 
 # Ne PAS utiliser set -e : on gère les erreurs manuellement
@@ -151,12 +152,15 @@ wait_for_postgres() {
 }
 
 create_databases() {
-  log_info "Création des bases de données..."
-  local databases=("taskflow_auth" "taskflow_tenant" "taskflow_business" "taskflow_invoice" "taskflow_expense" "taskflow_notification" "taskflow_audit")
-  for db in "${databases[@]}"; do
-    docker exec taskflow-postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='$db'" 2>/dev/null | grep -q 1 \
-      || docker exec taskflow-postgres psql -U postgres -c "CREATE DATABASE \"$db\";" >/dev/null 2>&1
-    log_success "Base $db OK"
+  log_info "Création des bases de données par service..."
+  local dbs=("taskflow_auth" "taskflow_tenant" "taskflow_business" "taskflow_notification" "taskflow_invoice" "taskflow_expense" "taskflow_audit")
+  for db in "${dbs[@]}"; do
+    if docker exec taskflow-postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='$db'" 2>/dev/null | grep -q 1; then
+      log_success "Base $db existe déjà"
+    else
+      docker exec taskflow-postgres psql -U postgres -c "CREATE DATABASE $db;" >/dev/null 2>&1
+      log_success "Base $db créée"
+    fi
   done
 }
 
@@ -165,25 +169,49 @@ ensure_env_file() {
   local svc_dir="$BACKEND_DIR/$svc"
   local env_file="$svc_dir/.env"
   local db_name="${DB_MAP[$svc]}"
+  local port
+
+  # Récupérer le port depuis SERVICES
+  for entry in "${SERVICES[@]}"; do
+    if [[ "${entry%%:*}" == "$svc" ]]; then
+      port="${entry##*:}"
+      break
+    fi
+  done
 
   # Ne pas écraser un .env existant
   if [ -f "$env_file" ]; then
+    # Corriger JWT_EXPIRES_IN=7d → 604800 si présent
+    if grep -q 'JWT_EXPIRES_IN=7d' "$env_file"; then
+      sed -i '' 's/JWT_EXPIRES_IN=7d/JWT_EXPIRES_IN=604800/g' "$env_file"
+      log_success "$svc — JWT_EXPIRES_IN corrigé à 604800"
+    fi
     return
   fi
 
   if [ -n "$db_name" ]; then
+    local db_url="postgresql://postgres:taskflow2026@localhost:5432/$db_name"
     cat > "$env_file" <<EOF
-DATABASE_URL=${DB_BASE}/${db_name}
-JWT_SECRET=taskflow-jwt-secret-2026
+PORT=${port:-3000}
+NODE_ENV=development
+DATABASE_URL=$db_url
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=604800
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3
 NOTIFICATION_SERVICE_URL=http://localhost:3004
 BUSINESS_SERVICE_URL=http://localhost:3003
+ML_SERVICE_URL=http://localhost:8000
+REDIS_HOST=localhost
+REDIS_PORT=6379
 EOF
   else
     # API Gateway n'a pas de DB
     cat > "$env_file" <<EOF
-JWT_SECRET=taskflow-jwt-secret-2026
+PORT=3000
+NODE_ENV=development
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=604800
 EOF
   fi
 }
@@ -191,7 +219,7 @@ EOF
 # ─── Libérer les ports occupés ───────────────────────────────────────────────
 log_header "Nettoyage des ports"
 
-for port in 3000 3001 3002 3003 3004 3005 3006 3008 4200 8000; do
+for port in 3000 3001 3002 3003 3004 3005 3006 3008 4200 8000 8001; do
   pids=$(lsof -ti :"$port" 2>/dev/null || true)
   if [ -n "$pids" ]; then
     echo "$pids" | xargs kill -9 2>/dev/null || true
@@ -201,7 +229,7 @@ done
 log_success "Tous les ports sont libres"
 
 # ─── Vérifications préalables ────────────────────────────────────────────────
-log_header "Étape 0/11 — Vérification des prérequis"
+log_header "Étape 0/12 — Vérification des prérequis"
 
 if ! command -v docker &>/dev/null; then
   log_error "Docker n'est pas installé. Installez Docker Desktop puis relancez."
@@ -230,15 +258,15 @@ log_success "npm $(npm -v)"
 mkdir -p "$LOGS_DIR"
 
 # ─── Étape 1 : Docker (PostgreSQL + PgAdmin) ────────────────────────────────
-log_header "Étape 1/11 — Docker : PostgreSQL + PgAdmin"
+log_header "Étape 1/12 — Docker : PostgreSQL + PgAdmin"
 
 cd "$PROJECT_ROOT"
 docker compose up -d 2>&1 | tail -5
 wait_for_postgres
 create_databases
 
-# ─── Étape 2 : Fichiers .env ────────────────────────────────────────────────
-log_header "Étape 2/11 — Fichiers .env des services"
+# ─── Étape 2 : Fichiers .env (création + correction JWT_EXPIRES_IN) ──────────
+log_header "Étape 2/12 — Fichiers .env des services"
 
 for entry in "${SERVICES[@]}"; do
   svc="${entry%%:*}"
@@ -247,7 +275,7 @@ for entry in "${SERVICES[@]}"; do
 done
 
 # ─── Étape 3 : Installation des dépendances backend ─────────────────────────
-log_header "Étape 3/11 — npm install (backend)"
+log_header "Étape 3/12 — npm install (backend)"
 
 for entry in "${SERVICES[@]}"; do
   svc="${entry%%:*}"
@@ -262,7 +290,7 @@ for entry in "${SERVICES[@]}"; do
 done
 
 # ─── Étape 4 : Prisma — Génération + Synchronisation ────────────────────────
-log_header "Étape 4/11 — Prisma : generate + db push"
+log_header "Étape 4/12 — Prisma : generate + db push"
 
 for svc in "${PRISMA_SERVICES[@]}"; do
   svc_dir="$BACKEND_DIR/$svc"
@@ -270,15 +298,21 @@ for svc in "${PRISMA_SERVICES[@]}"; do
     log_info "Prisma → $svc"
     (
       cd "$svc_dir"
-      npx prisma generate 2>&1 | tail -1
-      npx prisma db push --accept-data-loss 2>&1 | tail -3
+      if [ "$svc" = "auth-service" ]; then
+        # auth-service requiert --config prisma.config.ts
+        npx prisma generate --config prisma.config.ts 2>&1 | tail -1
+        npx prisma db push --config prisma.config.ts --accept-data-loss 2>&1 | tail -3
+      else
+        npx prisma generate 2>&1 | tail -1
+        npx prisma db push --accept-data-loss 2>&1 | tail -3
+      fi
     ) || log_warn "$svc — Prisma a retourné des warnings"
     log_success "$svc — schéma synchronisé"
   fi
 done
 
 # ─── Étape 5 : Installation des dépendances frontend ────────────────────────
-log_header "Étape 5/11 — npm install (frontend Angular)"
+log_header "Étape 5/12 — npm install (frontend Angular)"
 
 if [ -d "$FRONTEND_DIR" ]; then
   log_info "npm install → frontend"
@@ -289,7 +323,7 @@ else
 fi
 
 # ─── Étape 6 : Seed des bases de données ────────────────────────────────────
-log_header "Étape 6/11 — Seed des bases de données"
+log_header "Étape 6/12 — Seed des bases de données"
 
 if [ -f "$BACKEND_DIR/seed-all.mjs" ]; then
   log_info "Exécution du seed (seed-all.mjs)..."
@@ -302,7 +336,7 @@ else
 fi
 
 # ─── Étape 7 : Ollama (LLM local) ──────────────────────────────────────────
-log_header "Étape 7/11 — Ollama (LLM pour chatbot + invoice)"
+log_header "Étape 7/12 — Ollama (LLM pour chatbot + invoice)"
 
 if command -v ollama &>/dev/null; then
   # Vérifier si Ollama tourne déjà
@@ -330,8 +364,28 @@ else
   log_warn "Pour l'installer : brew install ollama"
 fi
 
-# ─── Étape 8 : Chatbot Finance (Python) — Setup ─────────────────────────────
-log_header "Étape 8/11 — Chatbot Finance : environnement Python"
+# ─── Étape 8 : ML Service (Python/FastAPI) — Setup ─────────────────────────
+log_header "Étape 8/12 — ML Service : environnement Python"
+
+ML_SERVICE_DIR="$BACKEND_DIR/ml-service"
+if [ -f "$ML_SERVICE_DIR/main.py" ]; then
+  if ! command -v python3 &>/dev/null; then
+    log_warn "Python3 non trouvé — ml-service ignoré"
+  else
+    if [ ! -d "$ML_SERVICE_DIR/venv" ]; then
+      log_info "Création du virtualenv Python pour ml-service..."
+      python3 -m venv "$ML_SERVICE_DIR/venv"
+    fi
+    log_info "Installation des dépendances Python ml-service..."
+    "$ML_SERVICE_DIR/venv/bin/pip" install -q -r "$ML_SERVICE_DIR/requirements.txt" 2>&1 | tail -1
+    log_success "ML Service — environnement Python prêt"
+  fi
+else
+  log_warn "ml-service introuvable"
+fi
+
+# ─── Étape 9 : Chatbot Finance (Python) — Setup ─────────────────────────────
+log_header "Étape 9/12 — Chatbot Finance : environnement Python"
 
 if [ -d "$CHATBOT_DIR" ] && [ -f "$CHATBOT_DIR/app/main.py" ]; then
   if ! command -v python3 &>/dev/null; then
@@ -346,14 +400,14 @@ if [ -d "$CHATBOT_DIR" ] && [ -f "$CHATBOT_DIR/app/main.py" ]; then
     # Installer les dépendances
     log_info "Installation des dépendances Python..."
     "$CHATBOT_DIR/venv/bin/pip" install -q fastapi uvicorn httpx qdrant-client sentence-transformers numpy pydantic 2>&1 | tail -1
-    log_success "Environnement Python prêt"
+    log_success "Environnement Python chatbot prêt"
   fi
 else
   log_warn "Chatbot introuvable"
 fi
 
-# ─── Étape 9 : Lancement des micro-services backend ─────────────────────────
-log_header "Étape 9/11 — Démarrage des 8 micro-services backend"
+# ─── Étape 10 : Lancement des micro-services backend ────────────────────────
+log_header "Étape 10/12 — Démarrage des 8 micro-services backend"
 
 > "$PID_FILE"  # Réinitialiser le fichier PIDs
 
@@ -364,6 +418,8 @@ for entry in "${SERVICES[@]}"; do
 
   if [ -d "$svc_dir" ]; then
     log_info "Démarrage $svc (port $port)..."
+    # Tuer tout processus résiduel sur ce port avant de démarrer
+    lsof -ti :"$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
     (cd "$svc_dir" && npm run start:dev > "$LOGS_DIR/$svc.log" 2>&1) &
     echo $! >> "$PID_FILE"
   fi
@@ -384,8 +440,8 @@ for wpid in "${WAIT_PIDS[@]}"; do
   wait "$wpid" 2>/dev/null || true
 done
 
-# ─── Étape 10 : Lancement du frontend Angular ───────────────────────────────
-log_header "Étape 10/11 — Démarrage du frontend Angular"
+# ─── Étape 11 : Lancement du frontend Angular ───────────────────────────────
+log_header "Étape 11/12 — Démarrage du frontend Angular"
 
 if [ -d "$FRONTEND_DIR" ]; then
   log_info "Démarrage Angular (port 4200)..."
@@ -394,14 +450,26 @@ if [ -d "$FRONTEND_DIR" ]; then
   wait_for_port 4200 "Frontend Angular" 120
 fi
 
-# ─── Étape 11 : Lancement du chatbot ────────────────────────────────────────
-log_header "Étape 11/11 — Démarrage du Chatbot Finance"
+# ─── Étape 12a : Lancement du ML Service Python ─────────────────────────────
+log_header "Étape 12a/12 — Démarrage du ML Service (port 8000)"
+
+if [ -f "$ML_SERVICE_DIR/venv/bin/python" ] && [ -f "$ML_SERVICE_DIR/main.py" ]; then
+  log_info "Démarrage du ml-service (port 8000)..."
+  (cd "$ML_SERVICE_DIR" && ./venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload > "$LOGS_DIR/ml-service.log" 2>&1) &
+  echo $! >> "$PID_FILE"
+  wait_for_port 8000 "ML Service" 60
+else
+  log_warn "ML Service non disponible (virtualenv manquant — installez Python3 et relancez)"
+fi
+
+# ─── Étape 12b : Lancement du chatbot ───────────────────────────────────────
+log_header "Étape 12b/12 — Démarrage du Chatbot Finance (port 8001)"
 
 if [ -d "$CHATBOT_DIR" ] && [ -f "$CHATBOT_DIR/venv/bin/python" ]; then
-  log_info "Démarrage du chatbot (port 8000)..."
-  (cd "$CHATBOT_DIR" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > "$LOGS_DIR/chatbot.log" 2>&1) &
+  log_info "Démarrage du chatbot (port 8001)..."
+  (cd "$CHATBOT_DIR" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload > "$LOGS_DIR/chatbot.log" 2>&1) &
   echo $! >> "$PID_FILE"
-  wait_for_port 8000 "Chatbot Finance" 60
+  wait_for_port 8001 "Chatbot Finance" 60
 else
   log_warn "Chatbot non disponible (virtualenv manquant)"
 fi
@@ -415,7 +483,8 @@ echo -e "${GREEN}${BOLD}└─────────────────�
 echo ""
 echo -e "  ${BOLD}Infrastructure :${NC}"
 echo -e "  ${CYAN}PostgreSQL${NC}           → localhost:5432"
-echo -e "  ${CYAN}PgAdmin${NC}              → http://localhost:5050"
+echo -e "  ${CYAN}Redis${NC}                → localhost:6379"
+echo -e "  ${CYAN}PgAdmin${NC}              → http://localhost:5050  (admin: nourhasni@taskflow.com / nourhasni2002)"
 echo -e "  ${CYAN}Ollama (LLM)${NC}         → http://localhost:11434"
 echo ""
 echo -e "  ${BOLD}Backend (NestJS) :${NC}"
@@ -423,7 +492,7 @@ echo -e "  ${CYAN}API Gateway${NC}          → http://localhost:3000"
 echo -e "  ${CYAN}Auth Service${NC}         → http://localhost:3001"
 echo -e "  ${CYAN}Tenant Service${NC}       → http://localhost:3002"
 echo -e "  ${CYAN}Business Service${NC}     → http://localhost:3003"
-echo -e "  ${CYAN}Notification Service${NC}  → http://localhost:3004"
+echo -e "  ${CYAN}Notification Service${NC} → http://localhost:3004"
 echo -e "  ${CYAN}Invoice Service${NC}      → http://localhost:3005"
 echo -e "  ${CYAN}Expense Service${NC}      → http://localhost:3006"
 echo -e "  ${CYAN}Audit Service${NC}        → http://localhost:3008"
@@ -431,9 +500,15 @@ echo ""
 echo -e "  ${BOLD}Frontend :${NC}"
 echo -e "  ${CYAN}Angular${NC}              → http://localhost:4200"
 echo ""
-echo -e "  ${BOLD}IA / Chatbot :${NC}"
-echo -e "  ${CYAN}Chatbot Finance${NC}      → http://localhost:8000"
-echo -e "  ${CYAN}API docs (Swagger)${NC}   → http://localhost:8000/docs"
+echo -e "  ${BOLD}IA / ML :${NC}"
+echo -e "  ${CYAN}ML Service${NC}           → http://localhost:8000"
+echo -e "  ${CYAN}ML Docs (Swagger)${NC}    → http://localhost:8000/docs"
+echo -e "  ${CYAN}Chatbot Finance${NC}      → http://localhost:8001"
+echo -e "  ${CYAN}Chatbot Docs${NC}         → http://localhost:8001/docs"
+echo ""
+echo -e "  ${BOLD}Compte admin :${NC}"
+echo -e "  ${CYAN}Email${NC}                → admin@taskflow.local"
+echo -e "  ${CYAN}Password${NC}             → Admin1234!"
 echo ""
 echo -e "${YELLOW}Logs :${NC}     $LOGS_DIR/"
 echo -e "${YELLOW}Arrêter :${NC}  Ctrl+C"

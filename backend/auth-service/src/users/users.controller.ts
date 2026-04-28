@@ -211,28 +211,76 @@ export class UsersController {
       tenantId = membership.tenantId;
     }
 
-    const memberships = await this.prisma.userTenantMembership.findMany({
-      where: { 
-        tenantId,
-        user: { deletedAt: null }
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            isActive: true,
-            createdAt: true,
+    const elevatedRoleNames = new Set(['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD',
+      'ROLE_SUPER_ADMIN', 'ROLE_SUPER_MANAGER', 'ROLE_ADMIN', 'ROLE_NIGHT_SHIFT_LEAD']);
+    const jwtRoles = Array.isArray((payload as any)?.roles) ? (payload as any).roles : [];
+    const isElevated = jwtRoles.map((r: any) => String(r ?? '').toUpperCase()).some((r: string) => elevatedRoleNames.has(r));
+
+    // SUPER_ADMIN sees ALL users from the User table directly (with best membership role)
+    if (isElevated) {
+      const allUsers = await this.prisma.user.findMany({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          isActive: true,
+          createdAt: true,
+          memberships: {
+            where: { deletedAt: null },
+            include: { role: { select: { name: true } } },
+            orderBy: { joinedAt: 'desc' },
+            take: 1,
           },
         },
-        role: { select: { name: true } },
-      },
-      orderBy: {
-        joinedAt: 'desc'
-      }
-    });
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return allUsers.map((u) => {
+        const rawRole = u.memberships[0]?.role?.name?.toUpperCase() ?? 'TEAM_MEMBER';
+        let displayRole = rawRole;
+        if (displayRole === 'TEAM_MEMBER') displayRole = 'TEAM-MEMBER';
+        if (displayRole === 'ADMIN' || displayRole === 'NIGHT_SHIFT_LEAD') displayRole = 'ADMIN';
+        if (displayRole === 'ACCOUNTANT') displayRole = 'ACCOUNTANT';
+        if (displayRole === 'BUSINESS_OWNER' || displayRole === 'OWNER' || displayRole === 'PROJECT_MANAGER') displayRole = 'BUSINESS_OWNER';
+        if (displayRole === 'SUPER_ADMIN' || displayRole === 'SUPER_MANAGER') displayRole = 'SUPER_ADMIN';
+        return {
+          id: u.id,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+          role: displayRole,
+          isActive: u.isActive,
+          createdAt: u.createdAt,
+        };
+      });
+    }
+
+    const memberships = await (async () => {
+      return this.prisma.userTenantMembership.findMany({
+        where: {
+          tenantId,
+          user: { deletedAt: null }
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              isActive: true,
+              createdAt: true,
+            },
+          },
+          role: { select: { name: true } },
+        },
+        orderBy: {
+          joinedAt: 'desc'
+        }
+      });
+    })();
 
     return memberships.map((m) => {
       // Standardize role names for the frontend filter to work

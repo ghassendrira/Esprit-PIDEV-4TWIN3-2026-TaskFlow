@@ -88,12 +88,6 @@ model Payment {
   @@index([invoiceId])
 }
 
-enum PredictionType {
-  FRAUD_DETECTION
-  ANOMALY_DETECTION
-  RISK_ASSESSMENT
-}
-
 model AIPrediction {
   id          String         @id @default(uuid()) @db.Uuid
   businessId  String         @db.Uuid

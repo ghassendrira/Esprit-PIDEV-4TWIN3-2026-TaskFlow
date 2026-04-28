@@ -16,7 +16,7 @@ interface ChatApiResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AiChatService {
-  private apiUrl = 'http://localhost:8000';
+  private apiUrl = 'http://localhost:8001';
 
   constructor(private http: HttpClient) {}
 

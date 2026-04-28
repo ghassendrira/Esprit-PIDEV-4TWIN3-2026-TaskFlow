@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
-import { AIPredictionService } from './ai-prediction.service';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -10,7 +9,6 @@ export class AIPredictionQueueService {
 
   constructor(
     @InjectQueue('ai-predictions') private aiQueue: Queue,
-    private aiService: AIPredictionService,
     private prisma: PrismaService,
   ) {}
 

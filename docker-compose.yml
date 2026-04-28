@@ -20,6 +20,19 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis (required by invoice-service Bull queues)
+  redis:
+    image: redis:7-alpine
+    container_name: taskflow-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # PG Admin
   pgadmin:
     image: dpage/pgadmin4:latest

@@ -8,6 +8,7 @@ import { InvoicesService } from '../../core/services/invoices.service';
 import { MlService } from '../../core/services/ml.service';
 import { TfCardComponent } from '../../shared/ui/card/tf-card.component';
 import { BusinessSelectionService } from '../../core/services/business-selection.service';
+import { AuthService } from '../../core/services/auth.service';
 
 type ClientRow = ClientDto & {
   segmentLabel?: string;
@@ -202,6 +203,11 @@ export class ClientsComponent implements OnInit {
   private invoicesApi = inject(InvoicesService);
   private ml = inject(MlService);
   private businessSelection = inject(BusinessSelectionService);
+  private auth = inject(AuthService);
+
+  private get isSuperAdmin(): boolean {
+    return this.auth.hasRole('ROLE_SUPER_ADMIN');
+  }
 
   businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
   activeBusinessId = computed(() => this.businessSelection.selectedBusinessId());
@@ -272,6 +278,19 @@ export class ClientsComponent implements OnInit {
 
   reload() {
     const businessId = this.activeBusinessId();
+
+    // SUPER_ADMIN : charge TOUS les clients (3015)
+    if (this.isSuperAdmin) {
+      this.clientsApi.listAll().subscribe({
+        next: (list) => {
+          const arr = Array.isArray(list) ? list : [];
+          this.clients.set(arr);
+        },
+        error: () => this.clients.set([]),
+      });
+      return;
+    }
+
     if (!businessId) {
       this.clients.set([]);
       return;

@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BusinessController } from './business/business.controller';
 import { BusinessService } from './business/business.service';
+import { ClientsInternalController } from './clients/clients.internal.controller';
 import { ClientsController } from './clients/clients.controller';
 import { ClientsService } from './clients/clients.service';
 import { PrismaService } from './prisma.service';
@@ -18,7 +19,7 @@ import { RolesGuard } from './roles/roles.guard';
       signOptions: { expiresIn: Number(process.env.JWT_EXPIRES_IN ?? 3600) },
     }),
   ],
-  controllers: [AppController, BusinessController, ClientsController],
+  controllers: [AppController, BusinessController, ClientsInternalController, ClientsController],
   providers: [AppService, BusinessService, ClientsService, PrismaService, JwtAuthGuard, RolesGuard],
 })
 export class AppModule {}

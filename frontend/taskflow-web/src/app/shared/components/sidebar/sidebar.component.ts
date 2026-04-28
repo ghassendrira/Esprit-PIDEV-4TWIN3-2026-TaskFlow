@@ -60,9 +60,9 @@ export class SidebarComponent {
   visibleItems() {
     const userRoles = this.auth.roles();
     
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN' as any);
-    const isAdmin = userRoles.includes('ADMIN' as any);
-    const isOwner = userRoles.includes('OWNER' as any) || userRoles.includes('BUSINESS_OWNER' as any);
+    const isSuperAdmin = userRoles.includes('ROLE_SUPER_ADMIN' as any);
+    const isAdmin = userRoles.includes('ROLE_ADMIN' as any);
+    const isOwner = userRoles.includes('ROLE_OWNER' as any) || userRoles.includes('ROLE_BUSINESS_OWNER' as any);
 
     return this.items.filter(i => {
       // 1. Admin Panel & Password Requests: ONLY for SUPER_ADMIN
@@ -84,7 +84,7 @@ export class SidebarComponent {
       // 4. Fallback for other roles (Accountant, Team Member) based on item.roles
       if (!i.roles) return true;
       return i.roles.some(r => {
-        const hasRole = userRoles.includes(r);
+        const hasRole = userRoles.includes(r as any);
         if (!hasRole) {
           if (r === 'TEAM' && userRoles.includes('TEAM_MEMBER' as any)) return true;
         }

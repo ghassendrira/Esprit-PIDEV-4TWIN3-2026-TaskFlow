@@ -303,6 +303,23 @@ export class SettingsService {
     return { success: true, tenant: updated };
   }
 
+  private isElevatedToken(auth: string): boolean {
+    try {
+      const token = auth.startsWith('Bearer ') ? auth.substring(7).trim() : auth;
+      const base64Url = token.split('.')[1];
+      if (!base64Url) return false;
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
+      const jwtRoles: string[] = Array.isArray(payload?.roles) ? payload.roles : [];
+      // Roles may be prefixed with ROLE_ (e.g. ROLE_SUPER_ADMIN) or not
+      const elevated = new Set(['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD',
+        'ROLE_SUPER_ADMIN', 'ROLE_SUPER_MANAGER', 'ROLE_ADMIN', 'ROLE_NIGHT_SHIFT_LEAD']);
+      return jwtRoles.map((r) => String(r).toUpperCase()).some((r) => elevated.has(r));
+    } catch {
+      return false;
+    }
+  }
+
   async getBusinesses(
     auth: string,
     tenantId?: string,
@@ -316,15 +333,30 @@ export class SettingsService {
       tenantId: string;
     }>
   > {
-    const { tenantId: resolvedTenantId } = await this.resolveTenant(
-      auth,
-      tenantId,
-    );
     const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const url = `${base.replace(
-      /\/+$/,
-      '',
-    )}/businesses/by-tenant/${resolvedTenantId}`;
+    const baseUrl = base.replace(/\/+$/, '');
+
+    // SUPER_ADMIN sees ALL businesses across all tenants
+    if (this.isElevatedToken(auth)) {
+      try {
+        const r = await fetch(`${baseUrl}/businesses/all`);
+        if (!r.ok) return [];
+        const list = (await r.json()) as any[];
+        return list.map((b) => ({
+          id: b.id,
+          name: b.name,
+          currency: b.currency,
+          taxRate: b.taxRate,
+          category: b.category,
+          tenantId: b.tenantId,
+        }));
+      } catch {
+        return [];
+      }
+    }
+
+    const { tenantId: resolvedTenantId } = await this.resolveTenant(auth, tenantId);
+    const url = `${baseUrl}/businesses/by-tenant/${resolvedTenantId}`;
     try {
       const r = await fetch(url);
       if (!r.ok) return [];

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Logger, UseGuards, Req, Headers } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Logger, UseGuards, Req, Headers } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
 import type { CreateInvoiceDto, UpdateInvoiceDto } from './dto';
 import { TenantGuard } from './tenant.guard';
@@ -50,17 +50,11 @@ export class InvoicesController {
     @Param('businessId')    paramBid : string,
     @Headers('x-tenant-id') tenantId: string,
     @Headers('x-user-id')   userId  : string,
-    @Request() req: any,
+    @Req() req: any,
   ) {
     this.logger.log(`GET /invoices/by-business/${paramBid}`);
-    // Prendre le businessId depuis :
-    // 1. x-tenant-id header
-    // 2. URL param
-    // 3. JWT payload
-    const bid = (tenantId?.split(',')[0]?.trim() &&
-                 tenantId !== 'MISSING')
-      ? tenantId.split(',')[0].trim()
-      : paramBid || req.user?.businessId;
+    // Prendre le businessId depuis le paramètre URL en priorité
+    const bid = paramBid || req.user?.businessId;
 
     if (!bid) {
       throw new BadRequestException(
@@ -69,7 +63,7 @@ export class InvoicesController {
     }
 
     try {
-      return await this.service.listByBusiness(bid, bid);
+      return await this.service.listByBusiness(bid, tenantId);
     } catch (err: any) {
       this.logger.error(`Error in listByBusiness: ${err.message}`, err.stack);
       throw err;

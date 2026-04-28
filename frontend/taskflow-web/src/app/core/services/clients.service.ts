@@ -18,6 +18,10 @@ export interface ClientDto {
 export class ClientsService {
   private api = inject(ApiService);
 
+  listAll() {
+    return this.api.get<ClientDto[]>('/clients/all');
+  }
+
   listByBusiness(businessId: string, tenantId?: string) {
     const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
     return this.api.get<ClientDto[]>(`/clients/by-business/${encodeURIComponent(businessId)}`, headers ? { headers } : undefined);

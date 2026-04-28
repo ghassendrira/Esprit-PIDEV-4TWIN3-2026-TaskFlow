@@ -55,9 +55,13 @@ export class ExpensesService {
 
   async list(ctx: UserContext, filters: ListExpensesDto) {
     const where: any = {
-      businessId: ctx.businessId,
       deletedAt: null,
     };
+
+    // Ajouter businessId seulement si non vide
+    if (ctx.businessId && ctx.businessId.trim() !== '') {
+      where.businessId = ctx.businessId;
+    }
 
     // TEAM_MEMBER voit SEULEMENT ses propres expenses
     if (ctx.role === 'TEAM_MEMBER') {

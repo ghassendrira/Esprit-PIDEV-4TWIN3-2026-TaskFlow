@@ -176,6 +176,21 @@ export class ProxyController {
     }
   }
 
+  @Get('businesses/all')
+  async listAllBusinesses(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3003/businesses/all';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
   @Post('business/create')
   async createBusiness(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     const url = 'http://localhost:3001/business/create';
@@ -208,13 +223,28 @@ export class ProxyController {
     }
   }
 
+  @Get('clients/all')
+  async listAllClients(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3003/clients/all';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
   @Get('clients/by-business/:businessId')
   async listClientsByBusiness(
     @Param('businessId') businessId: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const url = `http://localhost:3001/clients/by-business/${encodeURIComponent(businessId)}`;
+    const url = `http://localhost:3003/clients/by-business/${encodeURIComponent(businessId)}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -229,7 +259,7 @@ export class ProxyController {
 
   @Post('clients')
   async createClient(@Body() body: any, @Req() req: Request, @Res() res: Response) {
-    const url = 'http://localhost:3001/clients';
+    const url = 'http://localhost:3003/clients';
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -245,7 +275,7 @@ export class ProxyController {
 
   @Get('clients/:id')
   async getClient(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
-    const url = `http://localhost:3001/clients/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3003/clients/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -265,7 +295,7 @@ export class ProxyController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const url = `http://localhost:3001/clients/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3003/clients/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'PATCH',
@@ -281,7 +311,7 @@ export class ProxyController {
 
   @Delete('clients/:id')
   async deleteClient(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
-    const url = `http://localhost:3001/clients/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3003/clients/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'DELETE',

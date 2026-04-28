@@ -21,6 +21,11 @@ export class BusinessController {
     return this.service.create(body);
   }
 
+  @Get('all')
+  allBusinesses() {
+    return this.service.allBusinesses();
+  }
+
   @Get('by-tenant/:tenantId')
   byTenant(@Param('tenantId') tenantId: string) {
     return this.service.byTenant(tenantId);

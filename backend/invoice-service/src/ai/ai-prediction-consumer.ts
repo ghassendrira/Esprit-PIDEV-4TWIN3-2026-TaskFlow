@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Process, Processor } from '@nestjs/bull';
+import { Process, Processor, OnQueueFailed } from '@nestjs/bull';
 import type { Job } from 'bull';
 import { AIPredictionService } from './ai-prediction.service';
 import { PrismaService } from '../prisma.service';
@@ -142,10 +142,7 @@ export class AIPredictionConsumer {
   /**
    * Handle failed jobs
    */
-  @Process({
-    name: 'predict-fraud',
-    concurrency: 1,
-  })
+  @OnQueueFailed()
   async handleFailedJob(job: Job) {
     this.logger.error(`❌ Job ${job.id} failed after ${job.attemptsMade} attempts`);
   }

@@ -39,6 +39,24 @@ export class ClientsService {
     });
   }
 
+  allClients() {
+    return this.prisma.client.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        businessId: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        taxNumber: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   listByBusiness(businessId: string) {
     return this.prisma.client.findMany({
       where: { businessId, deletedAt: null },

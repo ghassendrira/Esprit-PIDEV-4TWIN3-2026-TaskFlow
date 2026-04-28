@@ -84,7 +84,7 @@ export class InvoicesService {
   private async fetchClient(clientId: string): Promise<ClientRecord | null> {
     try {
       const response = await fetch(
-        `${this.businessServiceUrl}/clients/${encodeURIComponent(clientId)}`,
+        `${this.businessServiceUrl}/clients/internal/${encodeURIComponent(clientId)}`,
       );
       if (!response.ok) return null;
       return (await response.json()) as ClientRecord;

@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   UseGuards,
-  Headers,
   Logger,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
@@ -47,6 +46,14 @@ export class ClientsController {
     return this.service.create(body);
   }
 
+  // ✅ GET /clients/all - SUPER_ADMIN uniquement
+  @Get('all')
+  @Roles(Role.SUPER_ADMIN)
+  allClients() {
+    this.logger.log('GET /clients/all');
+    return this.service.allClients();
+  }
+
   // ✅ GET /clients/by-business/:businessId
   @Get('by-business/:businessId')
   @Roles(
@@ -58,11 +65,9 @@ export class ClientsController {
   )
   listByBusiness(
     @Param('businessId') businessId: string,
-    @Headers('x-tenant-id') tenantId: string,
   ) {
     this.logger.log(`GET /clients/by-business/${businessId}`);
-    const bid = tenantId?.split(',')[0]?.trim() || businessId;
-    return this.service.listByBusiness(bid);
+    return this.service.listByBusiness(businessId);
   }
 
   // ✅ GET /clients/:id

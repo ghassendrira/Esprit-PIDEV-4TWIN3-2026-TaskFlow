@@ -50,6 +50,22 @@ export class BusinessService {
     return business;
   }
 
+  allBusinesses() {
+    return this.prisma.business.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        tenantId: true,
+        name: true,
+        logoUrl: true,
+        currency: true,
+        taxRate: true,
+        category: true,
+        createdAt: true,
+      },
+    });
+  }
+
   byTenant(tenantId: string) {
     return this.prisma.business.findMany({
       where: { tenantId },
