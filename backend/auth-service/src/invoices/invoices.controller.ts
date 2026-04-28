@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { InvoicesProxyService } from './invoices.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('invoices')
+@UseGuards(JwtAuthGuard)
 export class InvoicesController {
   constructor(private service: InvoicesProxyService) {}
 

@@ -1,9 +1,9 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
-import { AuthService } from '../../../core/services/auth.service';
+import { AuthService, Role } from '../../../core/services/auth.service';
 
-type MenuItem = { label: string; icon: string; path: string; roles?: ('OWNER'|'ACCOUNTANT'|'TEAM'|'SUPER_ADMIN')[] };
+type MenuItem = { label: string; icon: string; path: string; roles?: Role[] };
 
 @Component({
   selector: 'tf-sidebar',
@@ -12,8 +12,8 @@ type MenuItem = { label: string; icon: string; path: string; roles?: ('OWNER'|'A
   template: `
     <nav class="h-full px-4 py-5">
       <div class="flex flex-col gap-2">
-        <a *ngFor="let item of visibleItems()"
-           [routerLink]="item.path"
+        <a *ngFor="let item of visibleItems"
+           [routerLink]="item.route"
            routerLinkActive="!bg-primary-50 !text-primary-700 dark:!bg-primary-900/10 dark:!text-primary-400"
            #rla="routerLinkActive"
            (click)="navigate.emit()"
@@ -41,54 +41,64 @@ export class SidebarComponent {
   @Output() navigate = new EventEmitter<void>();
   private auth = inject(AuthService);
 
-  items: MenuItem[] = [
-    { label: 'Dashboard', icon: 'fa-gauge-high', path: '/dashboard' },
-    { label: 'Invoices', icon: 'fa-file-invoice', path: '/invoices', roles: ['OWNER','ACCOUNTANT','TEAM'] },
-    { label: 'Expenses', icon: 'fa-wallet', path: '/expenses', roles: ['OWNER','ACCOUNTANT','TEAM'] },
-    { label: 'Clients', icon: 'fa-users', path: '/clients', roles: ['OWNER','ACCOUNTANT','TEAM'] },
-    { label: 'Team', icon: 'fa-people-group', path: '/team', roles: ['OWNER'] },
-    { label: 'Employees', icon: 'fa-user-plus', path: '/employees', roles: ['OWNER'] },
-    { label: 'Settings', icon: 'fa-gear', path: '/settings', roles: ['OWNER'] },
-    { label: 'Support', icon: 'fa-headset', path: '/support', roles: ['OWNER','SUPER_ADMIN'] },
-    { label: 'Admin Panel', icon: 'fa-shield-halved', path: '/admin/registrations', roles: ['SUPER_ADMIN'] },
-    { label: 'Password Requests', icon: 'fa-key', path: '/admin/password-requests', roles: ['SUPER_ADMIN'] },
-    { label: 'Blocked Accounts', icon: 'fa-user-lock', path: '/admin/blocked-accounts', roles: ['SUPER_ADMIN'] },
-    { label: 'Roles & permissions', icon: 'fa-user-shield', path: '/admin/roles', roles: ['SUPER_ADMIN'] }
+  sidebarItems = [
+    {
+      label: 'Dashboard',
+      icon: 'fa-gauge-high',
+      route: '/dashboard',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
+    {
+      label: 'Invoices',
+      icon: 'fa-file-invoice-dollar',
+      route: '/invoices',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
+    {
+      label: 'Expenses',
+      icon: 'fa-wallet',
+      route: '/expenses',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
+    {
+      label: 'Clients',
+      icon: 'fa-users',
+      route: '/clients',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
+    // ===== ML PAGES =====
+    {
+      label: 'Risque Paiement',
+      icon: 'fa-triangle-exclamation',
+      route: '/ml/risk',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
+    {
+      label: 'Segmentation Clients',
+      icon: 'fa-chart-pie',
+      route: '/ml/segmentation',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
+    {
+      label: 'Trésorerie (Cashflow)',
+      icon: 'fa-arrow-trend-up',
+      route: '/ml/cashflow',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
+    {
+      label: 'Anomalies',
+      icon: 'fa-shield-halved',
+      route: '/ml/anomalies',
+      roles: ['ROLE_ACCOUNTANT', 'ROLE_TEAM', 'ROLE_BUSINESS_OWNER', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_OWNER']
+    },
   ];
 
-  visibleItems() {
+  get visibleItems() {
     const userRoles = this.auth.roles();
+    if (!userRoles.length) return [];
     
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN' as any);
-    const isAdmin = userRoles.includes('ADMIN' as any);
-    const isOwner = userRoles.includes('OWNER' as any) || userRoles.includes('BUSINESS_OWNER' as any);
-
-    return this.items.filter(i => {
-      // 1. Admin Panel & Password Requests: ONLY for SUPER_ADMIN
-      if (i.label === 'Admin Panel' || i.label === 'Password Requests') {
-        return isSuperAdmin;
-      }
-
-      // 2. Roles & Permissions: SUPER_ADMIN, ADMIN, and OWNER/BO
-      if (i.label === 'Roles & permissions') {
-        return isSuperAdmin || isAdmin || isOwner;
-      }
-
-      // 3. For everything else (Settings, Invoices, Employees, etc.):
-      // If user is SUPER_ADMIN, ADMIN, or OWNER/BO -> Show them
-      if (isSuperAdmin || isAdmin || isOwner) {
-        return true;
-      }
-
-      // 4. Fallback for other roles (Accountant, Team Member) based on item.roles
-      if (!i.roles) return true;
-      return i.roles.some(r => {
-        const hasRole = userRoles.includes(r);
-        if (!hasRole) {
-          if (r === 'TEAM' && userRoles.includes('TEAM_MEMBER' as any)) return true;
-        }
-        return hasRole;
-      });
-    });
+    return this.sidebarItems.filter(item => 
+      item.roles.some(r => userRoles.includes(r as any))
+    );
   }
 }

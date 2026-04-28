@@ -10,7 +10,13 @@ export class BusinessSelectionService {
 
   private getSafeItem(key: string): string {
     const val = localStorage.getItem(key);
-    if (!val || val === 'undefined' || val === 'null') return '';
+    if (!val || val === 'undefined' || val === 'null') {
+      if (key === 'activeTenantId') {
+        const fallback = localStorage.getItem('tenantId');
+        if (fallback && fallback !== 'undefined' && fallback !== 'null') return fallback;
+      }
+      return '';
+    }
     return val;
   }
 

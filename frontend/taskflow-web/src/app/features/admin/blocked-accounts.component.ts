@@ -241,7 +241,7 @@ export class BlockedAccountsComponent implements OnInit, OnDestroy {
   now = signal(Date.now());
 
   ngOnInit(): void {
-    if (!this.auth.roles().includes('SUPER_ADMIN')) {
+    if (!this.auth.roles().includes('ROLE_SUPER_ADMIN')) {
       this.router.navigate(['/dashboard']);
       return;
     }

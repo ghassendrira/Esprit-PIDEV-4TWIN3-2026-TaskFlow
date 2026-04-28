@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { TfCardComponent } from '../../shared/ui/card/tf-card.component';
 import { SettingsService } from '../../core/services/settings.service';
 import { ExpensesService } from '../../core/services/expenses.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BusinessSelectionService } from '../../core/services/business-selection.service';
+import { MlService, CategorizeExpenseResponse } from '../../core/services/ml.service';
 
 @Component({
   selector: 'tf-expenses',
@@ -51,7 +54,7 @@ import { BusinessSelectionService } from '../../core/services/business-selection
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="font-bold">Créer / Modifier</h3>
-          <div *ngIf="!canWrite()" class="text-sm text-slate-500 dark:text-slate-400 mt-1">Lecture seule (Business Owner).</div>
+          <div *ngIf="!canWrite()" class="text-sm text-slate-500 dark:text-slate-400 mt-1">Vous n'avez pas la permission de créer.</div>
         </div>
         <button (click)="reload()" class="border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition font-medium">Rafraîchir</button>
       </div>
@@ -78,6 +81,7 @@ import { BusinessSelectionService } from '../../core/services/business-selection
           <input
             class="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20"
             [(ngModel)]="form.description"
+            (ngModelChange)="onDescriptionChange($event)"
             name="description"
             #description="ngModel"
             required
@@ -88,6 +92,13 @@ import { BusinessSelectionService } from '../../core/services/business-selection
           />
           <div *ngIf="(description.touched || submitted) && description.errors?.['required']" class="text-red-500 text-[11px] mt-1">La description est obligatoire.</div>
           <div *ngIf="(description.touched || submitted) && description.errors?.['minlength']" class="text-red-500 text-[11px] mt-1">Minimum 3 caractères.</div>
+          <div *ngIf="suggestion() as s" class="mt-2 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 text-sm">
+            <span class="text-amber-800 dark:text-amber-200">&#128161; {{ s.message }}</span>
+            <div class="flex gap-2 mt-2">
+              <button type="button" (click)="acceptSuggestion()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Accepter</button>
+              <button type="button" (click)="refuseSuggestion()" class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">Refuser</button>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -329,11 +340,16 @@ import { BusinessSelectionService } from '../../core/services/business-selection
     :host { display: block; }
   `]
 })
-export class ExpensesComponent implements OnInit {
+export class ExpensesComponent implements OnInit, OnDestroy {
   private settings = inject(SettingsService);
   private expensesApi = inject(ExpensesService);
   private auth = inject(AuthService);
   private businessSelection = inject(BusinessSelectionService);
+  private ml = inject(MlService);
+
+  private desc$ = new Subject<string>();
+  private descSub: Subscription | undefined;
+  suggestion = signal<CategorizeExpenseResponse | null>(null);
 
   businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
   submitted = false;
@@ -412,14 +428,13 @@ export class ExpensesComponent implements OnInit {
   }
 
   isBusinessOwner = computed(() => {
-    const roles = this.auth.roles() as any[];
-    return roles.includes('BUSINESS_OWNER') || roles.includes('OWNER');
+    return false; // Tous les rôles mentionnés (ACCOUNTANT, TEAM_MEMBER, etc.) peuvent créer.
   });
-  canWrite = computed(() => !this.isBusinessOwner());
+  canWrite = computed(() => true);
 
   isAdmin = computed(() => {
     const roles = this.auth.roles() as any[];
-    return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+    return roles.includes('ROLE_SUPER_ADMIN') || roles.includes('ROLE_ADMIN');
   });
 
   form: any = {
@@ -432,6 +447,26 @@ export class ExpensesComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.descSub = this.desc$
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap((text) => {
+          const t = String(text || '').trim();
+          if (t.length < 3) {
+            this.suggestion.set(null);
+            return of(null);
+          }
+          return this.ml.categorizeExpense(t).pipe(
+            catchError(() => of(null)),
+          );
+        }),
+      )
+      .subscribe((s) => {
+        this.suggestion.set(s);
+        if (s?.auto_apply) this.applyCategoryFromMl(s);
+      });
+
     if (this.isAdmin()) {
       this.settings.getAllTenants().subscribe({
         next: (ts: any[]) => {
@@ -463,6 +498,37 @@ export class ExpensesComponent implements OnInit {
       },
       error: () => this.businesses.set([]),
     });
+  }
+
+  ngOnDestroy(): void {
+    this.descSub?.unsubscribe();
+  }
+
+  onDescriptionChange(val: string) {
+    this.desc$.next(val);
+  }
+
+  private applyCategoryFromMl(s: CategorizeExpenseResponse) {
+    const name = (s.suggested_category || '').trim().toLowerCase();
+    if (!name) return;
+    const cat = this.expenseCategories().find(
+      (c) =>
+        (c.name || '').toLowerCase() === name ||
+        name.includes((c.name || '').toLowerCase()) ||
+        (c.name || '').toLowerCase().includes(name),
+    );
+    if (cat) this.form.categoryId = cat.id;
+  }
+
+  acceptSuggestion() {
+    const s = this.suggestion();
+    if (!s) return;
+    this.applyCategoryFromMl(s);
+    this.suggestion.set(null);
+  }
+
+  refuseSuggestion() {
+    this.suggestion.set(null);
   }
 
   onTenantChange(tenantId: string) {
@@ -602,6 +668,7 @@ export class ExpensesComponent implements OnInit {
   cancelEdit() {
     this.editingId.set('');
     this.form = { description: '', amount: 0, date: '', status: 'PENDING', receiptUrl: '', categoryId: '' };
+    this.suggestion.set(null);
   }
 
   remove(e: any) {

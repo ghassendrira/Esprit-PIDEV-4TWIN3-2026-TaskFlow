@@ -1,10 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { catchError, forkJoin, of } from 'rxjs';
 import { SettingsService } from '../../core/services/settings.service';
 import { ClientsService, ClientDto } from '../../core/services/clients.service';
+import { InvoicesService } from '../../core/services/invoices.service';
+import { MlService } from '../../core/services/ml.service';
 import { TfCardComponent } from '../../shared/ui/card/tf-card.component';
 import { BusinessSelectionService } from '../../core/services/business-selection.service';
+
+type ClientRow = ClientDto & {
+  segmentLabel?: string;
+  segmentEmoji?: string;
+  segmentColor?: string;
+  segmentId?: number;
+};
 
 @Component({
   selector: 'tf-clients',
@@ -18,7 +28,7 @@ import { BusinessSelectionService } from '../../core/services/business-selection
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gérez vos clients par business.</p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <div class="flex flex-col gap-1 min-w-[120px]">
             <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Business</label>
             <select
@@ -27,6 +37,20 @@ import { BusinessSelectionService } from '../../core/services/business-selection
               (ngModelChange)="onBusinessChange($event)"
             >
               <option *ngFor="let b of businesses()" [value]="b.id">{{ b.name }}</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1 min-w-[160px]">
+            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Segment ML</label>
+            <select
+              class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              [ngModel]="segmentFilter()"
+              (ngModelChange)="segmentFilter.set($event)"
+            >
+              <option value="">Tous</option>
+              <option value="Champion">Champion</option>
+              <option value="Fidèle">Fidèle</option>
+              <option value="À Risque">À Risque</option>
+              <option value="Perdu">Perdu</option>
             </select>
           </div>
         </div>
@@ -132,16 +156,27 @@ import { BusinessSelectionService } from '../../core/services/business-selection
               <th class="text-left py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Téléphone</th>
               <th class="text-left py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Adresse</th>
               <th class="text-left py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Tax</th>
+              <th class="text-left py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Segment</th>
               <th class="text-right py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-            <tr *ngFor="let c of clients();" class="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition">
+            <tr *ngFor="let c of filteredClients();" class="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition">
               <td class="py-3 px-4 font-medium">{{ c.name }}</td>
               <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ c.email }}</td>
               <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ c.phone }}</td>
               <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ c.address }}</td>
               <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ c.taxNumber }}</td>
+              <td class="py-3 px-4">
+                <span
+                  *ngIf="c.segmentLabel"
+                  [style.color]="c.segmentColor === 'green' ? '#16a34a' : c.segmentColor === 'blue' ? '#2563eb' : c.segmentColor === 'orange' ? '#ea580c' : '#dc2626'"
+                  class="inline-flex items-center gap-1 text-xs font-bold"
+                >
+                  {{ c.segmentEmoji }} {{ c.segmentLabel }}
+                </span>
+                <span *ngIf="!c.segmentLabel" class="text-xs text-slate-400 italic">…</span>
+              </td>
               <td class="py-3 px-4 text-right">
                 <div class="flex items-center justify-end gap-2">
                   <button (click)="edit(c)" class="text-blue-600 hover:text-blue-700 p-1" title="Modifier"><i class="fa-solid fa-pen"></i></button>
@@ -149,8 +184,8 @@ import { BusinessSelectionService } from '../../core/services/business-selection
                 </div>
               </td>
             </tr>
-            <tr *ngIf="clients().length === 0">
-              <td colspan="6" class="py-8 text-center text-slate-500 dark:text-slate-400 italic">Aucun client trouvé.</td>
+            <tr *ngIf="filteredClients().length === 0">
+              <td colspan="7" class="py-8 text-center text-slate-500 dark:text-slate-400 italic">Aucun client trouvé.</td>
             </tr>
           </tbody>
         </table>
@@ -164,12 +199,21 @@ import { BusinessSelectionService } from '../../core/services/business-selection
 export class ClientsComponent implements OnInit {
   private settings = inject(SettingsService);
   private clientsApi = inject(ClientsService);
+  private invoicesApi = inject(InvoicesService);
+  private ml = inject(MlService);
   private businessSelection = inject(BusinessSelectionService);
 
   businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
   activeBusinessId = computed(() => this.businessSelection.selectedBusinessId());
+  segmentFilter = signal<string>('');
 
-  clients = signal<ClientDto[]>([]);
+  clients = signal<ClientRow[]>([]);
+  filteredClients = computed(() => {
+    const f = this.segmentFilter();
+    const list = this.clients();
+    if (!f) return list;
+    return list.filter((c) => c.segmentLabel === f);
+  });
   submitted = false;
   editingId = signal<string | null>(null);
   errorMessage: string | null = null;
@@ -234,8 +278,60 @@ export class ClientsComponent implements OnInit {
     }
     const tenantId = this.resolveTenantId();
     this.clientsApi.listByBusiness(businessId, tenantId || undefined).subscribe({
-      next: (list) => this.clients.set(Array.isArray(list) ? list : []),
+      next: (list) => {
+        const arr = Array.isArray(list) ? list : [];
+        this.clients.set(arr);
+        this.enrichSegments(businessId, tenantId, arr);
+      },
       error: () => this.clients.set([]),
+    });
+  }
+
+  private computeRfm(clientId: string, invoices: any[]) {
+    const skip = (s: string) => {
+      const u = (s || '').toUpperCase();
+      return u === 'CANCELED' || u === 'CANCELLED';
+    };
+    const relevant = invoices.filter((i) => i.clientId === clientId && !skip(i.status));
+    const paid = relevant.filter((i) => (i.status || '').toUpperCase() === 'PAID');
+    const use = paid.length ? paid : relevant;
+    if (!use.length) return { recency: 365, frequency: 0, monetary: 0 };
+    const last = use.reduce((acc, i) => Math.max(acc, new Date(i.issueDate).getTime()), 0);
+    const recency = Math.max(0, (Date.now() - last) / (1000 * 60 * 60 * 24));
+    const frequency = use.length;
+    const monetary = use.reduce((s, i) => s + (Number(i.totalAmount) || 0), 0);
+    return { recency, frequency, monetary };
+  }
+
+  private enrichSegments(businessId: string, tenantId: string, clients: ClientDto[]) {
+    if (!clients.length) return;
+    this.invoicesApi.listByBusiness(businessId, tenantId || undefined).subscribe({
+      next: (inv) => {
+        const invoices = Array.isArray(inv) ? inv : [];
+        const calls = clients.map((c) => {
+          const rfm = this.computeRfm(c.id, invoices);
+          return this.ml
+            .segmentClient(c.id, rfm.recency, rfm.frequency, rfm.monetary, businessId)
+            .pipe(
+              catchError(() => of(null)),
+            );
+        });
+        forkJoin(calls).subscribe((results) => {
+          const next: ClientRow[] = clients.map((c, i) => {
+            const r = results[i] as any;
+            if (!r) return { ...c };
+            return {
+              ...c,
+              segmentLabel: r.segment_label,
+              segmentEmoji: r.emoji,
+              segmentColor: r.color,
+              segmentId: r.segment_id,
+            };
+          });
+          this.clients.set(next);
+        });
+      },
+      error: () => {},
     });
   }
 

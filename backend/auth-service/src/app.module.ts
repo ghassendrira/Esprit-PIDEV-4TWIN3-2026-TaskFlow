@@ -11,6 +11,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { ExpensesModule } from './expenses/expenses.module';
 
 import { RolesModule } from './roles/roles.module';
+import { MlModule } from './ml/ml.module';
 
 @Global()
 @Module({
@@ -23,6 +24,7 @@ import { RolesModule } from './roles/roles.module';
     ClientsModule,
     InvoicesModule,
     ExpensesModule,
+    MlModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

@@ -156,3 +156,19 @@ model SecurityQuestion {
 
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model MlModelParams {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  modelType  String
+  params     Json
+  accuracy   Float?
+  trainedAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@unique([businessId, modelType])
+  @@index([businessId])
+  @@index([modelType])
+}

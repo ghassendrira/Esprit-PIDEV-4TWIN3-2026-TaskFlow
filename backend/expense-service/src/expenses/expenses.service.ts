@@ -35,13 +35,12 @@ export class ExpensesService {
     expenseId?: string,
     details?: any,
   ) {
-    const businessId = ctx.businessId || undefined;
     await this.prisma.auditLog.create({
       data: {
         userId: ctx.userId,
-        ...(businessId ? { businessId } : {}),
+        businessId: ctx.businessId || null,
         action,
-        expenseId,
+        expenseId: expenseId || null,
         details: details || {},
       },
     });

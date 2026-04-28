@@ -7,6 +7,7 @@ export class BusinessService {
 
   async create(data: {
     tenantId: string;
+    ownerId?: string;
     name: string;
     logoUrl?: string;
     currency: string;
@@ -16,6 +17,7 @@ export class BusinessService {
     const business = await this.prisma.business.create({
       data: {
         tenantId: data.tenantId,
+        ownerId: data.ownerId,
         name: data.name,
         logoUrl: data.logoUrl ?? '',
         currency: data.currency,
@@ -25,6 +27,7 @@ export class BusinessService {
       select: {
         id: true,
         tenantId: true,
+        ownerId: true,
         name: true,
         logoUrl: true,
         currency: true,
@@ -50,6 +53,23 @@ export class BusinessService {
   byTenant(tenantId: string) {
     return this.prisma.business.findMany({
       where: { tenantId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        tenantId: true,
+        name: true,
+        logoUrl: true,
+        currency: true,
+        taxRate: true,
+        category: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  byOwner(ownerId: string) {
+    return this.prisma.business.findFirst({
+      where: { ownerId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

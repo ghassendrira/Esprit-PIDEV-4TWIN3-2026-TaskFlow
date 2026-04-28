@@ -4,6 +4,8 @@ import { Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { AuthService, Role } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'tf-login',
@@ -152,6 +154,8 @@ export class LoginComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private auth = inject(AuthService);
+  private http = inject(HttpClient);
+  private api = inject(ApiService);
   protected theme = inject(ThemeService);
 
   showPwd = false;
@@ -181,21 +185,36 @@ export class LoginComponent {
     this.errorMessage = null;
     const email = this.form.value.email!;
     const password = this.form.value.password!;
+    
     this.auth.signin({ email, password }).subscribe({
-      next: (res: any) => {
-        if (res.requires2fa) {
+      next: (response: any) => {
+        console.log('[Login] Signin response received');
+        
+        // Traiter la réponse 2FA
+        if (response.requires2fa) {
           this.show2faInput = true;
-          this.userId = res.userId;
+          this.userId = response.userId;
           this.otpCode = '';
           return;
         }
 
-        this.auth.loginMock(res.token);
-        
-        if (res.mustChangePassword) {
-          this.router.navigate(['/change-password']);
+        if (!response.token) {
+          console.error('[Login] No token received from server');
+          this.errorMessage = 'Erreur de connexion : jeton manquant.';
+          return;
+        }
+
+        // Sauvegarder la réponse login
+        const result = this.auth.handleLoginResponse(response);
+        console.log('[Login] After handleLoginResponse, businessId:', result.businessId);
+
+        // Si businessId manquant, le récupérer
+        if (!result.businessId) {
+          console.warn('[Login] BusinessId manquant, tentative de récupération...');
+          this.fetchAndNavigate(result);
         } else {
-          this.router.navigate(['/dashboard']);
+          console.log('[Login] BusinessId trouvé, navigation au dashboard');
+          this.navigateToDashboard(response);
         }
       },
       error: (err) => {
@@ -213,6 +232,45 @@ export class LoginComponent {
         }
       }
     });
+  }
+
+  private fetchAndNavigate(result: any) {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${result.token}`,
+      'x-user-id': result.user.id,
+      'x-user-role': result.user.role,
+    });
+    
+    this.http
+      .get(`http://localhost:3000/businesses/by-owner/${result.user.id}`, { headers })
+      .subscribe({
+        next: (businesses: any) => {
+          console.log('[Login] Businesses fetched:', businesses);
+          if (businesses && Array.isArray(businesses) && businesses.length > 0) {
+            const bid = businesses[0].id;
+            localStorage.setItem('tenantId', bid);
+            localStorage.setItem('activeTenantId', bid);
+            localStorage.setItem('businessId', bid);
+            localStorage.setItem('businessName', businesses[0].name || '');
+            console.log('[Login] BusinessId sauvegardé:', bid);
+          }
+          this.navigateToDashboard(result);
+        },
+        error: (err) => {
+          console.error('[Login] Erreur récupération businesses:', err);
+          // Naviguer quand même au dashboard
+          this.navigateToDashboard(result);
+        }
+      });
+  }
+
+  private navigateToDashboard(response: any) {
+    console.log('[Login] Navigating to dashboard...');
+    if (response.mustChangePassword) {
+      this.router.navigate(['/change-password']);
+    } else {
+      this.router.navigate(['/dashboard']);
+    }
   }
 
   private getLoginErrorMessage(err: any): string {

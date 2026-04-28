@@ -1,31 +1,202 @@
+version: '3.9'
+
 services:
+  # Database
   postgres:
-    image: postgres:15 
+    image: postgres:15
     container_name: taskflow-postgres
     restart: always
     environment:
-      POSTGRES_USER: postgres  
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: taskflow2026
-      POSTGRES_DB: taskflow  
+      POSTGRES_DB: taskflow
     ports:
-      - "5432:5432"  
+      - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data  
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  pgadmin:  
+  # PG Admin
+  pgadmin:
     image: dpage/pgadmin4:latest
     container_name: taskflow-pgadmin
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: nourhasni@taskflow.com  
-      PGADMIN_DEFAULT_PASSWORD: nourhasni2002  
+      PGADMIN_DEFAULT_EMAIL: nourhasni@taskflow.com
+      PGADMIN_DEFAULT_PASSWORD: nourhasni2002
     ports:
-      - "5050:80"  
+      - "5050:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
-      - postgres  
+      postgres:
+        condition: service_healthy
+
+  # Auth Service (port 3001)
+  auth-service:
+    image: node:20-alpine
+    container_name: taskflow-auth-service
+    working_dir: /usr/src/app
+    volumes:
+      - ./backend/auth-service:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      DATABASE_URL_AUTH: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      JWT_SECRET: change-me
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm install && npm run start:dev"
+
+  # Tenant Service (port 3002)
+  tenant-service:
+    image: node:20-alpine
+    container_name: taskflow-tenant-service
+    working_dir: /usr/src/app
+    volumes:
+      - ./backend/tenant-service:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      DATABASE_URL_TENANT: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm install && npm run start:dev"
+
+  # Business Service (port 3003)
+  business-service:
+    image: node:20-alpine
+    container_name: taskflow-business-service
+    working_dir: /usr/src/app
+    volumes:
+      - ./backend/business-service:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      DATABASE_URL_BUSINESS: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm install && npm run start:dev"
+
+  # Notification Service (port 3004)
+  notification-service:
+    image: node:20-alpine
+    container_name: taskflow-notification-service
+    working_dir: /usr/src/app
+    volumes:
+      - ./backend/notification-service:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      DATABASE_URL_NOTIFICATION: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      JWT_SECRET: change-me
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm install && npm run start:dev"
+
+  # Invoice Service (port 3005)
+  invoice-service:
+    image: node:20-alpine
+    container_name: taskflow-invoice-service
+    working_dir: /usr/src/app
+    volumes:
+      - ./backend/invoice-service:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DATABASE_URL: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      DATABASE_URL_INVOICE: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      BUSINESS_SERVICE_URL: http://business-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+    depends_on:
+      postgres:
+        condition: service_healthy
+      business-service:
+        condition: service_started
+    command: sh -c "npm install && npm run start:dev"
+
+  # Expense Service (port 3006)
+  expense-service:
+    image: node:20-alpine
+    container_name: taskflow-expense-service
+    working_dir: /usr/src/app
+    volumes:
+      - ./backend/expense-service:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      DATABASE_URL: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      DATABASE_URL_EXPENSE: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+      BUSINESS_SERVICE_URL: http://business-service:3003
+      JWT_SECRET: change-me
+    depends_on:
+      postgres:
+        condition: service_healthy
+      business-service:
+        condition: service_started
+    command: sh -c "npm install && npm run start:dev"
+
+  # API Gateway (port 3000) - ENTRY POINT
+  api-gateway:
+    image: node:20-alpine
+    container_name: taskflow-api-gateway
+    working_dir: /usr/src/app
+    volumes:
+      - ./backend/api-gateway:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:taskflow2026@postgres:5432/taskflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      tenant-service:
+        condition: service_started
+      business-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      invoice-service:
+        condition: service_started
+      expense-service:
+        condition: service_started
+    command: sh -c "npm install && npm run start:dev"
 
 volumes:
-  postgres-data:  
-  pgadmin-data:   
+  postgres-data:
+  pgadmin-data:

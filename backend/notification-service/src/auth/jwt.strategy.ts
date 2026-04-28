@@ -18,6 +18,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Token invalide');
     }
 
-    return payload;
+    // FIX 4: Normaliser les rôles en supprimant le préfixe ROLE_
+    const normalizedRoles = (payload.roles || []).map((role: string) =>
+      role.replace(/^ROLE_/, '').toUpperCase()
+    );
+
+    return {
+      id: payload.sub || payload.id,
+      email: payload.email,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      roles: normalizedRoles,
+      role: normalizedRoles[0] || 'USER',
+      tenantId: payload.tenantId || payload.businessId,
+      tenantName: payload.tenantName,
+    };
   }
 }

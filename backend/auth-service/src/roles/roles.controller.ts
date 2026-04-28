@@ -12,13 +12,28 @@ export class RolesController {
   ) {}
 
   private async getPayload(authHeader?: string) {
-    if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedException();
-    const token = authHeader.substring('Bearer '.length);
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
+
+    if (!authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = authHeader.substring('Bearer '.length).trim();
+
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
     try {
       return await this.jwt.verifyAsync(token, {
         secret: process.env.JWT_SECRET ?? 'change-me',
       });
-    } catch {
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
       throw new UnauthorizedException('Invalid token');
     }
   }

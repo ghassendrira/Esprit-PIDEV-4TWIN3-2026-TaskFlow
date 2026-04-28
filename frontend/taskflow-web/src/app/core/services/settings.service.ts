@@ -10,7 +10,7 @@ export class SettingsService {
   private auth = inject(AuthService);
 
   private getActiveTenantId(): string {
-    return localStorage.getItem('activeTenantId') || '';
+    return localStorage.getItem('activeTenantId') || localStorage.getItem('tenantId') || '';
   }
 
   private getHeaders(tenantIdOverride?: string): { headers: HttpHeaders } {

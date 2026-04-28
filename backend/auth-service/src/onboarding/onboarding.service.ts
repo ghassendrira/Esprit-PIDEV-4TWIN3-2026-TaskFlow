@@ -26,15 +26,31 @@ export class OnboardingService {
     authHeader?: string,
     tenantId?: string,
   ): Promise<{ userId: string; tenantId: string }> {
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException(
-        'Missing or invalid Authorization header',
-      );
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
     }
-    const token = authHeader.substring('Bearer '.length);
-    const payload = await this.jwt.verifyAsync(token, {
-      secret: process.env.JWT_SECRET ?? 'change-me',
-    });
+
+    if (!authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = authHeader.substring('Bearer '.length).trim();
+
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
+    let payload: any;
+    try {
+      payload = await this.jwt.verifyAsync(token, {
+        secret: process.env.JWT_SECRET ?? 'change-me',
+      });
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException('Invalid token payload');
 
@@ -98,7 +114,7 @@ export class OnboardingService {
     dto: CreateBusinessDto,
     tenantId?: string,
   ) {
-    const { tenantId: resolvedTenantId } = await this.resolveTenantIdFromAuth(
+    const { userId, tenantId: resolvedTenantId } = await this.resolveTenantIdFromAuth(
       authHeader,
       tenantId,
     );
@@ -115,6 +131,7 @@ export class OnboardingService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tenantId: resolvedTenantId,
+        ownerId: userId,
         name: dto.name,
         currency: dto.currency,
         taxRate: dto.taxRate,

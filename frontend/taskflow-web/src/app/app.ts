@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/services/theme.service';
 import { LoadingService } from './core/services/loading.service';
+import { ApiService } from './core/services/api.service';
 
 @Component({
   selector: 'app-root',
@@ -87,10 +88,14 @@ import { LoadingService } from './core/services/loading.service';
 export class App {
   private theme = inject(ThemeService);
   private loading = inject(LoadingService);
+  private api = inject(ApiService);
   protected readonly title = signal('taskflow-web');
   protected readonly isLoading = computed(() => this.loading.isLoading());
 
   constructor() {
     this.theme.init();
+    // Set the base URL for API calls
+    const apiBaseUrl = localStorage.getItem('apiBaseUrl') || 'http://localhost:3000';
+    this.api.setBaseUrl(apiBaseUrl);
   }
 }

@@ -8,13 +8,16 @@ import {
   Param,
   Post,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 type JwtPayload = { sub: string; email: string };
 
 @Controller('admin')
+@UseGuards(JwtAuthGuard)
 export class AdminController {
   constructor(
     private prisma: PrismaService,
@@ -41,13 +44,32 @@ export class AdminController {
   private async assertSuperAdmin(authHeader?: string): Promise<{
     userId: string;
   }> {
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException();
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
     }
-    const token = authHeader.substring('Bearer '.length);
-    const payload = (await this.jwt.verifyAsync(token, {
-      secret: process.env.JWT_SECRET ?? 'change-me',
-    })) as JwtPayload;
+
+    if (!authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = authHeader.substring('Bearer '.length).trim();
+
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
+    let payload: any;
+    try {
+      payload = await this.jwt.verifyAsync(token, {
+        secret: process.env.JWT_SECRET ?? 'change-me',
+      });
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
+
     const userId = payload?.sub;
     if (!userId) throw new UnauthorizedException();
 
