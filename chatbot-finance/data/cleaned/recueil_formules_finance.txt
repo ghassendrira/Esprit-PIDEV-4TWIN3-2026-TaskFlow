@@ -1,0 +1,520 @@
+--- PAGE 1 ---
+
+Grand recueil de formules de ﬁnance
+Version structurée en français — couvrant l’essentiel du niveau universitaire et professionnel
+Remarque importante : ce document est une compilation très large des formules les plus utilisées en 
+ﬁnance. Il est conçu pour être le plus complet possible, mais il ne peut pas garantir l’exhaustivité absolue 
+de toutes les variantes académiques, sectorielles ou propriétaires existantes.
+1. Mathématiques ﬁnancières de base
+Concept
+Formule
+Actualisation simple
+VA = VF / (1 + r × n)
+Capitalisation simple
+VF = VA × (1 + r × n)
+Capitalisation composée
+VF = VA × (1 + r)^n
+Actualisation composée
+VA = VF / (1 + r)^n
+Taux effectif à partir d’un nominal
+EAR = (1 + r_nom / m)^m − 1
+Taux nominal à partir d’un effectif
+r_nom = m × ((1 + EAR)^(1/m) − 1)
+Taux réel de Fisher
+1 + r_reel = (1 + r_nominal) / (1 + inﬂation)
+Approximation de Fisher
+r_reel ≈ r_nominal − inﬂation
+Valeur actuelle d’une annuité ordinaire
+VA = C × [1 − (1 + r)^(-n)] / r
+Valeur future d’une annuité ordinaire
+VF = C × [((1 + r)^n − 1) / r]
+Valeur actuelle d’une annuité à échoir
+VA_due = VA_ordinary × (1 + r)
+Valeur future d’une annuité à échoir
+VF_due = VF_ordinary × (1 + r)
+Perpétuité simple
+VA = C / r
+Perpétuité croissante
+VA = C1 / (r − g)
+Annuité croissante
+VA = C1 × [1 − ((1 + g)/(1 + r))^n] / (r − g)
+Taux de croissance annualisé composé
+CAGR = (VF / VI)^(1/n) − 1
+Taux périodique équivalent
+r_per = (1 + r_annuel)^(1/m) − 1
+Nombre de périodes
+n = ln(VF/VA) / ln(1 + r)
+Taux implicite
+r = (VF / VA)^(1/n) − 1
+2. Projets d’investissement et ﬁnance d’entreprise
+Concept
+Formule
+Valeur actuelle nette
+VAN = Σ[CF_t / (1 + r)^t] − I0
+Indice de proﬁtabilité
+PI = Σ[CF_t / (1 + r)^t] / I0
+Taux de rentabilité interne
+0 = Σ[CF_t / (1 + TRI)^t] − I0
+TRI modiﬁé
+MIRR = (VF_des_ﬂux_positifs / 
+VA_des_ﬂux_négatifs)^(1/n) − 1
+Délai de récupération simple
+Payback = temps nécessaire pour récupérer I0
+Délai de récupération actualisé
+Discounted Payback = temps nécessaire pour 
+récupérer I0 avec ﬂux actualisés
+Free Cash Flow to Firm
+FCFF = EBIT × (1 − T) + D&A − Capex − ΔBFR
+Free Cash Flow to Equity
+FCFE = Résultat net + D&A − Capex − ΔBFR + 
+Dette nette émise
+ROE
+ROE = Résultat net / Capitaux propres
+ROA
+ROA = Résultat net / Actif total
+ROIC
+ROIC = NOPAT / Capital investi
+NOPAT
+NOPAT = EBIT × (1 − T)
+Marge EBITDA
+Marge EBITDA = EBITDA / Chiffre d’affaires
+Marge EBIT
+Marge EBIT = EBIT / Chiffre d’affaires
+Marge nette
+Marge nette = Résultat net / Chiffre d’affaires
+Rotation des actifs
+Rotation = Chiffre d’affaires / Actif total
+
+--- PAGE 2 ---
+
+DuPont
+ROE = Marge nette × Rotation des actifs × Levier 
+ﬁnancier
+WACC
+WACC = (E/V)×k_e + (D/V)×k_d×(1−T)
+Coût des capitaux propres (CAPM)
+k_e = r_f + β × (r_m − r_f)
+Coût de la dette après impôt
+k_d_après_impôt = k_d × (1 − T)
+Valeur terminale Gordon
+VT = FCFF_(t+1) / (WACC − g)
+Valeur terminale multiple
+VT = EBITDA_t × multiple
+Enterprise Value
+EV = Valeur des capitaux propres + Dette nette + 
+intérêts minoritaires + actions préférentielles
+Dette nette
+Dette nette = Dette ﬁnancière brute − Trésorerie et 
+équivalents
+Leverage ratio
+Dette nette / EBITDA
+Interest coverage
+Couverture intérêts = EBIT / Charges d’intérêts
+Current ratio
+Ratio de liquidité générale = Actif courant / Passif 
+courant
+Quick ratio
+Liquidité réduite = (Actif courant − Stocks) / 
+Passif courant
+Cash conversion cycle
+CCC = DSO + DIO − DPO
+DSO
+DSO = Créances clients / Ventes journalières
+DIO
+DIO = Stocks / Coût des ventes journalier
+DPO
+DPO = Dettes fournisseurs / Achats journaliers
+3. Valorisation des actions
+Concept
+Formule
+Dividend Discount Model
+P0 = D1 / (k_e − g)
+Prix avec croissance multi-phases
+P0 = Σ[D_t / (1 + k_e)^t] + P_n/(1 + k_e)^n
+Price/Earnings
+P/E = Prix par action / BPA
+Price/Book
+P/B = Prix par action / Valeur comptable par 
+action
+EV/EBITDA
+EV/EBITDA = Valeur d’entreprise / EBITDA
+EV/EBIT
+EV/EBIT = Valeur d’entreprise / EBIT
+PEG ratio
+PEG = (P/E) / taux de croissance
+Bénéﬁce par action
+BPA = Résultat net attribuable / Nombre moyen 
+d’actions
+Dividend payout ratio
+Payout = Dividendes / Résultat net
+Dividend yield
+Rendement dividende = Dividende par action / 
+Prix
+Book value per share
+Valeur comptable/action = Capitaux propres / 
+Nombre d’actions
+Justiﬁed P/E
+P/E justiﬁé = payout / (k_e − g)
+Croissance soutenable
+g = ROE × taux de rétention
+Taux de rétention
+b = 1 − payout
+Rendement total de l’action
+R = (P1 − P0 + D1) / P0
+4. Obligations et taux
+Concept
+Formule
+Prix d’une obligation
+P = Σ[C/(1+y)^t] + VN/(1+y)^n
+Prix avec fréquence m
+P = Σ[C/m /(1+y/m)^t] + VN/(1+y/m)^(m×N)
+
+--- PAGE 3 ---
+
+Coupon
+Coupon = taux coupon × valeur nominale
+Current yield
+Current Yield = Coupon annuel / Prix
+Yield to Maturity
+P = Σ[C/(1+YTM)^t] + VN/(1+YTM)^n
+Zero coupon bond
+P = VN / (1 + y)^n
+Spot rate discounting
+P = Σ[CF_t / (1 + s_t)^t]
+Forward rate
+(1 + s_n)^n = (1 + s_{n−1})^(n−1) × (1 + f_n)
+Approx. duration de Macaulay
+D_Mac = Σ[t × PV(CF_t)] / P
+Duration modiﬁée
+D_mod = D_Mac / (1 + y)
+Sensibilité prix-taux
+ΔP/P ≈ −D_mod × Δy
+Convexité
+Conv = [Σ PV(CF_t) × t(t+1)] / [P(1+y)^2]
+Approximation durée + convexité
+ΔP/P ≈ −D_modΔy + 0.5×Conv×(Δy)^2
+DV01 / PV01
+DV01 ≈ D_mod × P × 0.0001
+Duration portefeuille
+D_p = Σ[w_i × D_i]
+Spread de crédit
+Spread = y_obligation − y_sans_risque
+Z-spread
+P = Σ[CF_t / (1 + s_t + z)^t]
+Asset swap spread
+ASS = spread transformant ﬂux ﬁxes en marge 
+ﬂottante
+Rendement holding period
+HPR = (Coupon + P1 − P0)/P0
+5. Portefeuille et théorie moderne
+Concept
+Formule
+Rendement attendu portefeuille
+E(R_p) = Σ[w_i × E(R_i)]
+Variance à 2 actifs
+σ_p^2 = w1^2σ1^2 + w2^2σ2^2 + 2w1w2σ12
+Covariance
+Cov(R_i,R_j) = ρ_ij × σ_i × σ_j
+Variance n actifs
+σ_p^2 = w'Σw
+Écart-type portefeuille
+σ_p = √(w'Σw)
+Beta d’un actif
+β_i = Cov(R_i,R_m) / Var(R_m)
+CAPM
+E(R_i) = r_f + β_i(E(R_m) − r_f)
+Alpha de Jensen
+α = R_p − [r_f + β_p(R_m − r_f)]
+Sharpe ratio
+Sharpe = (R_p − r_f)/σ_p
+Treynor ratio
+Treynor = (R_p − r_f)/β_p
+Information ratio
+IR = (R_p − R_bench) / Tracking Error
+Tracking error
+TE = σ(R_p − R_bench)
+Coefﬁcient de corrélation
+ρ_ij = Cov_ij / (σ_iσ_j)
+Poids du portefeuille minimum variance (2 actifs)
+w1* = (σ2^2 − σ12)/(σ1^2 + σ2^2 − 2σ12)
+Rendement GMV
+E(R_GMV) = w_GMV' μ
+Marché des capitaux
+E(R_p) = r_f + [(E(R_m)−r_f)/σ_m] × σ_p
+Utilité moyenne-variance
+U = E(R_p) − 0.5Aσ_p^2
+Risk contribution
+RC_i = w_i × ∂σ_p/∂w_i
+6. Risque de marché
+Concept
+Formule
+VaR paramétrique
+VaR = z_α × σ × V
+VaR avec rendement moyen
+VaR = (z_α σ − μ) × V
+Expected Shortfall paramétrique
+ES = [φ(z_α)/(1−α)] × σ × V
+Volatilité annualisée
+σ_annuelle = σ_périodique × √N
+Variance-covariance matrix
+Σ = matrice des covariances des facteurs
+Beta levier
+β_L = β_U × [1 + (1 − T)D/E]
+
+--- PAGE 4 ---
+
+Beta désendetté
+β_U = β_L / [1 + (1 − T)D/E]
+Maximum drawdown
+MDD = (Pic − Creux)/Pic
+Stress loss
+Perte stressée = valeur scénario adverse − valeur 
+actuelle
+Historical simulation VaR
+VaR = quantile empirique des pertes historiques
+EWMA volatility
+σ_t^2 = λσ_(t−1)^2 + (1−λ)r_(t−1)^2
+GARCH(1,1)
+σ_t^2 = ω + αr_(t−1)^2 + βσ_(t−1)^2
+Parametric delta-normal
+VaR ≈ z_α × √(Δ'ΣΔ)
+Marginal VaR
+MVaR_i = ∂VaR/∂w_i
+Incremental VaR
+IVaR_i = VaR_portefeuille avec actif − VaR sans 
+actif
+7. Produits dérivés
+Concept
+Formule
+Forward price sans revenu
+F0 = S0 × (1 + r)^T
+Forward price en continu
+F0 = S0e^(rT)
+Forward avec revenu continu q
+F0 = S0e^((r−q)T)
+Valeur d’un forward
+f_t = S_t − K/(1+r)^(T−t)
+Valeur d’un forward en continu
+f_t = S_te^(−q(T−t)) − Ke^(−r(T−t))
+Prix futures théorique
+Futures ≈ Spot × coût de portage
+Put-call parity
+C − P = S0 − K/(1+r)^T
+Parité en continu
+C − P = S0e^(−qT) − Ke^(−rT)
+Payoff call
+max(S_T − K, 0)
+Payoff put
+max(K − S_T, 0)
+Proﬁt call acheté
+max(S_T − K,0) − prime
+Proﬁt put acheté
+max(K − S_T,0) − prime
+Black-Scholes call
+C = S0N(d1) − Ke^(−rT)N(d2)
+Black-Scholes put
+P = Ke^(−rT)N(−d2) − S0N(−d1)
+d1
+d1 = [ln(S0/K) + (r − q + σ²/2)T] / (σ√T)
+d2
+d2 = d1 − σ√T
+Delta call
+Δ_call = e^(−qT)N(d1)
+Delta put
+Δ_put = e^(−qT)(N(d1) − 1)
+Gamma
+Γ = e^(−qT)φ(d1)/(S0σ√T)
+Vega
+Vega = S0e^(−qT)φ(d1)√T
+Theta call
+Θ = −S0φ(d1)σe^(−qT)/(2√T) − rKe^(−rT)N(d2) 
++ qS0e^(−qT)N(d1)
+Rho call
+Rho = KTe^(−rT)N(d2)
+Binomial risk-neutral prob.
+p = (u − d)/(u − l) [variante notationnelle ; 
+souvent p=(e^{rΔt}-d)/(u-d)]
+Option binomiale une période
+C0 = [pC_u + (1−p)C_d]/(1+r)
+Swap taux ﬁxe/ﬂottant
+Valeur swap = valeur jambe ﬁxe − valeur jambe 
+ﬂottante
+Taux swap par
+S = [1 − DF_n] / Σ[α_i DF_i]
+8. Change et ﬁnance internationale
+Concept
+Formule
+Taux croisé
+A/C = (A/B) × (B/C)
+Rendement FX domestique
+R_dom = (S1 − S0)/S0
+
+--- PAGE 5 ---
+
+Parité couverte des taux
+F/S = (1 + r_dom)/(1 + r_for)
+Parité non couverte
+E[S1]/S0 ≈ (1 + r_dom)/(1 + r_for)
+Fisher international
+variation attendue du change ≈ différentiel de taux 
+nominaux
+PPP relative
+ΔS/S ≈ inﬂation_dom − inﬂation_for
+Taux forward points
+Points = F − S
+Arbitrage covered interest
+placer dans la devise offrant le meilleur rendement 
+couvert
+9. Marchés monétaires et instruments courts
+Concept
+Formule
+Prix T-bill sur base simple
+P = VN × [1 − d×(n/360)]
+Taux de rendement money market
+r_m = (VN − P)/P × (360/n)
+Taux d’escompte bancaire
+d = (VN − P)/VN × (360/n)
+Certiﬁcat de dépôt
+Prix = ﬂux actualisés au taux du marché monétaire
+Commercial paper yield
+Yield = (VN−P)/P × base annuelle
+10. Comptabilité et analyse ﬁnancière
+Concept
+Formule
+Actif = Passif + Capitaux propres
+Équation comptable fondamentale
+BFR
+BFR = Stocks + Créances d’exploitation − Dettes 
+d’exploitation
+Trésorerie nette
+TN = FR − BFR
+Fonds de roulement
+FR = Ressources stables − Emplois stables
+Taux d’endettement
+Dette totale / Capitaux propres
+Gearing
+Dette nette / Capitaux propres
+Rotation stock
+Coût des ventes / Stock moyen
+Rotation créances
+Ventes à crédit / Créances moyennes
+Rotation fournisseurs
+Achats / Dettes fournisseurs moyennes
+Taux d’amortissement linéaire
+1 / durée d’usage
+Annuité amortissement linéaire
+Base amortissable / durée
+Annuité amortissement dégressif
+VNC × taux dégressif
+11. Coût du capital, structure ﬁnancière et M&A
+Concept
+Formule
+APV
+APV = VAN sans dette + valeur actuelle des 
+économies d’impôt
+Valeur du tax shield
+VTS = T × D [cas simple dette perpétuelle]
+Synergies
+Synergie = Valeur combinée − (Valeur A + Valeur 
+B)
+Prime d’acquisition
+Prime = Prix offert − Valeur de marché cible
+Accrétion BPA
+BPA post deal > BPA pré deal
+Dilution BPA
+BPA post deal < BPA pré deal
+LBO debt ratio
+Dette / EV
+IRR sponsor
+TRI des ﬂux equity du sponsor
+Multiple of Money
+MoM = encaissement equity / investissement 
+equity
+Break-even synergy
+synergie nécessaire pour justiﬁer la prime payée
+
+--- PAGE 6 ---
+
+12. Gestion de portefeuille obligataire et taux avancés
+Concept
+Formule
+Forward discount factor
+DF(t,T)=DF(0,T)/DF(0,t)
+Instantaneous forward rate
+f(t,T) = −∂ln P(t,T)/∂T
+Taux zéro à partir d’un DF
+z(T) = DF(0,T)^(−1/T) − 1
+FRA payoff
+Payoff = [(L−K)×α×N] / [1 + L×α]
+Duration key-rate
+sensibilité du prix à une variation d’un point de la 
+courbe
+Dollar duration
+DD = D_mod × P
+BPV portefeuille
+BPV = Σ BPV_i
+13. Futures et matières premières
+Concept
+Formule
+Coût de portage
+F0 = (S0 + U)e^(rT) ou F0 = S0e^((r+u−y)T)
+Convenience yield
+y = bénéﬁce implicite lié à la détention physique
+Hedge ratio optimal
+h* = ρ(σ_S/σ_F)
+Nombre optimal de contrats
+N* = h* × (valeur exposée / valeur d’un contrat 
+futures)
+Basis
+Basis = Spot − Futures
+Variation de la basis
+Risque de basis = variation non anticipée du basis
+14. Assurance, crédit et défaut
+Concept
+Formule
+Perte attendue
+EL = PD × LGD × EAD
+Perte inattendue
+UL = quantile perte − EL
+Recovery rate
+RR = 1 − LGD
+Spread de CDS approx.
+CDS spread ≈ PD × LGD
+Hazard rate approx.
+λ ≈ spread / (1 − RR)
+Probabilité de survie
+Q(t)=e^(−λt)
+Probabilité de défaut cumulée
+PD(0,t)=1−e^(−λt)
+15. Mesures statistiques utiles en ﬁnance
+Concept
+Formule
+Espérance
+E(X)=Σp_ix_i ou ∫xf(x)dx
+Variance
+Var(X)=E[(X−μ)^2]
+Écart-type
+σ=√Var(X)
+Coefﬁcient de variation
+CV=σ/μ
+Skewness
+Skew = E[(X−μ)^3]/σ^3
+Kurtosis
+Kurt = E[(X−μ)^4]/σ^4
+Rendement simple
+R_t=(P_t−P_{t−1}+D_t)/P_{t−1}
+Log-return
+r_t = ln(P_t/P_{t−1})
+Moyenne géométrique
+[(Π(1+R_t))^(1/n)]−1
+Erreur quadratique moyenne
+RMSE = √[Σ(e_t^2)/n]
+R²
+R² = 1 − SSE/SST
+Covariance empirique
+Cov = Σ[(x_i−x̄)(y_i−ȳ)]/(n−1)
+Fin du recueil. Pour un usage académique, il est recommandé d’adapter les notations (discrètes ou 
+
+--- PAGE 7 ---
+
+continues, pré/post-impôt, bases 360/365, conventions de marché) au cours ou au marché visé.

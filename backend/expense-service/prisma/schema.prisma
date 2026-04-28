@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Expense {
+  id          String        @id @default(uuid()) @db.Uuid
+  businessId  String        @db.Uuid
+  amount      Float
+  date        DateTime
+  description String
+
+  receiptUrl  String?
+  status      ExpenseStatus @default(PENDING)
+  rejectionReason String?
+  categoryId  String        @db.Uuid
+  createdBy   String        @db.Uuid
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([businessId])
+  @@index([createdBy])
+  @@index([status])
+  @@index([categoryId])
+}
+
+model ExpenseCategory {
+  id          String    @id @default(uuid()) @db.Uuid
+  businessId  String?   @db.Uuid
+  name        String
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  expenses    Expense[]
+
+  @@index([businessId])
+  @@index([name])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  businessId  String?  @db.Uuid
+  action      String
+  expenseId   String?  @db.Uuid
+  details     Json?
+  timestamp   DateTime @default(now())
+
+  @@index([businessId])
+  @@index([userId])
+  @@index([expenseId])
+}

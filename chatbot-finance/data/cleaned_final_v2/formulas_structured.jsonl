@@ -1,0 +1,177 @@
+{"type": "formula", "concept": "VA", "formula": "VF / (1 + r × n)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VF", "formula": "VA × (1 + r × n)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VF", "formula": "VA × (1 + r)^n", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VA", "formula": "VF / (1 + r)^n", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "EAR", "formula": "(1 + r_nom / m)^m − 1", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "r_nom", "formula": "m × ((1 + EAR)^(1/m) − 1)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "1 + r_reel", "formula": "(1 + r_nominal) / (1 + inﬂation)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VA", "formula": "C × [1 − (1 + r)^(-n)] / r", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VF", "formula": "C × [((1 + r)^n − 1) / r]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VA_due", "formula": "VA_ordinary × (1 + r)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VF_due", "formula": "VF_ordinary × (1 + r)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VA", "formula": "C1 / (r − g)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VA", "formula": "C1 × [1 − ((1 + g)/(1 + r))^n] / (r − g)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "CAGR", "formula": "(VF / VI)^(1/n) − 1", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "r_per", "formula": "(1 + r_annuel)^(1/m) − 1", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "n", "formula": "ln(VF/VA) / ln(1 + r)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "r", "formula": "(VF / VA)^(1/n) − 1", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VAN", "formula": "Σ[CF_t / (1 + r)^t] − I0", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "PI", "formula": "Σ[CF_t / (1 + r)^t] / I0", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "0", "formula": "Σ[CF_t / (1 + TRI)^t] − I0", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "MIRR", "formula": "(VF_des_ﬂux_positifs /", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Payback", "formula": "temps nécessaire pour récupérer I0", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Discounted Payback", "formula": "temps nécessaire pour", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "FCFF", "formula": "EBIT × (1 − T) + D&A − Capex − ΔBFR", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "FCFE", "formula": "Résultat net + D&A − Capex − ΔBFR +", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "ROE", "formula": "Résultat net / Capitaux propres", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "ROA", "formula": "Résultat net / Actif total", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "ROIC", "formula": "NOPAT / Capital investi", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "NOPAT", "formula": "EBIT × (1 − T)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Marge EBITDA", "formula": "EBITDA / Chiffre d’affaires", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Marge EBIT", "formula": "EBIT / Chiffre d’affaires", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Marge nette", "formula": "Résultat net / Chiffre d’affaires", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Rotation", "formula": "Chiffre d’affaires / Actif total", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "ROE", "formula": "Marge nette × Rotation des actifs × Levier", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "WACC", "formula": "(E/V)×k_e + (D/V)×k_d×(1−T)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "k_e", "formula": "r_f + β × (r_m − r_f)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "k_d_après_impôt", "formula": "k_d × (1 − T)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VT", "formula": "FCFF_(t+1) / (WACC − g)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VT", "formula": "EBITDA_t × multiple", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "EV", "formula": "Valeur des capitaux propres + Dette nette +", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Dette nette", "formula": "Dette ﬁnancière brute − Trésorerie et", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Couverture intérêts", "formula": "EBIT / Charges d’intérêts", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Ratio de liquidité générale", "formula": "Actif courant / Passif", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Liquidité réduite", "formula": "(Actif courant − Stocks) /", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "CCC", "formula": "DSO + DIO − DPO", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "DSO", "formula": "Créances clients / Ventes journalières", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "DIO", "formula": "Stocks / Coût des ventes journalier", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "DPO", "formula": "Dettes fournisseurs / Achats journaliers", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P0", "formula": "D1 / (k_e − g)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P0", "formula": "Σ[D_t / (1 + k_e)^t] + P_n/(1 + k_e)^n", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P/E", "formula": "Prix par action / BPA", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P/B", "formula": "Prix par action / Valeur comptable par", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "EV/EBITDA", "formula": "Valeur d’entreprise / EBITDA", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "EV/EBIT", "formula": "Valeur d’entreprise / EBIT", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "PEG", "formula": "(P/E) / taux de croissance", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "BPA", "formula": "Résultat net attribuable / Nombre moyen", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Payout", "formula": "Dividendes / Résultat net", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Rendement dividende", "formula": "Dividende par action /", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Valeur comptable/action", "formula": "Capitaux propres /", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P/E justiﬁé", "formula": "payout / (k_e − g)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "g", "formula": "ROE × taux de rétention", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "b", "formula": "1 − payout", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "R", "formula": "(P1 − P0 + D1) / P0", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "Σ[C/(1+y)^t] + VN/(1+y)^n", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "Σ[C/m /(1+y/m)^t] + VN/(1+y/m)^(m×N)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Coupon", "formula": "taux coupon × valeur nominale", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Current Yield", "formula": "Coupon annuel / Prix", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "Σ[C/(1+YTM)^t] + VN/(1+YTM)^n", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "VN / (1 + y)^n", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "Σ[CF_t / (1 + s_t)^t]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "(1 + s_n)^n", "formula": "(1 + s_{n−1})^(n−1) × (1 + f_n)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "D_Mac", "formula": "Σ[t × PV(CF_t)] / P", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "D_mod", "formula": "D_Mac / (1 + y)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Conv", "formula": "[Σ PV(CF_t) × t(t+1)] / [P(1+y)^2]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "D_p", "formula": "Σ[w_i × D_i]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Spread", "formula": "y_obligation − y_sans_risque", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "Σ[CF_t / (1 + s_t + z)^t]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "ASS", "formula": "spread transformant ﬂux ﬁxes en marge", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "HPR", "formula": "(Coupon + P1 − P0)/P0", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "E(R_p)", "formula": "Σ[w_i × E(R_i)]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "σ_p^2", "formula": "w1^2σ1^2 + w2^2σ2^2 + 2w1w2σ12", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Cov(R_i,R_j)", "formula": "ρ_ij × σ_i × σ_j", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "σ_p^2", "formula": "w'Σw", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "σ_p", "formula": "√(w'Σw)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "β_i", "formula": "Cov(R_i,R_m) / Var(R_m)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "E(R_i)", "formula": "r_f + β_i(E(R_m) − r_f)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "α", "formula": "R_p − [r_f + β_p(R_m − r_f)]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Sharpe", "formula": "(R_p − r_f)/σ_p", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Treynor", "formula": "(R_p − r_f)/β_p", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "IR", "formula": "(R_p − R_bench) / Tracking Error", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "TE", "formula": "σ(R_p − R_bench)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "ρ_ij", "formula": "Cov_ij / (σ_iσ_j)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "w1*", "formula": "(σ2^2 − σ12)/(σ1^2 + σ2^2 − 2σ12)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "E(R_GMV)", "formula": "w_GMV' μ", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "E(R_p)", "formula": "r_f + [(E(R_m)−r_f)/σ_m] × σ_p", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "U", "formula": "E(R_p) − 0.5Aσ_p^2", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "RC_i", "formula": "w_i × ∂σ_p/∂w_i", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VaR", "formula": "z_α × σ × V", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VaR", "formula": "(z_α σ − μ) × V", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "ES", "formula": "[φ(z_α)/(1−α)] × σ × V", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "σ_annuelle", "formula": "σ_périodique × √N", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Σ", "formula": "matrice des covariances des facteurs", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "β_L", "formula": "β_U × [1 + (1 − T)D/E]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "β_U", "formula": "β_L / [1 + (1 − T)D/E]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "MDD", "formula": "(Pic − Creux)/Pic", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Perte stressée", "formula": "valeur scénario adverse − valeur", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VaR", "formula": "quantile empirique des pertes historiques", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "σ_t^2", "formula": "λσ_(t−1)^2 + (1−λ)r_(t−1)^2", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "σ_t^2", "formula": "ω + αr_(t−1)^2 + βσ_(t−1)^2", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "MVaR_i", "formula": "∂VaR/∂w_i", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "IVaR_i", "formula": "VaR_portefeuille avec actif − VaR sans", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "F0", "formula": "S0 × (1 + r)^T", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "F0", "formula": "S0e^(rT)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "F0", "formula": "S0e^((r−q)T)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "f_t", "formula": "S_t − K/(1+r)^(T−t)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "f_t", "formula": "S_te^(−q(T−t)) − Ke^(−r(T−t))", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "C − P", "formula": "S0 − K/(1+r)^T", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "C − P", "formula": "S0e^(−qT) − Ke^(−rT)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "C", "formula": "S0N(d1) − Ke^(−rT)N(d2)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "Ke^(−rT)N(−d2) − S0N(−d1)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "d1", "formula": "[ln(S0/K) + (r − q + σ²/2)T] / (σ√T)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "d2", "formula": "d1 − σ√T", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Δ_call", "formula": "e^(−qT)N(d1)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Δ_put", "formula": "e^(−qT)(N(d1) − 1)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Γ", "formula": "e^(−qT)φ(d1)/(S0σ√T)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Vega", "formula": "S0e^(−qT)φ(d1)√T", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Θ", "formula": "−S0φ(d1)σe^(−qT)/(2√T) − rKe^(−rT)N(d2)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Rho", "formula": "KTe^(−rT)N(d2)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "p", "formula": "(u − d)/(u − l) [variante notationnelle ;", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "souvent p", "formula": "(e^{rΔt}-d)/(u-d)]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "C0", "formula": "[pC_u + (1−p)C_d]/(1+r)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Valeur swap", "formula": "valeur jambe ﬁxe − valeur jambe", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "S", "formula": "[1 − DF_n] / Σ[α_i DF_i]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "A/C", "formula": "(A/B) × (B/C)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "R_dom", "formula": "(S1 − S0)/S0", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "F/S", "formula": "(1 + r_dom)/(1 + r_for)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Points", "formula": "F − S", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "P", "formula": "VN × [1 − d×(n/360)]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "r_m", "formula": "(VN − P)/P × (360/n)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "d", "formula": "(VN − P)/VN × (360/n)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Prix", "formula": "ﬂux actualisés au taux du marché monétaire", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Yield", "formula": "(VN−P)/P × base annuelle", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Actif", "formula": "Passif + Capitaux propres", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "BFR", "formula": "Stocks + Créances d’exploitation − Dettes", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "TN", "formula": "FR − BFR", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "FR", "formula": "Ressources stables − Emplois stables", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "APV", "formula": "VAN sans dette + valeur actuelle des", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "VTS", "formula": "T × D [cas simple dette perpétuelle]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Synergie", "formula": "Valeur combinée − (Valeur A + Valeur", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Prime", "formula": "Prix offert − Valeur de marché cible", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "MoM", "formula": "encaissement equity / investissement", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "DF(t,T)", "formula": "DF(0,T)/DF(0,t)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "f(t,T)", "formula": "−∂ln P(t,T)/∂T", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "z(T)", "formula": "DF(0,T)^(−1/T) − 1", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Payoff", "formula": "[(L−K)×α×N] / [1 + L×α]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "DD", "formula": "D_mod × P", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "BPV", "formula": "Σ BPV_i", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "F0", "formula": "(S0 + U)e^(rT) ou F0 = S0e^((r+u−y)T)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "y", "formula": "bénéﬁce implicite lié à la détention physique", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "h*", "formula": "ρ(σ_S/σ_F)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "N*", "formula": "h* × (valeur exposée / valeur d’un contrat", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Basis", "formula": "Spot − Futures", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Risque de basis", "formula": "variation non anticipée du basis", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "EL", "formula": "PD × LGD × EAD", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "UL", "formula": "quantile perte − EL", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "RR", "formula": "1 − LGD", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Q(t)", "formula": "e^(−λt)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "PD(0,t)", "formula": "1−e^(−λt)", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "E(X)", "formula": "Σp_ix_i ou ∫xf(x)dx", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Var(X)", "formula": "E[(X−μ)^2]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Skew", "formula": "E[(X−μ)^3]/σ^3", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Kurt", "formula": "E[(X−μ)^4]/σ^4", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "R_t", "formula": "(P_t−P_{t−1}+D_t)/P_{t−1}", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "r_t", "formula": "ln(P_t/P_{t−1})", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "RMSE", "formula": "√[Σ(e_t^2)/n]", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "R²", "formula": "1 − SSE/SST", "source": "finance_formulas_pdf"}
+{"type": "formula", "concept": "Cov", "formula": "Σ[(x_i−x̄)(y_i−ȳ)]/(n−1)", "source": "finance_formulas_pdf"}

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow Invoice</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-color: #e546d0;
+      --primary-light: #f163e3;
+      --dark-bg: #0F172A;
+      --dark-surface: #1E293B;
+      --dark-border: #334155;
+      --dark-text: #E2E8F0;
+      --light-bg: #FFFFFF;
+      --light-surface: #F8FAFC;
+      --light-border: #E2E8F0;
+      --light-text: #0F172A;
+      --accent-success: #10B981;
+      --accent-warning: #F59E0B;
+      --accent-danger: #EF4444;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: var(--dark-bg);
+        color: var(--dark-text);
+      }
+
+      .invoice-container {
+        background-color: var(--dark-surface);
+        border-color: var(--dark-border);
+      }
+
+      .header {
+        border-bottom-color: var(--dark-border);
+      }
+
+      .section-title {
+        color: var(--dark-text);
+        border-bottom-color: var(--dark-border);
+      }
+
+      .table-header {
+        background-color: rgba(79, 70, 229, 0.15);
+        border-color: var(--dark-border);
+        color: var(--dark-text);
+      }
+
+      .table-row:nth-child(even) {
+        background-color: rgba(30, 41, 59, 0.5);
+      }
+
+      .label {
+        color: #CBD5E1;
+      }
+
+      .summary-box {
+        background-color: rgba(79, 70, 229, 0.1);
+        border-color: var(--primary-color);
+      }
+
+      .status-section {
+        background-color: rgba(30, 41, 59, 0.5);
+        border-color: var(--dark-border);
+      }
+
+      .footer {
+        border-top-color: var(--dark-border);
+        color: #94A3B8;
+      }
+    }
+
+    @media (prefers-color-scheme: light) {
+      body {
+        background-color: var(--light-bg);
+        color: var(--light-text);
+      }
+
+      .invoice-container {
+        background-color: var(--light-bg);
+        border-color: var(--light-border);
+      }
+
+      .header {
+        border-bottom-color: var(--light-border);
+      }
+
+      .section-title {
+        color: var(--light-text);
+        border-bottom-color: var(--light-border);
+      }
+
+      .table-header {
+        background-color: #F0F4FF;
+        border-color: var(--light-border);
+        color: var(--light-text);
+      }
+
+      .table-row:nth-child(even) {
+        background-color: var(--light-surface);
+      }
+
+      .label {
+        color: #64748B;
+      }
+
+      .summary-box {
+        background-color: #F0F4FF;
+        border-color: var(--primary-color);
+      }
+
+      .status-section {
+        background-color: var(--light-surface);
+        border-color: var(--light-border);
+      }
+
+      .footer {
+        border-top-color: var(--light-border);
+        color: #64748B;
+      }
+    }
+
+    html {
+      scroll-behavior: smooth;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .invoice-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .invoice-container {
+      border-radius: 12px;
+      border: 1px solid var(--light-border);
+      box-shadow: var(--shadow-md);
+      padding: 40px;
+      min-height: 297mm;
+      page-break-after: always;
+    }
+
+    /* HEADER SECTION */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 40px;
+      padding-bottom: 30px;
+      border-bottom: 2px solid var(--light-border);
+    }
+
+    .logo-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .logo {
+      width: 140px;
+      height: auto;
+      display: block;
+    }
+
+    .company-info {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .company-info p {
+      margin: 4px 0;
+    }
+
+    .company-name {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .invoice-title-section {
+      text-align: right;
+    }
+
+    .invoice-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .invoice-number {
+      font-size: 14px;
+      color: #64748B;
+      margin-top: 8px;
+    }
+
+    /* INVOICE DETAILS */
+    .invoice-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin-bottom: 40px;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: var(--light-surface);
+    }
+
+    .detail-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748B;
+      margin-bottom: 6px;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* TWO COLUMN LAYOUT */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    /* SECTION TITLES */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--primary-color);
+    }
+
+    /* CLIENT SECTION */
+    .client-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .client-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .client-detail {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ITEMS TABLE */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    .table-header {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 6px 6px 0 0;
+      border: 1px solid var(--light-border);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .table-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--light-border);
+      font-size: 13px;
+      align-items: center;
+    }
+
+    .table-row:last-child {
+      border-bottom: 1px solid var(--light-border);
+    }
+
+    .item-description {
+      font-weight: 500;
+    }
+
+    .table-number {
+      text-align: center;
+    }
+
+    .table-price {
+      text-align: right;
+    }
+
+    /* SUMMARY SECTION */
+    .summary-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      font-size: 13px;
+    }
+
+    .summary-label {
+      color: #64748B;
+      font-weight: 500;
+    }
+
+    .summary-value {
+      font-weight: 600;
+    }
+
+    .summary-divider {
+      height: 1px;
+      background-color: var(--light-border);
+      margin: 8px 0;
+    }
+
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .summary-box {
+      border: 2px solid var(--primary-color);
+      border-radius: 8px;
+      padding: 16px;
+      background-color: var(--light-surface);
+    }
+
+    /* STATUS BADGE */
+    .status-section {
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--light-border);
+      text-align: center;
+    }
+
+    .status-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748B;
+      margin-bottom: 8px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: white;
+    }
+
+    .status-paid {
+      background-color: var(--accent-success);
+    }
+
+    .status-pending {
+      background-color: var(--accent-warning);
+    }
+
+    .status-overdue {
+      background-color: var(--accent-danger);
+    }
+
+    /* FOOTER */
+    .footer {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid var(--light-border);
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .footer-section {
+      margin-bottom: 16px;
+    }
+
+    .footer-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--light-text);
+    }
+
+    .thank-you {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      body {
+        padding: 0;
+        background: white;
+      }
+
+      .invoice-wrapper {
+        max-width: 100%;
+      }
+
+      .invoice-container {
+        border: none;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+      }
+
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .invoice-details {
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .main-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+
+      .table-header,
+      .table-row {
+        grid-template-columns: 1.5fr 1fr 1fr;
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .invoice-container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-wrapper">
+    <div class="invoice-container">
+      <!-- HEADER -->
+      <div class="header">
+        <div class="logo-section">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 120'%3E%3Cdefs%3E%3ClinearGradient id='grad1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%234F46E5;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%2306B6D4;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3C!-- Logo Icon --%3E%3Crect x='20' y='25' width='50' height='50' rx='4' fill='%23334155' opacity='0.3'/%3E%3Ctext x='32' y='45' font-size='24' font-weight='bold' fill='%234F46E5'%3E✓%3C/text%3E%3C!-- Text --%3E%3Ctext x='85' y='55' font-size='42' font-weight='bold' font-family='Arial, sans-serif' fill='%230F172A'%3ETaskFlow%3C/text%3E%3C!-- Underline --%3E%3Cline x1='85' y1='65' x2='360' y2='65' stroke='url(%23grad1)' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" alt="TaskFlow Logo" class="logo">
+          <div class="company-info">
+            <div class="company-name">{{businessName}}</div>
+            <p>{{businessAddress}}</p>
+            <p>{{businessPhone}}</p>
+          </div>
+        </div>
+
+        <div class="invoice-title-section">
+          <h1 class="invoice-title">INVOICE</h1>
+          <p class="invoice-number">Invoice #{{invoiceNumber}}</p>
+        </div>
+      </div>
+
+      <!-- INVOICE DETAILS -->
+      <div class="invoice-details">
+        <div class="detail-group">
+          <span class="detail-label">Issue Date</span>
+          <span class="detail-value">{{issueDate}}</span>
+        </div>
+        <div class="detail-group">
+          <span class="detail-label">Due Date</span>
+          <span class="detail-value">{{dueDate}}</span>
+        </div>
+        <div class="detail-group">
+          <span class="detail-label">Invoice Amount</span>
+          <span class="detail-value">{{currency}} {{totalAmount}}</span>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <div class="main-content">
+        <!-- LEFT COLUMN -->
+        <div class="left-column">
+          <!-- CLIENT INFORMATION -->
+          <div>
+            <div class="section-title">Bill To</div>
+            <div class="client-info">
+              <div class="client-name">{{clientName}}</div>
+              <div class="client-detail">{{clientDetail}}</div>
+            </div>
+          </div>
+
+          <!-- ITEMS TABLE -->
+          <div>
+            <div class="section-title">Items & Services</div>
+            <div class="items-table">
+              <div class="table-header">
+                <div>Description</div>
+                <div class="table-number">Qty</div>
+                <div class="table-price">Unit Price</div>
+                <div class="table-price">Total</div>
+              </div>
+
+              {{itemRows}}
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="right-column">
+          <!-- SUMMARY BOX -->
+          <div class="summary-box">
+            <div class="section-title">Summary</div>
+            <div class="summary-section">
+              <div class="summary-row">
+                <span class="summary-label">Subtotal</span>
+                <span class="summary-value">{{currency}} {{subtotal}}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Tax ({{taxRatePercent}}% - TVA)</span>
+                <span class="summary-value">{{currency}} {{taxAmount}}</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-total">
+                <span>Total Due</span>
+                <span>{{currency}} {{totalAmount}}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- STATUS BADGE -->
+          <div class="status-section">
+            <div class="status-label">Payment Status</div>
+            <span class="status-badge {{statusClass}}">{{status}}</span>
+          </div>
+
+          <!-- NOTES -->
+          <div>
+            <div class="section-title">Notes</div>
+            <p style="font-size: 13px; line-height: 1.6; margin: 0;">{{notes}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="footer">
+        <div class="thank-you">✨ Thank you for choosing TaskFlow!</div>
+        <div class="footer-section">
+          <div class="footer-title">Payment Instructions</div>
+          <p>Bank Transfer: Account #123456789 | Routing #987654321</p>
+          <p>Credit Card: Available via payment portal</p>
+        </div>
+        <div style="font-size: 11px; margin-top: 16px;">
+          © 2026 TaskFlow Inc. All rights reserved. | www.taskflow.com
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
