@@ -1,0 +1,20 @@
+
+> tenant-service@0.0.1 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m7:04:25 PM[0m] Starting compilation in watch mode...
+
+[[90m7:04:34 PM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 31324  - [39m05/04/2026 7:04:37 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:37 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +24ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:37 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTenantsModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +7ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +7ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTenantsController {/tenants}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tenants, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tenants, POST} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tenants/by-name/:name, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tenants/:id, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tenants/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 31324  - [39m05/04/2026 7:04:38 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +141ms[39m

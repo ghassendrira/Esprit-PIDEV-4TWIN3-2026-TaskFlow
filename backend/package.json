@@ -1,0 +1,15 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start:all": "concurrently \"npm run start:dev --prefix ./api-gateway\" \"npm run start:dev --prefix ./auth-service\" \"npm run start:dev --prefix ./tenant-service\" \"npm run start:dev --prefix ./business-service\" \"npm run start:dev --prefix ./notification-service\" \"npm run start:dev --prefix ./invoice-service\" \"npm run start:dev --prefix ./expense-service\" \"npm run start:dev --prefix ./audit-service\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

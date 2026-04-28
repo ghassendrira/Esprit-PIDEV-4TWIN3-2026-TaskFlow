@@ -1,0 +1,19 @@
+
+> expense-service@0.0.1 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m7:04:30 PM[0m] Starting compilation in watch mode...
+
+[[90m7:04:39 PM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 27900  - [39m05/04/2026 7:04:41 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:41 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +44ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:41 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExpensesModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:41 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +17ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:42 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +11ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:42 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExpensesController {/expenses}:[39m[38;5;3m +2ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:42 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/by-business/:businessId, GET} route[39m[38;5;3m +6ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:42 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses, POST} route[39m[38;5;3m +5ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:42 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, PATCH} route[39m[38;5;3m +5ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:42 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, DELETE} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 27900  - [39m05/04/2026 7:04:42 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +251ms[39m
