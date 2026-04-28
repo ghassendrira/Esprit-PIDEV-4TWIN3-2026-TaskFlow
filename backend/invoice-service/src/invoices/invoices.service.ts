@@ -519,11 +519,19 @@ RULES:
     this.validateUuid(businessId);
     await this.assertBusinessTenant(businessId, tenantId);
 
-    return this.prisma.invoice.findMany({
+    const invoices = await this.prisma.invoice.findMany({
       where: { businessId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: { items: true, payments: true },
     });
+
+    // Manually fetch and attach client data for each invoice
+    return Promise.all(
+      invoices.map(async (inv) => {
+        const client = await this.fetchClient(inv.clientId);
+        return { ...inv, client };
+      }),
+    );
   }
 
   async create(dto: CreateInvoiceDto, tenantId: string) {

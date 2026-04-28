@@ -1,26 +1,89 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Logger, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Logger, UseGuards, Req, Headers } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
 import type { CreateInvoiceDto, UpdateInvoiceDto } from './dto';
 import { TenantGuard } from './tenant.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../roles/roles.guard';
+import { Roles } from '../roles/roles.decorator';
+import { Role } from '../roles/role.enum';
 
 @Controller('invoices')
-@UseGuards(TenantGuard)
+@UseGuards(TenantGuard, JwtAuthGuard, RolesGuard)
 export class InvoicesController {
   private readonly logger = new Logger(InvoicesController.name);
   constructor(private service: InvoicesService) {}
 
-  @Get('by-business/:businessId')
-  async listByBusiness(@Param('businessId') businessId: string, @Req() req: any) {
-    this.logger.log(`GET /invoices/by-business/${businessId}`);
+  // ✅ GET /invoices - List all invoices for authenticated business
+  @Get()
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+    Role.TEAM_MEMBER,
+  )
+  async findAll(
+    @Headers('x-tenant-id') tenantId: string,
+    @Req() req: any,
+  ) {
+    this.logger.log(`GET /invoices - TenantId: ${tenantId}`);
     try {
+      // Extract first business from comma-separated list
+      const businessId = tenantId?.split(',')[0]?.trim();
       return await this.service.listByBusiness(businessId, req.tenantId);
+    } catch (err: any) {
+      this.logger.error(`Error in findAll: ${err.message}`, err.stack);
+      throw err;
+    }
+  }
+
+  // ✅ GET /invoices/by-business/:businessId
+  @Get('by-business/:businessId')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+    Role.TEAM_MEMBER,
+  )
+  async listByBusiness(
+    @Param('businessId')    paramBid : string,
+    @Headers('x-tenant-id') tenantId: string,
+    @Headers('x-user-id')   userId  : string,
+    @Request() req: any,
+  ) {
+    this.logger.log(`GET /invoices/by-business/${paramBid}`);
+    // Prendre le businessId depuis :
+    // 1. x-tenant-id header
+    // 2. URL param
+    // 3. JWT payload
+    const bid = (tenantId?.split(',')[0]?.trim() &&
+                 tenantId !== 'MISSING')
+      ? tenantId.split(',')[0].trim()
+      : paramBid || req.user?.businessId;
+
+    if (!bid) {
+      throw new BadRequestException(
+        'businessId manquant'
+      );
+    }
+
+    try {
+      return await this.service.listByBusiness(bid, bid);
     } catch (err: any) {
       this.logger.error(`Error in listByBusiness: ${err.message}`, err.stack);
       throw err;
     }
   }
 
+  // ✅ POST /invoices/report/unpaid
   @Post('report/unpaid')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+  )
   async generateUnpaidReport(@Body() body: { businessId: string }, @Req() req: any) {
     this.logger.log(`POST /invoices/report/unpaid for business ${body.businessId}`);
     try {
@@ -31,40 +94,99 @@ export class InvoicesController {
     }
   }
 
+  // ✅ POST /invoices - Create invoice
   @Post()
-  async create(@Body() dto: CreateInvoiceDto, @Req() req: any) {
-    this.logger.log(`POST /invoices`);
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+    Role.TEAM_MEMBER,
+  )
+  async create(
+    @Body() dto: CreateInvoiceDto,
+    @Headers('x-tenant-id') tenantId: string,
+    @Headers('x-user-id') userId: string,
+    @Req() req: any,
+  ) {
+    this.logger.log(`POST /invoices - User: ${userId}, TenantId: ${tenantId}`);
     try {
-      return await this.service.create(dto, req.tenantId);
+      // Extract first businessId from comma-separated tenantId
+      const businessId = tenantId?.split(',')[0]?.trim();
+      const cleanUserId = userId?.split(',')[0]?.trim();
+
+      return await this.service.create(
+        {
+          ...dto,
+          businessId,
+          createdBy: cleanUserId,
+        },
+        req.tenantId,
+      );
     } catch (err: any) {
       this.logger.error(`Error in create: ${err.message}`, err.stack);
       throw err;
     }
   }
 
+  // ✅ PATCH /invoices/:id - Update invoice
   @Patch(':id')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+  )
   update(@Param('id') id: string, @Body() dto: UpdateInvoiceDto, @Req() req: any) {
     return this.service.update(id, dto, req.tenantId);
   }
 
+  // ✅ DELETE /invoices/:id - Delete invoice
   @Delete(':id')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+  )
   remove(@Param('id') id: string, @Req() req: any) {
     return this.service.remove(id, req.tenantId);
   }
 
+  // ✅ GET /invoices/:id - Get single invoice
   @Get(':id')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+    Role.TEAM_MEMBER,
+  )
   async findOne(@Param('id') id: string, @Req() req: any) {
     this.logger.log(`GET /invoices/${id}`);
     return this.service.findOne(id, req.tenantId);
   }
 
+  // ✅ POST /invoices/:id/send - Send invoice
   @Post(':id/send')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+  )
   async send(@Param('id') id: string, @Req() req: any) {
     this.logger.log(`POST /invoices/${id}/send`);
     return this.service.send(id, req.tenantId);
   }
 
+  // ✅ POST /invoices/:id/smart-send - Smart send invoice
   @Post(':id/smart-send')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_OWNER,
+    Role.BUSINESS_ADMIN,
+    Role.ACCOUNTANT,
+  )
   async smartSend(@Param('id') id: string, @Req() req: any) {
     this.logger.log(`POST /invoices/${id}/smart-send`);
     return this.service.sendSmartEmail(id, req.tenantId);
