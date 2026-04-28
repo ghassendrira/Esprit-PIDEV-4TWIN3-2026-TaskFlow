@@ -10,12 +10,37 @@ export class InvoicesProxyService {
   ) {}
 
   private async getContext(authHeader?: string, tenantIdFromHeader?: string) {
-    if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedException();
-    const token = authHeader.substring('Bearer '.length);
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
 
-    const payload = await this.jwt.verifyAsync(token, {
-      secret: process.env.JWT_SECRET ?? 'change-me',
-    });
+    let auth = authHeader.trim();
+    if (auth.includes(',')) {
+      auth = auth.split(',')[0].trim();
+    }
+    
+    const parts = auth.split(/\s+/);
+    if (parts.length < 2 || parts[0].toLowerCase() !== 'bearer') {
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = parts.slice(1).join(' ').trim();
+
+    if (!token || token === 'undefined' || token === 'null' || token.length < 10) {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
+    let payload;
+    try {
+      payload = await this.jwt.verifyAsync(token, {
+        secret: process.env.JWT_SECRET ?? 'change-me',
+      });
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
 
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException();
@@ -32,9 +57,17 @@ export class InvoicesProxyService {
 
     const elevatedRoleNames = new Set([
       'SUPER_ADMIN',
+      'ROLE_SUPER_ADMIN',
       'SUPER_MANAGER',
+      'ROLE_SUPER_MANAGER',
       'ADMIN',
+      'ROLE_ADMIN',
       'NIGHT_SHIFT_LEAD',
+      'ROLE_NIGHT_SHIFT_LEAD',
+      'BUSINESS_OWNER',
+      'ROLE_BUSINESS_OWNER',
+      'OWNER',
+      'ROLE_OWNER',
     ]);
 
     const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
@@ -167,14 +200,25 @@ export class InvoicesProxyService {
         : await this.resolveTenantIdFromBusiness(businessId);
 
     const ctx = await this.getContext(authHeader, tenantId);
-    await this.assertBusinessInTenant(ctx.tenantId, businessId);
+    
+    // Bypass tenant/business cross-check for Super Admins
+    if (ctx.roleName === 'SUPER_ADMIN' || ctx.roleName === 'ROLE_SUPER_ADMIN') {
+      console.log(`[Invoices] SUPER_ADMIN bypass for business ${businessId}`);
+    } else {
+      await this.assertBusinessInTenant(ctx.tenantId, businessId);
+    }
 
     const url = `${this.invoiceBase()}/invoices/by-business/${encodeURIComponent(businessId)}`;
     let r: Response;
     let txt = '';
     try {
       r = await fetch(url, {
-        headers: { 'X-Tenant-Id': ctx.tenantId },
+        headers: {
+          Authorization: authHeader,
+          'X-Tenant-Id': ctx.tenantId,
+          'X-User-Id': ctx.userId,
+          'X-User-Role': ctx.roleName,
+        },
       });
       txt = await r.text();
     } catch {
@@ -245,7 +289,10 @@ export class InvoicesProxyService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: authHeader,
           'X-Tenant-Id': ctx.tenantId,
+          'X-User-Id': ctx.userId,
+          'X-User-Role': ctx.roleName,
         },
         body: JSON.stringify(finalBody),
       });
@@ -283,7 +330,10 @@ export class InvoicesProxyService {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: authHeader,
           'X-Tenant-Id': ctx.tenantId,
+          'X-User-Id': ctx.userId,
+          'X-User-Role': ctx.roleName,
         },
         body: JSON.stringify(body),
       });
@@ -319,7 +369,12 @@ export class InvoicesProxyService {
     try {
       r = await fetch(url, {
         method: 'DELETE',
-        headers: { 'X-Tenant-Id': ctx.tenantId },
+        headers: {
+          Authorization: authHeader,
+          'X-Tenant-Id': ctx.tenantId,
+          'X-User-Id': ctx.userId,
+          'X-User-Role': ctx.roleName,
+        },
       });
       txt = await r.text();
     } catch {
@@ -347,7 +402,12 @@ export class InvoicesProxyService {
     let txt = '';
     try {
       r = await fetch(url, {
-        headers: { 'X-Tenant-Id': ctx.tenantId },
+        headers: {
+          Authorization: authHeader,
+          'X-Tenant-Id': ctx.tenantId,
+          'X-User-Id': ctx.userId,
+          'X-User-Role': ctx.roleName,
+        },
       });
       txt = await r.text();
     } catch {
@@ -376,7 +436,12 @@ export class InvoicesProxyService {
     try {
       r = await fetch(url, {
         method: 'POST',
-        headers: { 'X-Tenant-Id': ctx.tenantId },
+        headers: {
+          Authorization: authHeader,
+          'X-Tenant-Id': ctx.tenantId,
+          'X-User-Id': ctx.userId,
+          'X-User-Role': ctx.roleName,
+        },
       });
       txt = await r.text();
     } catch {

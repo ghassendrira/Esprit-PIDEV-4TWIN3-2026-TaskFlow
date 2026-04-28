@@ -211,7 +211,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (!user) return;
 
     // If user is SUPER_ADMIN, fetch password reset requests as notifications
-    if (this.auth.roles().includes('SUPER_ADMIN')) {
+    if (this.auth.roles().includes('ROLE_SUPER_ADMIN')) {
       this.auth.getPasswordResetRequests().subscribe({
         next: (requests) => {
           const mapped = requests.map(r => ({

@@ -55,7 +55,32 @@ export const routes: Routes = [
       { path: 'invoices/:id', loadComponent: () => import('./features/invoices/detail/invoice-detail.component').then(m => m.InvoiceDetailComponent) },
       { path: 'expenses', loadComponent: () => import('./features/expenses/expenses.component').then(m => m.ExpensesComponent) },
       { path: 'clients', loadComponent: () => import('./features/clients/clients.component').then(m => m.ClientsComponent) },
-      { path: 'team', loadComponent: () => import('./features/team/team.component').then(m => m.TeamComponent) },
+      {
+    path: 'ml',
+    children: [
+      {
+        path: 'risk',
+        loadComponent: () => import('./pages/ml/risk/risk.component').then(m => m.RiskComponent)
+      },
+      {
+        path: 'segmentation',
+        loadComponent: () => import('./pages/ml/segmentation/segmentation.component').then(m => m.SegmentationComponent)
+      },
+      {
+        path: 'cashflow',
+        loadComponent: () => import('./pages/ml/cashflow/cashflow.component').then(m => m.CashflowComponent)
+      },
+      {
+        path: 'anomalies',
+        loadComponent: () => import('./pages/ml/anomalies/anomalies.component').then(m => m.AnomaliesComponent)
+      },
+    ]
+  },
+  { path: 'risk', redirectTo: 'ml/risk' },
+  { path: 'segmentation', redirectTo: 'ml/segmentation' },
+  { path: 'cashflow', redirectTo: 'ml/cashflow' },
+  { path: 'anomalies', redirectTo: 'ml/anomalies' },
+  { path: 'team', loadComponent: () => import('./features/team/team.component').then(m => m.TeamComponent) },
       { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
       {
         path: 'employees',

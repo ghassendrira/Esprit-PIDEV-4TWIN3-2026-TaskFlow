@@ -20,6 +20,12 @@ enum PaymentMethod {
   CARD
 }
 
+enum PredictionType {
+  FRAUD_DETECTION
+  ANOMALY_DETECTION
+  RISK_ASSESSMENT
+}
+
 model Invoice {
   id                         String        @id @default(uuid()) @db.Uuid
   businessId                 String        @db.Uuid
@@ -106,5 +112,8 @@ model AIPrediction {
 
   @@index([businessId])
   @@index([invoiceId])
+  @@index([expenseId])
   @@index([type])
+  @@index([isFlagged])
+  @@index([createdAt])
 }

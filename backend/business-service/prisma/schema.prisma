@@ -9,6 +9,7 @@ datasource db {
 model Business {
   id        String   @id @default(uuid()) @db.Uuid
   tenantId  String   @db.Uuid
+  ownerId   String?  @db.Uuid
   name      String
   logoUrl   String
   currency  String
@@ -21,6 +22,7 @@ model Business {
   clients Client[]
 
   @@index([tenantId])
+  @@index([ownerId])
 }
 
 model Client {
@@ -54,4 +56,19 @@ model ClientCommunication {
   client Client @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
+}
+
+model MlModelParams {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  modelType  String
+  params     Json
+  accuracy   Float?
+  trainedAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, modelType])
+  @@index([businessId])
+  @@index([modelType])
 }

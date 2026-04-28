@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { catchError, forkJoin, of } from 'rxjs';
 import { TfCardComponent } from '../../shared/ui/card/tf-card.component';
 import { SettingsService } from '../../core/services/settings.service';
 import { ClientsService, ClientDto } from '../../core/services/clients.service';
@@ -10,6 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { InvoicePdfService } from '../../core/services/invoice-pdf.service';
 import { BusinessSelectionService } from '../../core/services/business-selection.service';
+import { MlService } from '../../core/services/ml.service';
 
 @Component({
   selector: 'tf-invoices',
@@ -265,6 +267,9 @@ import { BusinessSelectionService } from '../../core/services/business-selection
     </tf-card>
 
     <tf-card class="mt-4">
+      <div *ngIf="anomalyHighRisk()" class="mb-4 p-4 rounded-xl bg-red-600 text-white text-sm font-semibold shadow-lg shadow-red-500/20">
+        Alerte fraude ML : au moins une facture est classée risque HIGH. Vérifiez les lignes marquées Suspect.
+      </div>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <h3 class="font-bold text-lg">Liste des factures</h3>
@@ -319,6 +324,7 @@ import { BusinessSelectionService } from '../../core/services/business-selection
               <th class="text-left font-bold uppercase text-[10px] tracking-widest px-4 py-4">Statut</th>
               <th class="text-left font-bold uppercase text-[10px] tracking-widest px-4 py-4">Date</th>
               <th class="text-right font-bold uppercase text-[10px] tracking-widest px-4 py-4">Total</th>
+              <th class="text-center font-bold uppercase text-[10px] tracking-widest px-4 py-4">ML</th>
               <th class="text-center font-bold uppercase text-[10px] tracking-widest px-4 py-4">Actions</th>
             </tr>
           </thead>
@@ -335,6 +341,17 @@ import { BusinessSelectionService } from '../../core/services/business-selection
               </td>
               <td class="px-4 py-4 text-xs text-slate-500">{{ inv.issueDate | date:'dd MMM yyyy' }}</td>
               <td class="px-4 py-4 text-right font-black">{{ inv.totalAmount | number:'1.2-2' }} <span class="text-[10px] opacity-50">TND</span></td>
+              <td class="px-4 py-4 text-center" (click)="$event.stopPropagation()">
+                <div *ngIf="inv.is_anomaly" class="flex flex-col items-center gap-1">
+                  <span class="inline-block px-2 py-0.5 rounded-lg text-[9px] font-black bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                    ⚠️ Suspect
+                  </span>
+                  <span class="text-[8px] text-rose-500 font-bold truncate max-w-[80px]" [title]="inv.mlMessage">{{ inv.mlMessage }}</span>
+                </div>
+                <span *ngIf="!inv.is_anomaly && inv.risk_level === 'HIGH'" class="block text-[10px] text-red-600 font-black mt-1">HIGH</span>
+                <span *ngIf="!inv.is_anomaly && inv.risk_level === 'MEDIUM'" class="block text-[10px] text-yellow-600 font-black mt-1">MEDIUM</span>
+                <span *ngIf="!inv.is_anomaly && inv.risk_level === 'LOW'" class="block text-[10px] text-green-600 font-black mt-1">LOW</span>
+              </td>
               <td class="px-4 py-4" (click)="$event.stopPropagation()">
                 <div class="flex gap-2 justify-center opacity-0 group-hover:opacity-100 transition-all">
                   <button (click)="downloadPDF(inv)" class="w-8 h-8 rounded-lg flex items-center justify-center text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 border border-slate-200 dark:border-slate-700 transition-all" title="PDF">
@@ -350,7 +367,7 @@ import { BusinessSelectionService } from '../../core/services/business-selection
               </td>
             </tr>
             <tr *ngIf="filteredInvoices().length === 0">
-              <td colspan="6" class="py-12 text-center text-slate-400 italic">Aucune facture trouvée.</td>
+              <td colspan="7" class="py-12 text-center text-slate-400 italic">Aucune facture trouvée.</td>
             </tr>
           </tbody>
         </table>
@@ -404,11 +421,14 @@ export class InvoicesComponent implements OnInit {
   protected theme = inject(ThemeService);
   private businessSelection = inject(BusinessSelectionService);
   private router = inject(Router);
+  private ml = inject(MlService);
+
+  anomalyHighRisk = signal(false);
 
   businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
   submitted = false;
   tenants = signal<Array<{ id: string; name: string }>>([]);
-  activeTenantId = signal<string>(localStorage.getItem('activeTenantId') || '');
+  activeTenantId = signal<string>(localStorage.getItem('activeTenantId') || localStorage.getItem('tenantId') || '');
   employees = signal<Array<{ id: string; firstName: string; lastName: string; email: string }>>([]);
   selectedEmployeeId: string = '';
   activeBusinessId = computed(() => this.businessSelection.selectedBusinessId());
@@ -475,15 +495,14 @@ export class InvoicesComponent implements OnInit {
     this.filterDateTo.set('');
   }
 
-  isBusinessOwner = computed(() => {
-    const roles = this.auth.roles() as any[];
-    return roles.includes('BUSINESS_OWNER') || roles.includes('OWNER');
-  });
-  canWrite = computed(() => !this.isBusinessOwner());
-
   isAdmin = computed(() => {
     const roles = this.auth.roles() as any[];
-    return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+    return roles.includes('ROLE_SUPER_ADMIN') || roles.includes('ROLE_ADMIN');
+  });
+
+  canWrite = computed(() => {
+    const roles = this.auth.roles() as any[];
+    return roles.includes('ROLE_SUPER_ADMIN') || roles.includes('ROLE_ADMIN') || roles.includes('ROLE_BUSINESS_OWNER') || roles.includes('ROLE_OWNER');
   });
 
   form: any = {
@@ -510,6 +529,8 @@ export class InvoicesComponent implements OnInit {
           this.tenants.set(simplified);
           if (simplified.length && !this.activeTenantId()) {
             this.onTenantChange(simplified[0].id);
+          } else if (this.activeTenantId()) {
+            this.onTenantChange(this.activeTenantId());
           }
         },
         error: () => this.tenants.set([]),
@@ -517,24 +538,53 @@ export class InvoicesComponent implements OnInit {
       return;
     }
 
+    // 1. Utiliser le tenantId du localStorage
+    const savedBid = localStorage.getItem('tenantId')?.split(',')[0]?.trim();
+
+    if (savedBid) {
+      this.businessSelection.setSelectedBusiness(savedBid, localStorage.getItem('tenantId') || '');
+      this.reloadClients();
+      this.reload();
+    }
+
+    // 2. Charger les businesses
+    this.loadBusinesses();
+  }
+
+  loadBusinesses() {
     this.settings.getBusinesses().subscribe({
       next: (bs: any[]) => {
         const simplified = (bs || []).map((b) => ({ id: b.id, name: b.name, tenantId: b.tenantId }));
         this.businesses.set(simplified);
-        if (simplified.length) {
+
+        // Si pas de business sélectionné prendre le premier
+        if (!this.businessSelection.selectedBusinessId() && simplified.length > 0) {
+          this.onBusinessChange(simplified[0].id);
+        } else if (this.businessSelection.selectedBusinessId()) {
+          // Re-sync si nécessaire
           const currentId = this.businessSelection.selectedBusinessId();
           const found = simplified.find(b => b.id === currentId);
-          if (!currentId || !found) {
-            this.onBusinessChange(simplified[0].id);
-          } else {
-            // Re-sync tenantId just in case
+          if (found) {
             this.businessSelection.setSelectedBusiness(found.id, found.tenantId);
             this.reloadClients();
             this.reload();
           }
         }
       },
-      error: () => this.businesses.set([]),
+      error: () => {
+        // Fallback : créer un business fictif avec le tenantId du localStorage
+        const bid = localStorage.getItem('tenantId')?.split(',')[0]?.trim();
+        if (bid) {
+          this.businesses.set([{
+            id  : bid,
+            name: localStorage.getItem('tenantName') || 'Mon Business',
+            tenantId: bid
+          }]);
+          this.businessSelection.setSelectedBusiness(bid, bid);
+          this.reloadClients();
+          this.reload();
+        }
+      },
     });
   }
 
@@ -568,7 +618,7 @@ export class InvoicesComponent implements OnInit {
   }
 
   private resolveTenantId(): string {
-    return this.activeTenantId() || localStorage.getItem('activeTenantId') || '';
+    return this.activeTenantId() || localStorage.getItem('activeTenantId') || localStorage.getItem('tenantId') || '';
   }
 
   onBusinessChange(id: string) {
@@ -577,7 +627,7 @@ export class InvoicesComponent implements OnInit {
       this.businessSelection.setSelectedBusiness(business.id, business.tenantId);
     }
     this.editingId.set('');
-    this.form = { clientId: '', status: 'DRAFT', issueDate: '', dueDate: '', totalAmount: 0, taxAmount: 0, notes: '', items: [] };
+    this.form = { clientId: '', status: 'DRAFT', issueDate: new Date().toISOString().split('T')[0], dueDate: '', taxRate: 19, taxAmount: 0, notes: '', items: [] };
     this.subtotal.set(0);
     this.total.set(0);
     this.reloadClients();
@@ -611,7 +661,7 @@ export class InvoicesComponent implements OnInit {
     this.subtotal.set(sub);
     
     // Calculate tax based on percentage if taxRate is provided
-    const rate = Number(this.form.taxRate || 0);
+    const rate = Number(this.form.taxRate ?? 19);
     const tax = (sub * rate) / 100;
     this.taxAmount.set(tax);
     this.form.taxAmount = tax;
@@ -623,13 +673,17 @@ export class InvoicesComponent implements OnInit {
     const businessId = this.activeBusinessId();
     if (!businessId) return;
     const tenantId = this.resolveTenantId();
-    if (this.isAdmin() && !tenantId) return;
+    // if (this.isAdmin() && !tenantId) return;
     this.clientsApi.listByBusiness(businessId, tenantId || undefined).subscribe({
       next: (data) => {
+        console.log('[Invoices] Clients loaded:', data);
         this.clients.set(data || []);
-        if (!this.form.clientId && data?.length) this.form.clientId = data[0].id;
+        // if (!this.form.clientId && data?.length) this.form.clientId = data[0].id;
       },
-      error: () => this.clients.set([]),
+      error: (err) => {
+        console.error('[Invoices] Error loading clients:', err);
+        this.clients.set([]);
+      },
     });
   }
 
@@ -639,87 +693,114 @@ export class InvoicesComponent implements OnInit {
     const tenantId = this.resolveTenantId();
     if (this.isAdmin() && !tenantId) return;
     this.invoicesApi.listByBusiness(businessId, tenantId || undefined).subscribe({
-      next: (data) => this.invoices.set(data || []),
-      error: () => this.invoices.set([]),
+      next: (data) => this.runAnomalyEnrichment(data || []),
+      error: () => {
+        this.invoices.set([]);
+        this.anomalyHighRisk.set(false);
+      },
+    });
+  }
+
+  private buildAnomalyPayload(inv: any, nbFacturesClient: number) {
+    const issue = inv.issueDate ? new Date(inv.issueDate) : new Date();
+    const due = inv.dueDate ? new Date(inv.dueDate) : issue;
+    const delai = Math.max(0, (due.getTime() - issue.getTime()) / 86400000);
+    const addr = inv.client?.address || '';
+    const ville = (addr.split(',')[0] || 'UNKNOWN').trim().slice(0, 80) || 'UNKNOWN';
+    const categorie =
+      inv.items?.[0]?.description || inv.notes || 'SERVICE';
+    return {
+      invoice_id: inv.id,
+      score_credit: 700,
+      anciennete_mois: 12,
+      montant_ttc: Number(inv.totalAmount) || 0,
+      delai_paiement_j: delai,
+      mode_paiement: 'VIREMENT',
+      categorie_produit: String(categorie).slice(0, 120),
+      ville,
+      nb_factures_client: nbFacturesClient,
+      trimestre: Math.floor(issue.getMonth() / 3) + 1,
+      mois: issue.getMonth() + 1,
+    };
+  }
+
+  private runAnomalyEnrichment(raw: any[]) {
+    if (!raw.length) {
+      this.invoices.set([]);
+      this.anomalyHighRisk.set(false);
+      return;
+    }
+    const counts = new Map<string, number>();
+    for (const i of raw) {
+      counts.set(i.clientId, (counts.get(i.clientId) || 0) + 1);
+    }
+    const calls = raw.map((inv) =>
+      this.ml.getInvoiceRisk(inv.id, this.buildAnomalyPayload(inv, counts.get(inv.clientId) || 1)).pipe(
+        catchError(() =>
+          of({
+            invoice_id: inv.id,
+            is_anomaly: false,
+            risk_level: 'LOW',
+            message: '',
+            anomaly_score: 0,
+          }),
+        ),
+      ),
+    );
+    forkJoin(calls).subscribe((results) => {
+      const merged = raw.map((inv, i) => {
+        const r = results[i] as any;
+        return {
+          ...inv,
+          is_anomaly: r.is_anomaly,
+          risk_level: r.risk_level,
+          mlMessage: r.message,
+          anomaly_score: r.anomaly_score,
+        };
+      });
+      this.invoices.set(merged);
+      this.anomalyHighRisk.set(results.some((r: any) => r.risk_level === 'HIGH'));
     });
   }
 
   saveInvoice() {
     this.submitted = true;
+    if (!this.form.clientId || !this.form.issueDate || this.form.items.length === 0) {
+      this.errorMessage = 'Veuillez remplir tous les champs obligatoires et ajouter au moins un article.';
+      return;
+    }
+
     const businessId = this.activeBusinessId();
-    if (!businessId) return;
-
-    const clientId = String(this.form.clientId || '').trim();
-    const issueDate = String(this.form.issueDate || '').trim();
-    const dueDate = String(this.form.dueDate || '').trim();
-    const subtotalValue = this.subtotal();
-    const taxAmount = Number(this.form.taxAmount ?? 0);
-    const totalAmount = this.total();
-    const notes = String(this.form.notes || '').trim();
-
-    if (!clientId) {
-      this.errorMessage = 'Le client est obligatoire.';
+    if (!businessId) {
+      this.errorMessage = 'Aucun business sélectionné.';
       return;
     }
 
-    if (!issueDate) {
-      this.errorMessage = 'La date d\'émission est obligatoire.';
-      return;
-    }
-
-    if (dueDate && new Date(dueDate).getTime() < new Date(issueDate).getTime()) {
-      this.errorMessage = 'La date d\'échéance doit être postérieure à la date d\'émission.';
-      return;
-    }
-
-    if (!this.form.items || this.form.items.length === 0) {
-      this.errorMessage = 'Veuillez ajouter au moins une ligne à la facture.';
-      return;
-    }
-
-    if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
-      this.errorMessage = 'Le total doit être supérieur à 0 (ajoutez des articles).';
-      return;
-    }
-
-    if (!Number.isFinite(taxAmount) || taxAmount < 0) {
-      this.errorMessage = 'La taxe doit être positive.';
-      return;
-    }
-
-    this.errorMessage = null;
-
-    const payload: any = {
+    const tenantId = this.resolveTenantId();
+    const payload = {
+      ...this.form,
       businessId,
-      clientId,
-      status: this.form.status,
-      issueDate: new Date(issueDate).toISOString(),
-      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       totalAmount: this.total(),
-      taxAmount,
-      notes,
-      items: this.form.items.map((it: any) => ({
-        description: it.description,
-        quantity: it.quantity,
-        unitPrice: it.unitPrice,
-        amount: it.amount
-      }))
+      taxAmount: this.taxAmount(),
     };
 
     if (this.isAdmin() && this.selectedEmployeeId) {
       payload.createdByUserId = this.selectedEmployeeId;
     }
 
-    const id = this.editingId();
-    const tenantId = this.resolveTenantId();
-    const obs$ = id ? this.invoicesApi.update(id, payload, tenantId || undefined) : this.invoicesApi.create(payload, tenantId || undefined);
+    const obs$ = this.editingId()
+      ? this.invoicesApi.update(this.editingId(), payload, tenantId || undefined)
+      : this.invoicesApi.create(payload, tenantId || undefined);
+
     obs$.subscribe({
       next: () => {
-        this.submitted = false;
-        this.cancelEdit();
         this.reload();
+        this.cancelEdit();
+        this.errorMessage = null;
       },
-      error: (err) => alert(err?.error?.message || 'Erreur Invoice'),
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Erreur lors de l\'enregistrement.';
+      },
     });
   }
 
@@ -735,19 +816,21 @@ export class InvoicesComponent implements OnInit {
     this.form = {
       clientId: inv.clientId,
       status: inv.status,
-      issueDate: inv.issueDate ? String(inv.issueDate).slice(0, 10) : '',
-      dueDate: inv.dueDate ? String(inv.dueDate).slice(0, 10) : '',
-      totalAmount: inv.totalAmount,
+      issueDate: inv.issueDate ? new Date(inv.issueDate).toISOString().split('T')[0] : '',
+      dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : '',
+      taxRate: inv.taxRate || 19,
       taxAmount: inv.taxAmount,
       notes: inv.notes,
-      items: (inv.items || []).map((it: any) => ({ ...it }))
+      items: (inv.items || []).map((it: any) => ({ ...it })),
     };
     this.updateTotals();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelEdit() {
     this.editingId.set('');
-    this.form = { clientId: this.form.clientId || '', status: 'DRAFT', issueDate: '', dueDate: '', totalAmount: 0, taxAmount: 0, notes: '', items: [] };
+    this.submitted = false;
+    this.form = { clientId: '', status: 'DRAFT', issueDate: new Date().toISOString().split('T')[0], dueDate: '', taxRate: 19, taxAmount: 0, notes: '', items: [] };
     this.subtotal.set(0);
     this.total.set(0);
   }

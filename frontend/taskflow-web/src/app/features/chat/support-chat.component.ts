@@ -131,7 +131,7 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
   ngOnInit() {
     const user = this.auth.user();
     this.userId.set(user?.id ?? '');
-    this.isSuperAdmin.set(this.auth.hasRole('SUPER_ADMIN'));
+    this.isSuperAdmin.set(this.auth.hasRole('ROLE_SUPER_ADMIN'));
 
     this.chatService.connect();
 

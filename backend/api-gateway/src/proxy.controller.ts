@@ -22,7 +22,10 @@ export class ProxyController {
     const headers: Record<string, string> = { ...extra };
 
     const authorization = this.firstHeaderValue(req.headers['authorization']);
-    if (authorization) headers['Authorization'] = authorization;
+    if (authorization) {
+      // ONLY send one header to avoid upstream duplicates/malformed JWT
+      headers['authorization'] = authorization;
+    }
 
     const tenantId =
       req.header('x-tenant-id') ??
@@ -42,13 +45,26 @@ export class ProxyController {
     // If multi-tenant headers are missing, try to extract from JWT
     if (authorization && (!headers['x-tenant-id'] || !headers['x-user-id'] || !headers['x-user-role'])) {
       try {
-        const token = authorization.replace('Bearer ', '');
-        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
-        if (!headers['x-tenant-id'] && payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
-        if (!headers['x-user-id'] && payload.sub) headers['x-user-id'] = payload.sub;
-        if (!headers['x-user-role'] && payload.roles?.[0]) headers['x-user-role'] = payload.roles[0];
-      } catch {}
+        if (authorization.toLowerCase().startsWith('bearer ')) {
+          const token = authorization.substring(7).trim();
+          if (token && token !== 'undefined' && token !== 'null' && token.includes('.')) {
+            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            if (!headers['x-tenant-id'] && payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
+            if (!headers['x-user-id'] && payload.sub) headers['x-user-id'] = payload.sub;
+            if (!headers['x-user-role'] && payload.roles?.[0]) headers['x-user-role'] = payload.roles[0];
+          }
+        }
+      } catch (e) {
+        console.warn(`[PROXY] Failed to extract from JWT: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
+
+    // DEBUG LOGS
+    console.log(`[PROXY-DEBUG] Request: ${req.method} ${req.url}`);
+    console.log(`[PROXY-DEBUG] Auth Header Present: ${!!authorization}`);
+    console.log(`[PROXY-DEBUG] Tenant ID: ${headers['x-tenant-id'] ?? 'MISSING'}`);
+    console.log(`[PROXY-DEBUG] User ID: ${headers['x-user-id'] ?? 'MISSING'}`);
+    console.log(`[PROXY-DEBUG] User Role: ${headers['x-user-role'] ?? 'MISSING'}`);
 
     return headers;
   }
@@ -793,6 +809,168 @@ export class ProxyController {
   @Get('onboarding/status')
   async onboardingStatus(@Req() req: Request, @Res() res: Response) {
     const url = 'http://localhost:3001/onboarding/status';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  // ─── ML proxy → expense-service:3006 ───
+
+  @Post('ml/segment/client')
+  async mlSegmentClient(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3006/ml/segment/client';
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res
+        .status(r.status)
+        .setHeader('Content-Type', r.headers.get('content-type') ?? 'application/json')
+        .send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Post('ml/categorize/expense')
+  async mlCategorizeExpense(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3006/ml/categorize/expense';
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res
+        .status(r.status)
+        .setHeader('Content-Type', r.headers.get('content-type') ?? 'application/json')
+        .send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('ml/forecast/cashflow')
+  async mlForecastCashflow(@Req() req: Request, @Res() res: Response) {
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3006/ml/forecast/cashflow${qs ? '?' + qs : ''}`;
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Post('ml/detect/anomaly')
+  async mlDetectAnomaly(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3006/ml/detect/anomaly';
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res
+        .status(r.status)
+        .setHeader('Content-Type', r.headers.get('content-type') ?? 'application/json')
+        .send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  // ─── ML endpoints → auth-service:3001 ───
+
+  @Get('ml/cashflow')
+  async mlCashflow(@Req() req: Request, @Res() res: Response) {
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3001/ml/cashflow${qs ? '?' + qs : ''}`;
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('ml/segmentation')
+  async mlSegmentation(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3001/ml/segmentation';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('ml/anomalies')
+  async mlAnomalies(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3001/ml/anomalies';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('ml/risk')
+  async mlRisk(@Req() req: Request, @Res() res: Response) {
+    const url = 'http://localhost:3001/ml/risk';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
+  @Get('ml/risk/:invoiceId')
+  async mlRiskInvoice(@Param('invoiceId') invoiceId: string, @Req() req: Request, @Res() res: Response) {
+    const url = `http://localhost:3001/ml/risk/${encodeURIComponent(invoiceId)}`;
     try {
       const r = await fetch(url, {
         method: 'GET',

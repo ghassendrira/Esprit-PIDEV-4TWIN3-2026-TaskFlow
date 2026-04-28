@@ -70,15 +70,30 @@ export class SettingsService {
     authHeader?: string,
     tenantId?: string,
   ): Promise<{ userId: string; tenantId: string }> {
-    if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedException();
-    const token = authHeader.substring('Bearer '.length);
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
+
+    if (!authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = authHeader.substring('Bearer '.length).trim();
+
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
     let payload: any;
     try {
       payload = await this.jwt.verifyAsync(token, {
         secret: process.env.JWT_SECRET ?? 'change-me',
       });
-    } catch {
-      throw new UnauthorizedException();
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
     }
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException();

@@ -287,8 +287,8 @@ export class AdminRegistrationsComponent implements OnInit {
   pendingCount = computed(() => this.registrations().length);
 
   ngOnInit() {
-    // Only SUPER_ADMIN can access; redirect others
-    if (!this.auth.roles().includes('SUPER_ADMIN')) {
+    // Only ROLE_SUPER_ADMIN can access; redirect others
+    if (!this.auth.roles().includes('ROLE_SUPER_ADMIN')) {
       this.router.navigate(['/dashboard']);
       return;
     }

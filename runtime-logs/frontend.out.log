@@ -1,0 +1,5 @@
+
+> taskflow-web@0.0.0 start
+> ng serve --port 4200 --no-open
+
+[33m❯[39m Building...

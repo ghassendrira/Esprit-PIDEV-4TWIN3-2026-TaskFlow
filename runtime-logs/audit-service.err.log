@@ -1,0 +1,88 @@
+[31m[Nest] 25016  - [39m04/04/2026 6:14:45 PM [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +8ms[39m
+node:net:1940
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at ExpressAdapter.listen (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\platform-express\adapters\express-adapter.js:127:32)
+    at C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\core\nest-application.js:188:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\core\nest-application.js:178:16)
+    at async bootstrap (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\src\main.ts:6:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v22.17.0
+[31m[Nest] 15356  - [39m04/04/2026 7:17:37 PM [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +3ms[39mnnode:net:1940
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at ExpressAdapter.listen (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\platform-express\adapters\express-adapter.js:127:32)
+    at C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\core\nest-application.js:188:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\core\nest-application.js:178:16)
+    at async bootstrap (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\src\main.ts:6:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+Node.js v22.17.0Erreurÿ: le processus "10928" est introuvable.
+Erreurÿ: le processus "10928" est introuvable.
+node:child_process:958
+    throw err;
+    ^
+
+Error: Command failed: taskkill /pid 10928 /T /F
+Erreurï¿½: le processus "10928" est introuvable.
+
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at checkExecSyncError (node:child_process:883:11)
+    at execSync (node:child_process:955:15)
+    at treeKillSync (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\cli\lib\utils\tree-kill.js:7:38)
+    at C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\cli\actions\start.action.js:68:46
+    at Object.onWatchStatusChange (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\@nestjs\cli\lib\compiler\watch-compiler.js:83:17)
+    at C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\typescript\lib\typescript.js:133916:30
+    at emitFilesAndReportErrors (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\typescript\lib\typescript.js:133737:5)
+    at result.afterProgramCreate (C:\Users\kebai\Downloads\taskflow\taskflow\backend\audit-service\node_modules\typescript\lib\typescript.js:133912:5) {
+  status: 128,
+  signal: null,
+  output: [
+    null,
+    Buffer(0) [Uint8Array] [],
+    Buffer(48) [Uint8Array] [
+       69, 114, 114, 101, 117, 114, 255,  58,  32,
+      108, 101,  32, 112, 114, 111,  99, 101, 115,
+      115, 117, 115,  32,  34,  49,  48,  57,  50,
+       56,  34,  32, 101, 115, 116,  32, 105, 110,
+      116, 114, 111, 117, 118,  97,  98, 108, 101,
+       46,  13,  10
+    ]
+  ],
+  pid: 38836,
+  stdout: Buffer(0) [Uint8Array] [],
+  stderr: Buffer(48) [Uint8Array] [
+     69, 114, 114, 101, 117, 114, 255,  58,  32,
+    108, 101,  32, 112, 114, 111,  99, 101, 115,
+    115, 117, 115,  32,  34,  49,  48,  57,  50,
+     56,  34,  32, 101, 115, 116,  32, 105, 110,
+    116, 114, 111, 117, 118,  97,  98, 108, 101,
+     46,  13,  10
+  ]
+}
+
+Node.js v22.17.0
+

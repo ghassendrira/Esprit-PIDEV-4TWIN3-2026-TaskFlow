@@ -23,19 +23,50 @@ export class RBACGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
+    let authHeader = request.headers.authorization;
 
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException();
+    if (authHeader && Array.isArray(authHeader)) {
+      authHeader = authHeader[0];
+    } else if (authHeader && authHeader.includes(',')) {
+      authHeader = authHeader.split(',')[0].trim();
     }
 
-    const token = authHeader.substring('Bearer '.length);
+    console.log(`[RBACGuard] Incoming Authorization Header: ${authHeader ? 'Present' : 'MISSING'}`);
+
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
+
+    const auth = authHeader.trim();
+    const parts = auth.split(/\s+/);
+    if (parts.length < 2 || parts[0].toLowerCase() !== 'bearer') {
+      console.warn(`[RBACGuard] Invalid Header Format: ${auth}`);
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = parts.slice(1).join(' ').trim();
+    console.log(`[RBACGuard] Extracted Token: ${token.substring(0, 15)}...`);
+    
+    if (!token || token === 'undefined' || token === 'null' || token.length < 10) {
+      console.error(`[RBACGuard] Invalid Token String detected: "${token}"`);
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
     let payload;
     try {
       payload = await this.jwt.verifyAsync(token, {
         secret: process.env.JWT_SECRET ?? 'change-me',
       });
-    } catch {
+      console.log(`[RBACGuard] Decoded Payload:`, { sub: payload.sub, email: payload.email, roles: payload.roles });
+      request.user = payload;
+    } catch (err: any) {
+      console.error(`[RBACGuard] JWT Verification failed: ${err.message}`, { token: token.substring(0, 10) + '...' });
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      if (err.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Malformed JWT token');
+      }
       throw new UnauthorizedException('Invalid token');
     }
 
@@ -49,13 +80,14 @@ export class RBACGuard implements CanActivate {
     }
 
     // Super Admin bypass: if user has SUPER_ADMIN role in ANY tenant context, allow all.
-    // The previous implementation only checked memberships within the current tenant.
     const globalSuperAdmin = await this.prisma.userTenantMembership.findFirst({
       where: {
         userId,
         deletedAt: null,
         role: {
-          name: 'SUPER_ADMIN',
+          name: {
+            in: ['SUPER_ADMIN', 'ROLE_SUPER_ADMIN'],
+          },
         },
       },
       select: { id: true },

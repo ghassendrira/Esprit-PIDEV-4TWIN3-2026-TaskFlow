@@ -134,7 +134,7 @@ export class AdminPasswordRequestsComponent implements OnInit {
   toast = signal<null | { type: 'success' | 'error'; title: string; message: string }>(null);
 
   ngOnInit() {
-    if (!this.auth.roles().includes('SUPER_ADMIN')) {
+    if (!this.auth.roles().includes('ROLE_SUPER_ADMIN')) {
       this.router.navigate(['/dashboard']);
       return;
     }

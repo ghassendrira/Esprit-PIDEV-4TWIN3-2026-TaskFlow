@@ -17,15 +17,15 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const roleHeader = request.headers['x-user-role'];
-    if (!roleHeader) {
+    
+    // FIX 3: Essayer les deux sources : request.user ou header
+    let userRole = request.user?.role || request.headers['x-user-role'] || '';
+    if (!userRole) {
       return false;
     }
 
-    const rawRole = Array.isArray(roleHeader)
-      ? roleHeader[0]
-      : roleHeader;
-    const normalized = String(rawRole || '').split(',')[0].trim().toUpperCase();
+    const rawRole = Array.isArray(userRole) ? userRole[0] : userRole;
+    const normalized = String(rawRole || '').split(',')[0].trim().replace(/^ROLE_/, '').toUpperCase();
 
     const incomingRole = this.mapIncomingRole(normalized);
 
@@ -33,26 +33,27 @@ export class RolesGuard implements CanActivate {
   }
 
   private mapIncomingRole(role: string): Role {
-    switch (role) {
-      case 'SUPER_ADMIN':
-      case 'SUPER_MANAGER':
+    const r = role.startsWith('ROLE_') ? role : `ROLE_${role}`;
+    switch (r) {
+      case 'ROLE_SUPER_ADMIN':
+      case 'ROLE_SUPER_MANAGER':
         return Role.SUPER_ADMIN;
-      case 'OWNER':
-      case 'BUSINESS_OWNER':
-      case 'PROJECT_MANAGER':
+      case 'ROLE_OWNER':
+      case 'ROLE_BUSINESS_OWNER':
+      case 'ROLE_PROJECT_MANAGER':
         return Role.BUSINESS_OWNER;
-      case 'ADMIN':
-      case 'BUSINESS_ADMIN':
+      case 'ROLE_ADMIN':
+      case 'ROLE_BUSINESS_ADMIN':
         return Role.BUSINESS_ADMIN;
-      case 'ACCOUNTANT':
+      case 'ROLE_ACCOUNTANT':
         return Role.ACCOUNTANT;
-      case 'TEAM':
-      case 'TEAM_MEMBER':
+      case 'ROLE_TEAM':
+      case 'ROLE_TEAM_MEMBER':
         return Role.TEAM_MEMBER;
-      case 'CLIENT':
+      case 'ROLE_CLIENT':
         return Role.CLIENT;
       default:
-        return role as Role;
+        return r as Role;
     }
   }
 }

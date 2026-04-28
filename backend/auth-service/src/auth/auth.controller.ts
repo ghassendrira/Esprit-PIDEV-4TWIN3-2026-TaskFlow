@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post, Get, Param, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Headers, Post, Get, Param, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/signup.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -9,6 +9,7 @@ import {
   ResetPasswordDto,
 } from './dto/forgot-password.dto';
 import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -31,23 +32,45 @@ export class AuthController {
 
   // TASK 9: 2FA Endpoints
   @Post('2fa/generate')
+  @UseGuards(JwtAuthGuard)
   async generate2fa(@Headers('authorization') auth: string) {
-    if (!auth?.startsWith('Bearer ')) throw new UnauthorizedException();
-    const token = auth.substring('Bearer '.length);
-    const payload = await this.jwtService.verifyAsync(token, {
-      secret: process.env.JWT_SECRET ?? 'change-me',
-    });
-    return this.auth.generate2faSecret(payload.sub);
+    if (!auth || !auth.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Invalid or missing Authorization header');
+    }
+    const token = auth.substring('Bearer '.length).trim();
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET ?? 'change-me',
+      });
+      return this.auth.generate2faSecret(payload.sub);
+    } catch (err) {
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 
   @Post('2fa/enable')
+  @UseGuards(JwtAuthGuard)
   async enable2fa(@Headers('authorization') auth: string, @Body('otp') otp: string) {
-    if (!auth?.startsWith('Bearer ')) throw new UnauthorizedException();
-    const token = auth.substring('Bearer '.length);
-    const payload = await this.jwtService.verifyAsync(token, {
-      secret: process.env.JWT_SECRET ?? 'change-me',
-    });
-    return this.auth.enable2fa(payload.sub, otp);
+    if (!auth || !auth.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Invalid or missing Authorization header');
+    }
+    const token = auth.substring('Bearer '.length).trim();
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET ?? 'change-me',
+      });
+      return this.auth.enable2fa(payload.sub, otp);
+    } catch (err) {
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 
   @Post('2fa/verify')
@@ -56,6 +79,7 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @UseGuards(JwtAuthGuard)
   async changePassword(
     @Headers('authorization') authorization: string,
     @Body() dto: ChangePasswordDto,
@@ -64,6 +88,7 @@ export class AuthController {
   }
 
   @Post('security-questions')
+  @UseGuards(JwtAuthGuard)
   async setSecurityQuestions(
     @Headers('authorization') authorization: string,
     @Body() dto: SecurityQuestionsDto,
@@ -72,6 +97,7 @@ export class AuthController {
   }
 
   @Get('security-questions')
+  @UseGuards(JwtAuthGuard)
   async getSecurityQuestions(@Headers('authorization') authorization: string) {
     return this.auth.getSecurityQuestions(authorization);
   }

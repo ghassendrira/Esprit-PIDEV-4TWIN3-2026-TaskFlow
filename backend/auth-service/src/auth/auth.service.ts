@@ -254,7 +254,22 @@ export class AuthService {
   async signin(
     email: string,
     password: string,
-  ): Promise<{ token?: string; mustChangePassword?: boolean; requires2fa: boolean; userId?: string }> {
+  ): Promise<{ 
+    token?: string; 
+    mustChangePassword?: boolean; 
+    requires2fa: boolean; 
+    userId?: string;
+    user?: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      businessId: string | null;
+      tenantId: string | null;
+      business?: any;
+    }
+  }> {
     const normalizedEmail = email?.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({
@@ -371,60 +386,159 @@ export class AuthService {
       console.error('Email trigger failed:', err);
     }
 
-    // Get membership and role for the user
-    const membership = await this.prisma.userTenantMembership.findFirst({
-      where: { userId: user.id },
-      include: { 
-        role: { select: { name: true } }
-      },
-    });
-
-    // Try to get tenant name from tenant-service if possible
-    let tenantName = 'TaskFlow';
+    // Ensure user has at least one membership
     try {
-      const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
-      const tRes = await fetch(`${tenantBase}/tenants/${membership?.tenantId}`);
-      if (tRes.ok) {
-        const tData = await tRes.json();
-        tenantName = tData.name || 'TaskFlow';
+      const memberships = await this.prisma.userTenantMembership.findMany({
+        where: { userId: user.id, deletedAt: null },
+      });
+      
+      if (memberships.length === 0) {
+        this.logger.warn(`[signin] User ${user.email} has no memberships, creating default`);
+        
+        // Try to find or create a default tenant for this user
+        const defaultTenantId = await this.ensureTenantId(user.email?.split('@')[0] || user.firstName || 'Default');
+        
+        // Get or create BUSINESS_OWNER role
+        let role = await this.prisma.role.findFirst({
+          where: { name: 'BUSINESS_OWNER', tenantId: null, isStandard: true }
+        });
+        if (!role) {
+          role = await this.prisma.role.create({
+            data: { name: 'BUSINESS_OWNER', isStandard: true, tenantId: null as any },
+          });
+        }
+        
+        // Create membership
+        await this.prisma.userTenantMembership.create({
+          data: {
+            userId: user.id,
+            tenantId: defaultTenantId,
+            roleId: role.id,
+          },
+        });
+        
+        this.logger.log(`[signin] Created default membership for ${user.email}`);
       }
     } catch (err) {
-      console.error('Failed to fetch tenant name:', err);
+      this.logger.error('[signin] Failed to create default membership:', err);
+      // Continue anyway, the JWT will be issued without a tenantId if this fails
     }
 
-    const token = await this.jwt.signAsync(
-      {
-        sub: user.id,
+    const { token, mustChangePassword } = await this.issueJwtForUser(user.id);
+    
+    // Récupérer les informations de membership pour la réponse
+    const memberships = await this.prisma.userTenantMembership.findMany({
+      where: { userId: user.id, deletedAt: null },
+      include: { role: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    
+    this.logger.log(`[signin] Found ${memberships.length} memberships for user ${user.id}`);
+    memberships.forEach((m, i) => {
+      this.logger.log(`[signin] Membership ${i}: tenantId=${m.tenantId}, role=${m.role?.name}`);
+    });
+    
+    const primaryMembership = memberships[0];
+    const roleName = primaryMembership?.role?.name?.replace(/^ROLE_/, '')?.toUpperCase() || 'USER';
+    const tenantId = primaryMembership?.tenantId;
+    
+    this.logger.log(`[signin] Final response: tenantId=${tenantId}, role=${roleName}`);
+    
+    // Fetch business
+    let business: any = null;
+    if (tenantId) {
+      try {
+        const businessBase = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/+$/, '');
+        const res = await fetch(`${businessBase}/businesses/by-tenant/${tenantId}`);
+        if (res.ok) {
+          const businesses = await res.json();
+          business = businesses[0];
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to fetch business for tenant ${tenantId}`, err);
+      }
+    }
+    
+    return { 
+      token, 
+      mustChangePassword, 
+      requires2fa: false,
+      user: {
+        id: user.id,
         email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
         firstName: user.firstName,
         lastName: user.lastName,
-        tenantName: tenantName,
-        tenantId: membership?.tenantId ?? null,
-        company_id: membership?.tenantId ?? null,
-        roles: membership?.role?.name ? [membership.role.name] : [],
-        mustChangePassword: Boolean(user.mustChangePassword) || user.tempPassword !== null,
-      },
-      {
-        secret: process.env.JWT_SECRET ?? 'change-me',
-        expiresIn: Number(process.env.JWT_EXPIRES_IN ?? 3600),
-      },
-    );
-    return { token, mustChangePassword: Boolean(user.mustChangePassword) || user.tempPassword !== null, requires2fa: false };
+        role: roleName,
+        businessId: business?.id || tenantId || null,
+        tenantId: business?.id || tenantId || null,
+        business: business || null,
+      }
+    };
+  }
+
+  private async ensureTenantId(name: string): Promise<string> {
+    const base = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+    const safeName = name.trim() || 'Tenant';
+
+    // Try lookup by name
+    try {
+      const r = await fetch(`${base}/tenants/by-name/${encodeURIComponent(safeName)}`);
+      if (r.ok) {
+        const t = await r.json();
+        if (t?.id) return String(t.id);
+      }
+    } catch {
+      // ignore
+    }
+
+    // Create if not found
+    try {
+      const r = await fetch(`${base}/tenants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: safeName }),
+      });
+      if (r.ok) {
+        const t = await r.json();
+        if (t?.id) return String(t.id);
+      }
+    } catch {
+      // ignore
+    }
+
+    // Fallback: generate a random UUID
+    return require('crypto').randomUUID();
   }
 
   async changePassword(
     authHeader: string,
     dto: ChangePasswordDto,
   ): Promise<{ token: string }> {
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException();
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
     }
-    const token = authHeader.substring('Bearer '.length);
 
-    const payload = await this.jwt.verifyAsync(token, {
-      secret: process.env.JWT_SECRET ?? 'change-me',
-    });
+    if (!authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = authHeader.substring('Bearer '.length).trim();
+
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
+    let payload;
+    try {
+      payload = await this.jwt.verifyAsync(token, {
+        secret: process.env.JWT_SECRET ?? 'change-me',
+      });
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
     const userId = (payload as any)?.sub as string | undefined;
     if (!userId) throw new UnauthorizedException();
 
@@ -472,45 +586,9 @@ export class AuthService {
       },
     });
 
-    // Get membership and role for the user
-    const membership = await this.prisma.userTenantMembership.findFirst({
-      where: { userId },
-      include: { 
-        role: { select: { name: true } }
-      },
+    const { token: newToken } = await this.issueJwtForUser(userId, {
+      forceMustChangePassword: false,
     });
-
-    // Try to get tenant name from tenant-service if possible
-    let tenantName = 'TaskFlow';
-    try {
-      const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
-      const tRes = await fetch(`${tenantBase}/tenants/${membership?.tenantId}`);
-      if (tRes.ok) {
-        const tData = await tRes.json();
-        tenantName = tData.name || 'TaskFlow';
-      }
-    } catch (err) {
-      console.error('Failed to fetch tenant name:', err);
-    }
-
-    const newToken = await this.jwt.signAsync(
-      {
-        sub: user.id,
-        email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        tenantName: tenantName,
-        tenantId: membership?.tenantId ?? null,
-        company_id: membership?.tenantId ?? null,
-        roles: membership?.role?.name ? [membership.role.name] : [],
-        mustChangePassword: false,
-      },
-      {
-        secret: process.env.JWT_SECRET ?? 'change-me',
-        expiresIn: Number(process.env.JWT_EXPIRES_IN ?? 3600),
-      },
-    );
 
     return { token: newToken };
   }
@@ -902,11 +980,31 @@ export class AuthService {
   }
 
   async switchTenant(auth: string, tenantId: string) {
-    if (!auth?.startsWith('Bearer ')) throw new UnauthorizedException();
-    const token = auth.substring('Bearer '.length);
-    const payload = await this.jwt.verifyAsync(token, {
-      secret: process.env.JWT_SECRET ?? 'change-me',
-    });
+    if (!auth) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
+
+    if (!auth.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Malformed Authorization header (no Bearer prefix)');
+    }
+
+    const token = auth.substring('Bearer '.length).trim();
+
+    if (!token || token === 'undefined' || token === 'null') {
+      throw new UnauthorizedException('Invalid or empty token');
+    }
+
+    let payload;
+    try {
+      payload = await this.jwt.verifyAsync(token, {
+        secret: process.env.JWT_SECRET ?? 'change-me',
+      });
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException();
 
@@ -924,37 +1022,9 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('User not found');
 
-    // Try to get tenant name from tenant-service if possible
-    let tenantName = 'TaskFlow';
-    try {
-      const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
-      const tRes = await fetch(`${tenantBase}/tenants/${tenantId}`);
-      if (tRes.ok) {
-        const tData = await tRes.json();
-        tenantName = tData.name || 'TaskFlow';
-      }
-    } catch (err) {
-      console.error('Failed to fetch tenant name during switch:', err);
-    }
-
-    const newToken = await this.jwt.signAsync(
-      {
-        sub: user.id,
-        email: user.email,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        tenantName: tenantName,
-        tenantId: tenantId,
-        company_id: tenantId,
-        roles: membership.role?.name ? [membership.role.name] : [],
-        mustChangePassword: Boolean(user.mustChangePassword) || user.tempPassword !== null,
-      },
-      {
-        secret: process.env.JWT_SECRET ?? 'change-me',
-        expiresIn: Number(process.env.JWT_EXPIRES_IN ?? 3600),
-      },
-    );
+    const { token: newToken } = await this.issueJwtForUser(userId, {
+      preferredTenantId: tenantId,
+    });
 
     return { success: true, token: newToken, tenantId };
   }
@@ -1103,49 +1173,135 @@ export class AuthService {
         throw new BadRequestException('Invalid OTP');
       }
 
-      // Get membership and role for the user
-      const membership = await this.prisma.userTenantMembership.findFirst({
-        where: { userId: user.id },
-        include: { role: { select: { name: true } } },
-      });
+      const { token, mustChangePassword } = await this.issueJwtForUser(user.id);
 
-      let tenantName = 'TaskFlow';
-      try {
-        const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
-        const tRes = await fetch(`${tenantBase}/tenants/${membership?.tenantId}`);
-        if (tRes.ok) {
-          const tData = await tRes.json();
-          tenantName = tData.name || 'TaskFlow';
-        }
-      } catch (err) {
-        console.error('Failed to fetch tenant name during 2FA login:', err);
-      }
-
-      const token = await this.jwt.signAsync(
-        {
-          sub: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          tenantName: tenantName,
-          tenantId: membership?.tenantId ?? null,
-          company_id: membership?.tenantId ?? null,
-          roles: membership?.role?.name ? [membership.role.name] : [],
-          mustChangePassword: Boolean(user.mustChangePassword) || user.tempPassword !== null,
-        },
-        {
-          secret: process.env.JWT_SECRET ?? 'change-me',
-          expiresIn: Number(process.env.JWT_EXPIRES_IN ?? 3600),
-        },
-      );
-
-      return { token, mustChangePassword: Boolean(user.mustChangePassword) || user.tempPassword !== null, requires2fa: false };
+      return { token, mustChangePassword, requires2fa: false };
     } catch (err: any) {
       if (err instanceof BadRequestException) throw err;
       this.logger.error(`Error in verify2faAndLogin: ${err.message}`, err.stack);
       throw new InternalServerErrorException(`Failed to verify 2FA: ${err.message}`);
     }
+  }
+
+  /**
+   * Émet un JWT avec tous les rôles agrégés (tous les tenants) + SUPER_ADMIN si ADMIN_EMAIL.
+   * Logs: userId, tenant actif, liste des rôles.
+   */
+  private async issueJwtForUser(
+    userId: string,
+    options?: { preferredTenantId?: string | null; forceMustChangePassword?: boolean },
+  ): Promise<{ token: string; mustChangePassword: boolean }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        mustChangePassword: true,
+        tempPassword: true,
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    const memberships = await this.prisma.userTenantMembership.findMany({
+      where: { userId, deletedAt: null },
+      include: { role: { select: { name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const roleSet = new Set<string>();
+    for (const m of memberships) {
+      if (m.role?.name) {
+        roleSet.add(m.role.name);
+      }
+    }
+
+    const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
+    const email = String(user.email ?? '').trim().toLowerCase();
+    if (adminEmail && email === adminEmail) {
+      roleSet.add('SUPER_ADMIN');
+    }
+
+    const roles = Array.from(roleSet).map(r => r.startsWith('ROLE_') ? r : `ROLE_${r.toUpperCase()}`);
+
+    let tenantId: string | null = null;
+    let allTenantIds: string[] = [];
+
+    // Collect all tenant IDs the user is a member of
+    for (const m of memberships) {
+      if (m.tenantId) {
+        allTenantIds.push(m.tenantId);
+      }
+    }
+
+    const pref = options?.preferredTenantId;
+    if (pref && pref !== 'null' && pref !== 'undefined') {
+      const allowed = memberships.some((m) => m.tenantId === pref);
+      tenantId = allowed ? pref : memberships[0]?.tenantId ?? null;
+    }
+    if (!tenantId) {
+      tenantId = memberships[0]?.tenantId ?? null;
+    }
+
+    this.logger.log(`[DEBUG-JWT] User has ${memberships.length} memberships, tenantIds: ${allTenantIds.join(', ')}`);
+
+    let tenantName = 'TaskFlow';
+    if (tenantId) {
+      try {
+        const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(
+          /\/+$/,
+          '',
+        );
+        const tRes = await fetch(`${tenantBase}/tenants/${tenantId}`);
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          tenantName = tData.name || 'TaskFlow';
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to fetch tenant name for ${tenantId}`, err);
+      }
+    }
+
+    const mustChangePassword =
+      options?.forceMustChangePassword !== undefined
+        ? options.forceMustChangePassword
+        : Boolean(user.mustChangePassword) || user.tempPassword !== null;
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || 'User',
+      firstName: user.firstName,
+      lastName: user.lastName,
+      tenantName,
+      tenantId: tenantId || allTenantIds[0] || null, // Fallback to first tenant if no default
+      company_id: tenantId || allTenantIds[0] || null,
+      tenantIds: allTenantIds, // Include all tenant IDs
+      roles,
+      mustChangePassword,
+    };
+
+    this.logger.log(
+      `[DEBUG-JWT] Generating token for user=${user.email} (ID=${user.id})`,
+    );
+    this.logger.log(
+      `[DEBUG-JWT] Roles attached: ${JSON.stringify(roles)}`,
+    );
+    this.logger.log(
+      `[DEBUG-JWT] Tenant attached: ${tenantId ?? 'NONE'} (${tenantName})`,
+    );
+
+    const token = await this.jwt.signAsync(payload, {
+      secret: process.env.JWT_SECRET ?? 'change-me',
+      expiresIn: Number(process.env.JWT_EXPIRES_IN ?? 3600),
+    });
+
+    this.logger.log(`[DEBUG-JWT] TOKEN GENERATED FOR ${user.email}: ${token}`);
+
+    return { token, mustChangePassword };
   }
 
   private async notifyTenantService(companyName: string): Promise<void> {
