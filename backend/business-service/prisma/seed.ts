@@ -191,6 +191,7 @@ async function main() {
     for (const businessSeed of businessSeeds) {
       const business = await prisma.business.create({
         data: {
+          companyId: tenantId,
           tenantId,
           name: businessSeed.name,
           logoUrl: '',

@@ -21,6 +21,9 @@ export class ProxyController {
   private getHeaders(req: Request, extra: Record<string, string> = {}) {
     const headers: Record<string, string> = { ...extra };
 
+    const requestId = req.header('x-request-id') || req.header('X-Request-Id');
+    if (requestId) headers['x-request-id'] = requestId;
+
     const authorization = this.firstHeaderValue(req.headers['authorization']);
     if (authorization) {
       // ONLY send one header to avoid upstream duplicates/malformed JWT
@@ -41,6 +44,13 @@ export class ProxyController {
 
     const userRole = req.header('x-user-role') || req.header('X-User-Role');
     if (userRole) headers['x-user-role'] = userRole;
+
+    const businessId = req.header('x-business-id') || req.header('X-Business-Id');
+    if (businessId) headers['x-business-id'] = businessId;
+
+    const employeeUserId =
+      req.header('x-employee-user-id') || req.header('X-Employee-User-Id');
+    if (employeeUserId) headers['x-employee-user-id'] = employeeUserId;
 
     // If multi-tenant headers are missing, try to extract from JWT
     if (authorization && (!headers['x-tenant-id'] || !headers['x-user-id'] || !headers['x-user-role'])) {
@@ -65,6 +75,7 @@ export class ProxyController {
     console.log(`[PROXY-DEBUG] Tenant ID: ${headers['x-tenant-id'] ?? 'MISSING'}`);
     console.log(`[PROXY-DEBUG] User ID: ${headers['x-user-id'] ?? 'MISSING'}`);
     console.log(`[PROXY-DEBUG] User Role: ${headers['x-user-role'] ?? 'MISSING'}`);
+    console.log(`[PROXY-DEBUG] Request ID: ${headers['x-request-id'] ?? 'MISSING'}`);
 
     return headers;
   }
@@ -164,6 +175,25 @@ export class ProxyController {
   @Get('business/list')
   async listBusinesses(@Req() req: Request, @Res() res: Response) {
     const url = 'http://localhost:3001/business/list';
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(req),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Get('business/company/:companyId')
+  async listBusinessesByCompany(
+    @Param('companyId') companyId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const url = `http://localhost:3001/business/company/${encodeURIComponent(companyId)}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -330,7 +360,7 @@ export class ProxyController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const url = `http://localhost:3001/invoices/by-business/${encodeURIComponent(businessId)}`;
+    const url = `http://localhost:3005/invoices/by-business/${encodeURIComponent(businessId)}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -346,7 +376,7 @@ export class ProxyController {
 
   @Post('invoices')
   async createInvoice(@Body() body: any, @Req() req: Request, @Res() res: Response) {
-    const url = 'http://localhost:3001/invoices';
+    const url = 'http://localhost:3005/invoices';
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -386,7 +416,7 @@ export class ProxyController {
 
   @Get('invoices/:id')
   async getInvoice(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
-    const url = `http://localhost:3001/invoices/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3005/invoices/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -439,7 +469,7 @@ export class ProxyController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const url = `http://localhost:3001/invoices/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3005/invoices/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'PATCH',
@@ -459,7 +489,7 @@ export class ProxyController {
 
   @Delete('invoices/:id')
   async deleteInvoice(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
-    const url = `http://localhost:3001/invoices/${encodeURIComponent(id)}`;
+    const url = `http://localhost:3005/invoices/${encodeURIComponent(id)}`;
     try {
       const r = await fetch(url, {
         method: 'DELETE',
@@ -952,7 +982,8 @@ export class ProxyController {
 
   @Get('ml/segmentation')
   async mlSegmentation(@Req() req: Request, @Res() res: Response) {
-    const url = 'http://localhost:3001/ml/segmentation';
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3001/ml/segmentation${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -966,9 +997,33 @@ export class ProxyController {
     }
   }
 
+  @Post('ml/segmentation/:clientId')
+  async mlSegmentationClient(
+    @Param('clientId') clientId: string,
+    @Body() body: any,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3001/ml/segmentation/${encodeURIComponent(clientId)}${qs ? '?' + qs : ''}`;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      res.status(502).json({ message: 'Upstream error', error: err });
+    }
+  }
+
   @Get('ml/anomalies')
   async mlAnomalies(@Req() req: Request, @Res() res: Response) {
-    const url = 'http://localhost:3001/ml/anomalies';
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3001/ml/anomalies${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -984,7 +1039,8 @@ export class ProxyController {
 
   @Get('ml/risk')
   async mlRisk(@Req() req: Request, @Res() res: Response) {
-    const url = 'http://localhost:3001/ml/risk';
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3001/ml/risk${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -1000,7 +1056,8 @@ export class ProxyController {
 
   @Get('ml/risk/:invoiceId')
   async mlRiskInvoice(@Param('invoiceId') invoiceId: string, @Req() req: Request, @Res() res: Response) {
-    const url = `http://localhost:3001/ml/risk/${encodeURIComponent(invoiceId)}`;
+    const qs = req.url.split('?')[1] || '';
+    const url = `http://localhost:3001/ml/risk/${encodeURIComponent(invoiceId)}${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',

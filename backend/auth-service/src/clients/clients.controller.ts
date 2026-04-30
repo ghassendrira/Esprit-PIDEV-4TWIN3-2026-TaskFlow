@@ -22,9 +22,10 @@ export class ClientsController {
   listByBusiness(
     @Headers('authorization') authorization: string,
     @Headers('x-tenant-id') tenantId: string | undefined,
+    @Headers('x-employee-user-id') employeeUserId: string | undefined,
     @Param('businessId') businessId: string,
   ) {
-    return this.service.listByBusiness(authorization, tenantId, businessId);
+    return this.service.listByBusiness(authorization, tenantId, businessId, employeeUserId);
   }
 
   @Post()
@@ -34,6 +35,7 @@ export class ClientsController {
     @Body()
     body: {
       businessId: string;
+      assignedUserId?: string;
       name: string;
       email?: string;
       phone?: string;
@@ -60,6 +62,7 @@ export class ClientsController {
     @Param('id') id: string,
     @Body()
     body: {
+      assignedUserId?: string | null;
       name?: string;
       email?: string;
       phone?: string;

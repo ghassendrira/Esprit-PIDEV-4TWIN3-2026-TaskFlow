@@ -9,6 +9,7 @@ import { MlService } from '../../core/services/ml.service';
 import { TfCardComponent } from '../../shared/ui/card/tf-card.component';
 import { BusinessSelectionService } from '../../core/services/business-selection.service';
 import { AuthService } from '../../core/services/auth.service';
+import { EmployeeSelectionService } from '../../core/services/employee-selection.service';
 
 type ClientRow = ClientDto & {
   segmentLabel?: string;
@@ -38,6 +39,17 @@ type ClientRow = ClientDto & {
               (ngModelChange)="onBusinessChange($event)"
             >
               <option *ngFor="let b of businesses()" [value]="b.id">{{ b.name }}</option>
+            </select>
+          </div>
+          <div *ngIf="canFilterByEmployee()" class="flex flex-col gap-1 min-w-[180px]">
+            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Employé</label>
+            <select
+              class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              [ngModel]="selectedEmployeeId()"
+              (ngModelChange)="onEmployeeChange($event)"
+            >
+              <option value="">Tous</option>
+              <option *ngFor="let u of employees()" [value]="u.id">{{ u.firstName }} {{ u.lastName }}</option>
             </select>
           </div>
           <div class="flex flex-col gap-1 min-w-[160px]">
@@ -204,12 +216,15 @@ export class ClientsComponent implements OnInit {
   private ml = inject(MlService);
   private businessSelection = inject(BusinessSelectionService);
   private auth = inject(AuthService);
+  private employeeSelection = inject(EmployeeSelectionService);
 
   private get isSuperAdmin(): boolean {
     return this.auth.hasRole('ROLE_SUPER_ADMIN');
   }
 
   businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
+  employees = signal<Array<{ id: string; firstName: string; lastName: string; email: string }>>([]);
+  selectedEmployeeId = computed(() => this.employeeSelection.selectedEmployeeId());
   activeBusinessId = computed(() => this.businessSelection.selectedBusinessId());
   segmentFilter = signal<string>('');
 
@@ -253,6 +268,7 @@ export class ClientsComponent implements OnInit {
             this.onBusinessChange(normalized[0].id);
           } else {
             this.businessSelection.setSelectedBusiness(found.id, found.tenantId);
+            this.loadEmployeesForCurrentTenant();
             this.reload();
           }
         }
@@ -268,8 +284,39 @@ export class ClientsComponent implements OnInit {
     if (business) {
       this.businessSelection.setSelectedBusiness(business.id, business.tenantId);
     }
+    this.loadEmployeesForCurrentTenant();
     this.cancelEdit();
     this.reload();
+  }
+
+  onEmployeeChange(employeeUserId: string) {
+    this.employeeSelection.setSelectedEmployeeId(employeeUserId || '');
+    this.reload();
+  }
+
+  canFilterByEmployee(): boolean {
+    return this.auth.hasRole('ROLE_SUPER_ADMIN') || this.auth.hasRole('ROLE_ADMIN');
+  }
+
+  private loadEmployeesForCurrentTenant() {
+    if (!this.canFilterByEmployee()) {
+      this.employees.set([]);
+      return;
+    }
+
+    const businessId = this.activeBusinessId();
+    const business = this.businesses().find((b) => b.id === businessId);
+    const tenantId = business?.tenantId || this.resolveTenantId();
+
+    if (!tenantId) {
+      this.employees.set([]);
+      return;
+    }
+
+    this.auth.getEmployeesForTenant(tenantId).subscribe({
+      next: (list: any[]) => this.employees.set(Array.isArray(list) ? list : []),
+      error: () => this.employees.set([]),
+    });
   }
 
   private resolveTenantId(): string {
@@ -279,24 +326,15 @@ export class ClientsComponent implements OnInit {
   reload() {
     const businessId = this.activeBusinessId();
 
-    // SUPER_ADMIN : charge TOUS les clients (3015)
-    if (this.isSuperAdmin) {
-      this.clientsApi.listAll().subscribe({
-        next: (list) => {
-          const arr = Array.isArray(list) ? list : [];
-          this.clients.set(arr);
-        },
-        error: () => this.clients.set([]),
-      });
-      return;
-    }
-
     if (!businessId) {
       this.clients.set([]);
       return;
     }
     const tenantId = this.resolveTenantId();
-    this.clientsApi.listByBusiness(businessId, tenantId || undefined).subscribe({
+    const employeeUserId = this.canFilterByEmployee()
+      ? this.selectedEmployeeId() || undefined
+      : undefined;
+    this.clientsApi.listByBusiness(businessId, tenantId || undefined, employeeUserId).subscribe({
       next: (list) => {
         const arr = Array.isArray(list) ? list : [];
         this.clients.set(arr);
@@ -450,4 +488,3 @@ export class ClientsComponent implements OnInit {
     });
   }
 }
-

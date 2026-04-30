@@ -7,6 +7,7 @@ export class ClientsService {
 
   async create(data: {
     businessId: string;
+    assignedUserId?: string;
     name: string;
     email?: string;
     phone?: string;
@@ -19,6 +20,7 @@ export class ClientsService {
     return this.prisma.client.create({
       data: {
         businessId: data.businessId,
+        assignedUserId: data.assignedUserId ?? null,
         name: data.name.trim(),
         email: (data.email ?? '').trim().toLowerCase(),
         phone: (data.phone ?? '').trim(),
@@ -28,6 +30,7 @@ export class ClientsService {
       select: {
         id: true,
         businessId: true,
+        assignedUserId: true,
         name: true,
         email: true,
         phone: true,
@@ -46,6 +49,7 @@ export class ClientsService {
       select: {
         id: true,
         businessId: true,
+        assignedUserId: true,
         name: true,
         email: true,
         phone: true,
@@ -57,13 +61,18 @@ export class ClientsService {
     });
   }
 
-  listByBusiness(businessId: string) {
+  listByBusiness(businessId: string, assignedUserId?: string) {
     return this.prisma.client.findMany({
-      where: { businessId, deletedAt: null },
+      where: {
+        businessId,
+        deletedAt: null,
+        ...(assignedUserId ? { assignedUserId } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         businessId: true,
+        assignedUserId: true,
         name: true,
         email: true,
         phone: true,
@@ -81,6 +90,7 @@ export class ClientsService {
       select: {
         id: true,
         businessId: true,
+        assignedUserId: true,
         name: true,
         email: true,
         phone: true,
@@ -98,6 +108,7 @@ export class ClientsService {
   async update(
     id: string,
     data: {
+      assignedUserId?: string | null;
       name?: string;
       email?: string;
       phone?: string;
@@ -114,6 +125,7 @@ export class ClientsService {
     return this.prisma.client.update({
       where: { id },
       data: {
+        ...(data.assignedUserId !== undefined ? { assignedUserId: data.assignedUserId ?? null } : {}),
         ...(data.name !== undefined ? { name: data.name.trim() } : {}),
         ...(data.email !== undefined
           ? { email: (data.email ?? '').trim().toLowerCase() }
@@ -129,6 +141,7 @@ export class ClientsService {
       select: {
         id: true,
         businessId: true,
+        assignedUserId: true,
         name: true,
         email: true,
         phone: true,

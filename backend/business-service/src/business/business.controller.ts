@@ -9,6 +9,7 @@ export class BusinessController {
   create(
     @Body()
     body: {
+      companyId?: string;
       tenantId: string;
       ownerId?: string;
       name: string;
@@ -29,6 +30,11 @@ export class BusinessController {
   @Get('by-tenant/:tenantId')
   byTenant(@Param('tenantId') tenantId: string) {
     return this.service.byTenant(tenantId);
+  }
+
+  @Get('company/:companyId')
+  byCompany(@Param('companyId') companyId: string) {
+    return this.service.byCompany(companyId);
   }
 
   @Get('by-owner/:ownerId')

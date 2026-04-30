@@ -2,10 +2,13 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 interface RoleInfo {
   id: string;
   name: string;
+  isStandard?: boolean;
   displayName?: string;
   description?: string;
   userCount?: number;
@@ -27,6 +30,36 @@ interface Permission {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
+    <!-- Modal Création de rôle -->
+    <div *ngIf="showCreateModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" (click)="closeCreateModal()">
+      <div class="bg-[var(--tf-card)] rounded-2xl shadow-2xl border border-[var(--tf-border)] p-8 w-full max-w-md mx-4" (click)="$event.stopPropagation()">
+        <h2 class="text-xl font-bold mb-1">Créer un nouveau rôle</h2>
+        <p class="text-sm text-[var(--tf-muted)] mb-6">Le nom sera automatiquement mis en majuscules (ex : REVIEWER)</p>
+        <div class="mb-4">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--tf-muted)] mb-2">Nom du rôle</label>
+          <input
+            type="text"
+            [(ngModel)]="newRoleName"
+            placeholder="ex: REVIEWER"
+            (keydown.enter)="submitCreateRole()"
+            (keydown.escape)="closeCreateModal()"
+            class="w-full px-4 py-3 rounded-xl border border-[var(--tf-border)] bg-[var(--tf-surface)] text-[var(--tf-on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--tf-primary)] text-sm"
+            autofocus
+          />
+        </div>
+        <div *ngIf="modalError()" class="mb-3 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{{ modalError() }}</div>
+        <div class="flex gap-3 justify-end">
+          <button (click)="closeCreateModal()" class="px-5 py-2.5 rounded-xl border border-[var(--tf-border)] text-sm font-medium hover:bg-[var(--tf-surface-2)] transition-all">
+            Annuler
+          </button>
+          <button (click)="submitCreateRole()" [disabled]="isSaving()" class="px-6 py-2.5 rounded-xl bg-[var(--tf-primary)] text-white font-semibold text-sm disabled:opacity-50 hover:opacity-90 transition-all">
+            <span *ngIf="isSaving()"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i>Création...</span>
+            <span *ngIf="!isSaving()">Créer le rôle</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="min-h-[calc(100vh-3rem)] p-6 bg-[var(--tf-surface)] text-[var(--tf-on-surface)]">
       <!-- Header -->
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
@@ -39,10 +72,18 @@ interface Permission {
             <i class="fa-solid fa-circle-notch animate-spin"></i>
             Enregistrement...
           </span>
-          <button class="px-6 py-2.5 rounded-xl border border-[var(--tf-primary)] text-[var(--tf-primary)] font-semibold hover:bg-[var(--tf-surface-2)] transition-all">
-            Ajouter un rôle
+          <button (click)="openCreateRole()" class="px-6 py-2.5 rounded-xl border border-[var(--tf-primary)] text-[var(--tf-primary)] font-semibold hover:bg-[var(--tf-surface-2)] transition-all">
+            <i class="fa-solid fa-plus mr-2"></i>Ajouter un rôle
           </button>
         </div>
+      </div>
+
+      <div *ngIf="errorMessage()" class="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm">
+        {{ errorMessage() }}
+      </div>
+
+      <div *ngIf="successMessage()" class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 px-4 py-2 text-sm">
+        {{ successMessage() }}
       </div>
 
       <!-- Stats Cards -->
@@ -74,7 +115,19 @@ interface Permission {
                   [style.color]="getRoleBadgeText(role.name)">
               {{ role.name }}
             </span>
-            <div class="w-2 h-2 rounded-full" [style.background-color]="getRoleColor(role.name)"></div>
+            <div class="flex items-center gap-2">
+              <button
+                *ngIf="canDeleteRole(role)"
+                type="button"
+                (click)="deleteRole(role)"
+                [disabled]="isSaving()"
+                class="delete-role-btn"
+                title="Supprimer ce rôle"
+              >
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              <div class="w-2 h-2 rounded-full" [style.background-color]="getRoleColor(role.name)"></div>
+            </div>
           </div>
           <h3 class="text-lg font-bold mb-2">{{ role.name | titlecase }}</h3>
           <p class="text-sm text-[var(--tf-muted)] line-clamp-2 mb-6">{{ getRoleDescription(role.name) }}</p>
@@ -166,6 +219,28 @@ interface Permission {
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+    .delete-role-btn {
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .delete-role-btn:hover {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #fca5a5;
+    }
+    .delete-role-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
     .custom-checkbox {
       appearance: none;
       width: 1.25rem;
@@ -206,26 +281,149 @@ interface Permission {
 })
 export class RolesPermissionsComponent implements OnInit {
   private auth = inject(AuthService);
+
+  private readonly rolePriority = [
+    'SUPER_ADMIN',
+    'ADMIN',
+    'OWNER',
+    'BUSINESS_OWNER',
+    'ACCOUNTANT',
+    'TEAM_MEMBER',
+  ];
   
   roles = signal<RoleInfo[]>([]);
   permissions = signal<Permission[]>([]);
   activeUsers = signal(0);
   isSaving = signal(false);
-
+  errorMessage = signal('');
+  successMessage = signal('');
   fullAccessRolesCount = signal(1);
+
+  // Modal signals
+  showCreateModal = signal(false);
+  newRoleName = '';
+  modalError = signal('');
 
   ngOnInit(): void {
     this.loadData();
   }
 
+  private trimRoles(input: RoleInfo[]): RoleInfo[] {
+    const roles = Array.isArray(input) ? input : [];
+
+    const score = (r: RoleInfo) => {
+      const p = this.rolePriority.indexOf(String(r.name || '').toUpperCase());
+      return p === -1 ? 999 : p;
+    };
+
+    const withUsers = roles
+      .filter(r => (r.userCount ?? 0) > 0)
+      .sort((a, b) => score(a) - score(b));
+
+    const seen = new Set(withUsers.map(r => r.id));
+    const fill = roles
+      .filter(r => !seen.has(r.id))
+      .sort((a, b) => score(a) - score(b));
+
+    return [...withUsers, ...fill];
+  }
+
   loadData() {
-    this.auth.getRoles().subscribe(roles => {
-      this.roles.set(roles);
+    this.auth.getRoles().pipe(
+      catchError(err => {
+        this.errorMessage.set(`Impossible de charger les rôles : ${err?.error?.message || err?.message || 'erreur réseau'}`);
+        return of([]);
+      })
+    ).subscribe(roles => {
+      const list = Array.isArray(roles) ? roles : [];
+      this.roles.set(this.trimRoles(list));
       this.recomputeStats();
     });
-    this.auth.getPermissions().subscribe(perms => {
-      this.permissions.set(perms);
+
+    this.auth.getPermissions().pipe(
+      catchError(err => {
+        console.error('[Roles] Permissions load error:', err);
+        return of([]);
+      })
+    ).subscribe(perms => {
+      this.permissions.set(Array.isArray(perms) ? perms : []);
       this.recomputeStats();
+    });
+  }
+
+  private normalizeRoleName(input: string): string {
+    return String(input || '')
+      .trim()
+      .toUpperCase()
+      .replace(/^ROLE_/, '')
+      .replace(/\s+/g, '_');
+  }
+
+  openCreateRole() {
+    this.newRoleName = '';
+    this.modalError.set('');
+    this.showCreateModal.set(true);
+  }
+
+  closeCreateModal() {
+    this.showCreateModal.set(false);
+    this.newRoleName = '';
+    this.modalError.set('');
+  }
+
+  submitCreateRole() {
+    const roleName = this.normalizeRoleName(this.newRoleName);
+    if (!roleName || roleName.length < 3) {
+      this.modalError.set('Nom de rôle invalide (minimum 3 caractères).');
+      return;
+    }
+
+    this.isSaving.set(true);
+    this.modalError.set('');
+    this.auth.createRole({ name: roleName, isStandard: false }).subscribe({
+      next: () => {
+        this.showCreateModal.set(false);
+        this.newRoleName = '';
+        this.successMessage.set(`Rôle "${roleName}" créé avec succès.`);
+        setTimeout(() => this.successMessage.set(''), 4000);
+        this.isSaving.set(false);
+        this.loadData();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Création du rôle impossible.';
+        this.modalError.set(Array.isArray(msg) ? msg.join(', ') : String(msg));
+        this.isSaving.set(false);
+      },
+    });
+  }
+
+  canDeleteRole(role: RoleInfo): boolean {
+    return !role.isStandard;
+  }
+
+  deleteRole(role: RoleInfo) {
+    if (this.isSaving() || !this.canDeleteRole(role)) return;
+
+    this.errorMessage.set('');
+    this.successMessage.set('');
+
+    const confirmed = window.confirm(`Supprimer le rôle ${role.name} ? Cette action est irréversible.`);
+    if (!confirmed) return;
+
+    this.isSaving.set(true);
+    this.auth.deleteRole(role.id).subscribe({
+      next: () => {
+        this.successMessage.set(`Rôle "${role.name}" supprimé avec succès.`);
+        this.roles.set(this.roles().filter(r => r.id !== role.id));
+        this.recomputeStats();
+        this.isSaving.set(false);
+        this.loadData();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Suppression du rôle impossible.';
+        this.errorMessage.set(Array.isArray(msg) ? msg.join(', ') : String(msg));
+        this.isSaving.set(false);
+      },
     });
   }
 

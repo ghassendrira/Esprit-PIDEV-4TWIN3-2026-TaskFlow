@@ -31,7 +31,10 @@ export class NotificationHttpController {
       // 1. Fetch invoice from invoice-service
       const invoiceUrl = `${process.env.INVOICE_SERVICE_URL || 'http://localhost:3005'}/invoices/${invoiceId}`;
       const invRes = await fetch(invoiceUrl, {
-        headers: { 'x-tenant-id': tenantId }
+        headers: { 
+          'x-tenant-id': tenantId,
+          'Authorization': req.headers.authorization || ''
+        }
       });
       
       if (!invRes.ok) {

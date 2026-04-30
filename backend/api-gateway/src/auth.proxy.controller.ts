@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res, Get, Param } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, Get, Delete, Param } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 @Controller('auth')
@@ -454,6 +454,23 @@ export class RolesProxyController {
           Authorization: (req.headers['authorization'] as string) ?? '',
         },
         body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Upstream error' });
+    }
+  }
+
+  @Delete(':id')
+  async deleteRole(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const url = `http://localhost:3001/roles/${encodeURIComponent(id)}`;
+    try {
+      const r = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: (req.headers['authorization'] as string) ?? '',
+        },
       });
       const text = await r.text();
       res.status(r.status).setHeader('Content-Type', 'application/json').send(text);

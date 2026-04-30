@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -35,6 +36,7 @@ export class ClientsController {
     @Body()
     body: {
       businessId: string;
+      assignedUserId?: string;
       name: string;
       email?: string;
       phone?: string;
@@ -65,9 +67,10 @@ export class ClientsController {
   )
   listByBusiness(
     @Param('businessId') businessId: string,
+    @Headers('x-employee-user-id') employeeUserId?: string,
   ) {
     this.logger.log(`GET /clients/by-business/${businessId}`);
-    return this.service.listByBusiness(businessId);
+    return this.service.listByBusiness(businessId, employeeUserId);
   }
 
   // ✅ GET /clients/:id
@@ -96,6 +99,7 @@ export class ClientsController {
     @Param('id') id: string,
     @Body()
     body: {
+      assignedUserId?: string | null;
       name?: string;
       email?: string;
       phone?: string;

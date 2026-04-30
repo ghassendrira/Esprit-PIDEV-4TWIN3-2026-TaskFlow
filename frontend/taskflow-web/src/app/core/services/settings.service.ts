@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { Observable } from 'rxjs';
+import { Observable, catchError } from 'rxjs';
 import { AuthService } from './auth.service';
 import { HttpHeaders } from '@angular/common/http';
 
@@ -49,7 +49,16 @@ export class SettingsService {
   }
 
   getBusinessesForTenant(tenantId: string): Observable<any[]> {
-    return this.api.get('/business/list', this.getHeaders(tenantId));
+    return this.api
+      .get<any[]>(
+        `/business/company/${encodeURIComponent(tenantId)}`,
+        this.getHeaders(tenantId),
+      )
+      .pipe(
+        catchError(() =>
+          this.api.get<any[]>('/business/list', this.getHeaders(tenantId)),
+        ),
+      );
   }
   businesses(): Observable<any[]> {
     return this.api.get('/business/list', this.getHeaders());

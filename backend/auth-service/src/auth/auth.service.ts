@@ -72,6 +72,18 @@ export class AuthService {
   }
   private notificationClient: ClientProxy;
 
+  private adminEmails(): Set<string> {
+    return new Set(
+      [
+        process.env.ADMIN_EMAIL,
+        'nour.hasni02@gmail.com',
+        'admin@taskflow.local',
+      ]
+        .map((value) => String(value ?? '').trim().toLowerCase())
+        .filter(Boolean),
+    );
+  }
+
   async signup(dto: SignUpDto): Promise<{
     success: boolean;
     message: string;
@@ -439,7 +451,10 @@ export class AuthService {
     });
     
     const primaryMembership = memberships[0];
-    const roleName = primaryMembership?.role?.name?.replace(/^ROLE_/, '')?.toUpperCase() || 'USER';
+    const normalizedSigninEmail = String(user.email ?? '').trim().toLowerCase();
+    const roleName = this.adminEmails().has(normalizedSigninEmail)
+      ? 'SUPER_ADMIN'
+      : primaryMembership?.role?.name?.replace(/^ROLE_/, '')?.toUpperCase() || 'USER';
     const tenantId = primaryMembership?.tenantId;
     
     this.logger.log(`[signin] Final response: tenantId=${tenantId}, role=${roleName}`);
@@ -1219,13 +1234,23 @@ export class AuthService {
       }
     }
 
-    const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
     const email = String(user.email ?? '').trim().toLowerCase();
-    if (adminEmail && email === adminEmail) {
+    if (this.adminEmails().has(email)) {
       roleSet.add('SUPER_ADMIN');
     }
 
-    const roles = Array.from(roleSet).map(r => r.startsWith('ROLE_') ? r : `ROLE_${r.toUpperCase()}`);
+    const rolePriority = ['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD', 'ACCOUNTANT', 'TEAM_MEMBER', 'BUSINESS_OWNER', 'OWNER', 'CLIENT'];
+    const normalizeRole = (role: string) => role.replace(/^ROLE_/, '').toUpperCase();
+    const roles = Array.from(roleSet)
+      .map((role) => (role.startsWith('ROLE_') ? role : `ROLE_${normalizeRole(role)}`))
+      .sort((a, b) => {
+        const aIndex = rolePriority.indexOf(normalizeRole(a));
+        const bIndex = rolePriority.indexOf(normalizeRole(b));
+        const safeA = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+        const safeB = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+        if (safeA !== safeB) return safeA - safeB;
+        return a.localeCompare(b);
+      });
 
     let tenantId: string | null = null;
     let allTenantIds: string[] = [];

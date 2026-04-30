@@ -9,7 +9,17 @@ async function bootstrap() {
   app.enableCors({
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-User-Id', 'X-User-Role'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Tenant-Id',
+      'X-User-Id',
+      'X-User-Role',
+      'X-Business-Id',
+      'x-business-id',
+      'x-request-id',
+      'X-Request-Id',
+    ],
     exposedHeaders: ['Content-Disposition'],
     credentials: true,
     optionsSuccessStatus: 204,

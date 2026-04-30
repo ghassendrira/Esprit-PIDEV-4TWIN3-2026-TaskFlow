@@ -12,6 +12,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { InvoicePdfService } from '../../core/services/invoice-pdf.service';
 import { BusinessSelectionService } from '../../core/services/business-selection.service';
 import { MlService } from '../../core/services/ml.service';
+import { EmployeeSelectionService } from '../../core/services/employee-selection.service';
 
 @Component({
   selector: 'tf-invoices',
@@ -83,8 +84,9 @@ import { MlService } from '../../core/services/ml.service';
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">Pour (employé)</label>
             <select
               class="w-full border rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10"
-              [(ngModel)]="selectedEmployeeId"
+                [ngModel]="selectedEmployeeId()"
               name="selectedEmployeeId"
+              (ngModelChange)="onEmployeeChange($event)"
             >
               <option value="">Moi</option>
               <option *ngFor="let u of employees()" [value]="u.id">{{ u.firstName }} {{ u.lastName }}</option>
@@ -422,15 +424,16 @@ export class InvoicesComponent implements OnInit {
   private businessSelection = inject(BusinessSelectionService);
   private router = inject(Router);
   private ml = inject(MlService);
+  private employeeSelection = inject(EmployeeSelectionService);
 
   anomalyHighRisk = signal(false);
 
-  businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
+  businesses = signal<Array<{ id: string; name: string; companyId: string; tenantId: string }>>([]);
   submitted = false;
   tenants = signal<Array<{ id: string; name: string }>>([]);
   activeTenantId = signal<string>(localStorage.getItem('activeTenantId') || localStorage.getItem('tenantId') || '');
   employees = signal<Array<{ id: string; firstName: string; lastName: string; email: string }>>([]);
-  selectedEmployeeId: string = '';
+  selectedEmployeeId = computed(() => this.employeeSelection.selectedEmployeeId());
   activeBusinessId = computed(() => this.businessSelection.selectedBusinessId());
   clients = signal<ClientDto[]>([]);
 
@@ -527,34 +530,41 @@ export class InvoicesComponent implements OnInit {
         next: (ts: any[]) => {
           const simplified = (ts || []).map((t) => ({ id: t.id, name: t.name || t.companyName || t.title || t.id }));
           this.tenants.set(simplified);
-          if (simplified.length && !this.activeTenantId()) {
+          const currentTenantId = this.activeTenantId();
+          const hasCurrentTenant = !!currentTenantId && simplified.some((tenant) => tenant.id === currentTenantId);
+          if (simplified.length && !hasCurrentTenant) {
             this.onTenantChange(simplified[0].id);
-          } else if (this.activeTenantId()) {
-            this.onTenantChange(this.activeTenantId());
+          } else if (hasCurrentTenant) {
+            this.onTenantChange(currentTenantId);
           }
         },
         error: () => this.tenants.set([]),
       });
       return;
     }
-
-    // 1. Utiliser le tenantId du localStorage
-    const savedBid = localStorage.getItem('tenantId')?.split(',')[0]?.trim();
-
-    if (savedBid) {
-      this.businessSelection.setSelectedBusiness(savedBid, localStorage.getItem('tenantId') || '');
-      this.reloadClients();
-      this.reload();
+    const tenantId =
+      localStorage.getItem('activeTenantId') ||
+      localStorage.getItem('tenantId') ||
+      '';
+    if (tenantId) {
+      this.activeTenantId.set(tenantId);
+      this.businessSelection.setSelectedBusiness(
+        this.businessSelection.selectedBusinessId(),
+        tenantId,
+      );
     }
-
-    // 2. Charger les businesses
     this.loadBusinesses();
   }
 
   loadBusinesses() {
     this.settings.getBusinesses().subscribe({
       next: (bs: any[]) => {
-        const simplified = (bs || []).map((b) => ({ id: b.id, name: b.name, tenantId: b.tenantId }));
+        const simplified = (bs || []).map((b) => ({
+          id: b.id,
+          name: b.name,
+          companyId: b.companyId || b.tenantId,
+          tenantId: b.tenantId || b.companyId,
+        }));
         this.businesses.set(simplified);
 
         // Si pas de business sélectionné prendre le premier
@@ -565,25 +575,16 @@ export class InvoicesComponent implements OnInit {
           const currentId = this.businessSelection.selectedBusinessId();
           const found = simplified.find(b => b.id === currentId);
           if (found) {
-            this.businessSelection.setSelectedBusiness(found.id, found.tenantId);
+            this.businessSelection.setSelectedBusiness(found.id, found.companyId);
             this.reloadClients();
             this.reload();
+          } else if (simplified.length > 0) {
+            this.onBusinessChange(simplified[0].id);
           }
         }
       },
       error: () => {
-        // Fallback : créer un business fictif avec le tenantId du localStorage
-        const bid = localStorage.getItem('tenantId')?.split(',')[0]?.trim();
-        if (bid) {
-          this.businesses.set([{
-            id  : bid,
-            name: localStorage.getItem('tenantName') || 'Mon Business',
-            tenantId: bid
-          }]);
-          this.businessSelection.setSelectedBusiness(bid, bid);
-          this.reloadClients();
-          this.reload();
-        }
+        this.businesses.set([]);
       },
     });
   }
@@ -594,7 +595,7 @@ export class InvoicesComponent implements OnInit {
       localStorage.setItem('activeTenantId', tenantId);
     }
     this.editingId.set('');
-    this.selectedEmployeeId = '';
+    this.employeeSelection.setSelectedEmployeeId('');
     this.employees.set([]);
     this.businesses.set([]);
     this.clients.set([]);
@@ -604,9 +605,19 @@ export class InvoicesComponent implements OnInit {
 
     this.settings.getBusinessesForTenant(tenantId).subscribe({
       next: (bs: any[]) => {
-        const simplified = (bs || []).map((b) => ({ id: b.id, name: b.name, tenantId: b.tenantId || tenantId }));
+        const simplified = (bs || []).map((b) => ({
+          id: b.id,
+          name: b.name,
+          companyId: b.companyId || b.tenantId || tenantId,
+          tenantId: b.tenantId || b.companyId || tenantId,
+        }));
         this.businesses.set(simplified);
-        if (simplified.length) this.onBusinessChange(simplified[0].id);
+        if (simplified.length) {
+          this.onBusinessChange(simplified[0].id);
+        } else {
+          this.businessSelection.clearSelection();
+          this.invoices.set([]);
+        }
       },
       error: () => this.businesses.set([]),
     });
@@ -624,12 +635,23 @@ export class InvoicesComponent implements OnInit {
   onBusinessChange(id: string) {
     const business = this.businesses().find(b => b.id === id);
     if (business) {
-      this.businessSelection.setSelectedBusiness(business.id, business.tenantId);
+      this.businessSelection.setSelectedBusiness(business.id, business.companyId);
+      this.activeTenantId.set(business.companyId);
+      localStorage.setItem('activeTenantId', business.companyId);
+    } else {
+      this.businessSelection.clearSelection();
     }
     this.editingId.set('');
     this.form = { clientId: '', status: 'DRAFT', issueDate: new Date().toISOString().split('T')[0], dueDate: '', taxRate: 19, taxAmount: 0, notes: '', items: [] };
     this.subtotal.set(0);
     this.total.set(0);
+    this.reloadClients();
+    this.reload();
+  }
+
+  onEmployeeChange(employeeUserId: string) {
+    this.employeeSelection.setSelectedEmployeeId(employeeUserId || '');
+    this.form.clientId = '';
     this.reloadClients();
     this.reload();
   }
@@ -673,8 +695,9 @@ export class InvoicesComponent implements OnInit {
     const businessId = this.activeBusinessId();
     if (!businessId) return;
     const tenantId = this.resolveTenantId();
+    const employeeUserId = this.isAdmin() ? this.selectedEmployeeId() || undefined : undefined;
     // if (this.isAdmin() && !tenantId) return;
-    this.clientsApi.listByBusiness(businessId, tenantId || undefined).subscribe({
+    this.clientsApi.listByBusiness(businessId, tenantId || undefined, employeeUserId).subscribe({
       next: (data) => {
         console.log('[Invoices] Clients loaded:', data);
         this.clients.set(data || []);
@@ -691,8 +714,9 @@ export class InvoicesComponent implements OnInit {
     const businessId = this.activeBusinessId();
     if (!businessId) return;
     const tenantId = this.resolveTenantId();
+    const employeeUserId = this.isAdmin() ? this.selectedEmployeeId() || undefined : undefined;
     if (this.isAdmin() && !tenantId) return;
-    this.invoicesApi.listByBusiness(businessId, tenantId || undefined).subscribe({
+    this.invoicesApi.listByBusiness(businessId, tenantId || undefined, employeeUserId).subscribe({
       next: (data) => this.runAnomalyEnrichment(data || []),
       error: () => {
         this.invoices.set([]);
@@ -779,13 +803,15 @@ export class InvoicesComponent implements OnInit {
     const tenantId = this.resolveTenantId();
     const payload = {
       ...this.form,
+      companyId: tenantId,
       businessId,
       totalAmount: this.total(),
       taxAmount: this.taxAmount(),
     };
 
-    if (this.isAdmin() && this.selectedEmployeeId) {
-      payload.createdByUserId = this.selectedEmployeeId;
+    const selectedEmployeeId = this.selectedEmployeeId();
+    if (this.isAdmin() && selectedEmployeeId) {
+      payload.createdByUserId = selectedEmployeeId;
     }
 
     const obs$ = this.editingId()
@@ -913,4 +939,3 @@ export class InvoicesComponent implements OnInit {
     });
   }
 }
-

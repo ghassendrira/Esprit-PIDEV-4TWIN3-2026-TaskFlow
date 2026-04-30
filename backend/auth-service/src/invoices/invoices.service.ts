@@ -9,6 +9,28 @@ export class InvoicesProxyService {
     private jwt: JwtService,
   ) {}
 
+  private normalizeRoleName(role: unknown): string {
+    return String(role ?? '')
+      .trim()
+      .replace(/^ROLE_/, '')
+      .toUpperCase();
+  }
+
+  private elevatedAccessRoles(): string[] {
+    return ['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD'];
+  }
+
+  private resolveElevatedRoleName(
+    membershipRoleName: string | null | undefined,
+    normalizedJwtRoles: string[],
+  ): string {
+    const elevated = new Set(this.elevatedAccessRoles());
+    const membershipRole = this.normalizeRoleName(membershipRoleName);
+    if (elevated.has(membershipRole)) return membershipRole;
+
+    return normalizedJwtRoles.find((role) => elevated.has(role)) ?? 'SUPER_ADMIN';
+  }
+
   private async getContext(authHeader?: string, tenantIdFromHeader?: string) {
     if (!authHeader) {
       throw new UnauthorizedException('Missing Authorization header');
@@ -55,28 +77,16 @@ export class InvoicesProxyService {
 
     if (!tenantId) throw new BadRequestException('X-Tenant-Id header is required');
 
-    const elevatedRoleNames = new Set([
-      'SUPER_ADMIN',
-      'ROLE_SUPER_ADMIN',
-      'SUPER_MANAGER',
-      'ROLE_SUPER_MANAGER',
-      'ADMIN',
-      'ROLE_ADMIN',
-      'NIGHT_SHIFT_LEAD',
-      'ROLE_NIGHT_SHIFT_LEAD',
-      'BUSINESS_OWNER',
-      'ROLE_BUSINESS_OWNER',
-      'OWNER',
-      'ROLE_OWNER',
-    ]);
+    const elevatedRoleNames = this.elevatedAccessRoles();
+    const elevatedRoleSet = new Set(elevatedRoleNames);
 
     const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
     const email = String(payload?.email ?? '').trim().toLowerCase();
     const isAdminEmail = !!adminEmail && !!email && email === adminEmail;
 
     const jwtRoles = Array.isArray(payload?.roles) ? payload.roles : [];
-    const normalizedJwtRoles = jwtRoles.map((r: any) => String(r ?? '').toUpperCase());
-    const hasElevatedJwtRole = normalizedJwtRoles.some((r: string) => elevatedRoleNames.has(r));
+    const normalizedJwtRoles = jwtRoles.map((r: any) => this.normalizeRoleName(r));
+    const hasElevatedJwtRole = normalizedJwtRoles.some((r: string) => elevatedRoleSet.has(r));
 
     const elevatedMembership = await this.prisma.userTenantMembership.findFirst({
       where: {
@@ -106,11 +116,20 @@ export class InvoicesProxyService {
       if (!isElevated) throw new ForbiddenException('No membership for this company');
 
       // Treat elevated users as admin for the target tenant.
-      const roleName = elevatedMembership?.role?.name
-        ? String(elevatedMembership.role.name)
-        : normalizedJwtRoles.find((r: string) => elevatedRoleNames.has(r)) ?? 'SUPER_ADMIN';
+      const roleName = this.resolveElevatedRoleName(
+        elevatedMembership?.role?.name,
+        normalizedJwtRoles,
+      );
 
       return { userId, tenantId, roleName };
+    }
+
+    if (isElevated) {
+      const elevatedRoleName = this.resolveElevatedRoleName(
+        elevatedMembership?.role?.name,
+        normalizedJwtRoles,
+      );
+      return { userId, tenantId, roleName: elevatedRoleName };
     }
 
     return { userId, tenantId, roleName: membership.role.name };
@@ -142,14 +161,49 @@ export class InvoicesProxyService {
   }
 
   private canWrite(roleName: string) {
-    const upper = roleName.toUpperCase();
+    const upper = this.normalizeRoleName(roleName);
     if (upper === 'BUSINESS_OWNER' || upper === 'OWNER' || upper === 'PROJECT_MANAGER') return false;
     return true; // ADMIN + EMPLOYÉS + SUPER_ADMIN etc.
   }
 
   private canAssignToOtherUser(roleName: string) {
-    const upper = roleName.toUpperCase();
+    const upper = this.normalizeRoleName(roleName);
     return upper === 'ADMIN' || upper === 'SUPER_ADMIN' || upper === 'SUPER_MANAGER' || upper === 'NIGHT_SHIFT_LEAD';
+  }
+
+  private async resolveEffectiveEmployeeUserId(
+    tenantId: string,
+    currentUserId: string,
+    roleName: string,
+    requestedEmployeeUserId?: string,
+  ): Promise<string | undefined> {
+    const normalizedRequested = String(requestedEmployeeUserId ?? '').trim();
+    const elevated = new Set(this.elevatedAccessRoles());
+    const normalizedRole = this.normalizeRoleName(roleName);
+    const isElevated = elevated.has(normalizedRole);
+
+    if (!isElevated) {
+      return currentUserId;
+    }
+
+    if (!normalizedRequested) {
+      return undefined;
+    }
+
+    const membership = await this.prisma.userTenantMembership.findFirst({
+      where: {
+        userId: normalizedRequested,
+        tenantId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new UnauthorizedException('Target user not in this company');
+    }
+
+    return normalizedRequested;
   }
 
   private async assertUserInTenant(tenantId: string, userId: string) {
@@ -191,7 +245,12 @@ export class InvoicesProxyService {
     return (process.env.INVOICE_SERVICE_URL ?? 'http://localhost:3005').replace(/\/+$/, '');
   }
 
-  async listByBusiness(authHeader: string, tenantIdFromHeader: string | undefined, businessId: string) {
+  async listByBusiness(
+    authHeader: string,
+    tenantIdFromHeader: string | undefined,
+    businessId: string,
+    employeeUserId?: string,
+  ) {
     const tenantId =
       tenantIdFromHeader &&
       tenantIdFromHeader !== 'null' &&
@@ -202,11 +261,18 @@ export class InvoicesProxyService {
     const ctx = await this.getContext(authHeader, tenantId);
     
     // Bypass tenant/business cross-check for Super Admins
-    if (ctx.roleName === 'SUPER_ADMIN' || ctx.roleName === 'ROLE_SUPER_ADMIN') {
+    if (this.normalizeRoleName(ctx.roleName) === 'SUPER_ADMIN') {
       console.log(`[Invoices] SUPER_ADMIN bypass for business ${businessId}`);
     } else {
       await this.assertBusinessInTenant(ctx.tenantId, businessId);
     }
+
+    const effectiveEmployeeUserId = await this.resolveEffectiveEmployeeUserId(
+      ctx.tenantId,
+      ctx.userId,
+      ctx.roleName,
+      employeeUserId,
+    );
 
     const url = `${this.invoiceBase()}/invoices/by-business/${encodeURIComponent(businessId)}`;
     let r: Response;
@@ -218,6 +284,9 @@ export class InvoicesProxyService {
           'X-Tenant-Id': ctx.tenantId,
           'X-User-Id': ctx.userId,
           'X-User-Role': ctx.roleName,
+          ...(effectiveEmployeeUserId
+            ? { 'X-Employee-User-Id': effectiveEmployeeUserId }
+            : {}),
         },
       });
       txt = await r.text();
@@ -279,6 +348,7 @@ export class InvoicesProxyService {
     const finalBody = {
       ...body,
       tenantId: ctx.tenantId,
+      createdBy,
       createdByUserId: createdBy,
     };
 

@@ -64,6 +64,14 @@ export class BusinessSettingsController {
     return this.service.getBusinesses(authorization, tenantId);
   }
 
+  @Get('company/:companyId')
+  businessesByCompany(
+    @Headers('authorization') authorization: string,
+    @Param('companyId') companyId: string,
+  ) {
+    return this.service.getBusinesses(authorization, companyId);
+  }
+
   @Get('categories')
   categories() {
     return this.service.categories();

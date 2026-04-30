@@ -26,7 +26,7 @@ export class InvoicesController {
     @Headers('x-tenant-id') tenantId: string,
     @Req() req: any,
   ) {
-    this.logger.log(`GET /invoices - TenantId: ${tenantId}`);
+    this.logger.log(`[rid:${req.requestId || 'n/a'}] GET /invoices - TenantId: ${tenantId}`);
     try {
       // Extract first business from comma-separated list
       const businessId = tenantId?.split(',')[0]?.trim();
@@ -50,9 +50,10 @@ export class InvoicesController {
     @Param('businessId')    paramBid : string,
     @Headers('x-tenant-id') tenantId: string,
     @Headers('x-user-id')   userId  : string,
+    @Headers('x-employee-user-id') employeeUserId: string | undefined,
     @Req() req: any,
   ) {
-    this.logger.log(`GET /invoices/by-business/${paramBid}`);
+    this.logger.log(`[rid:${req.requestId || 'n/a'}] GET /invoices/by-business/${paramBid}`);
     // Prendre le businessId depuis le paramètre URL en priorité
     const bid = paramBid || req.user?.businessId;
 
@@ -63,7 +64,7 @@ export class InvoicesController {
     }
 
     try {
-      return await this.service.listByBusiness(bid, tenantId);
+      return await this.service.listByBusiness(bid, tenantId, userId, employeeUserId);
     } catch (err: any) {
       this.logger.error(`Error in listByBusiness: ${err.message}`, err.stack);
       throw err;
@@ -79,7 +80,7 @@ export class InvoicesController {
     Role.ACCOUNTANT,
   )
   async generateUnpaidReport(@Body() body: { businessId: string }, @Req() req: any) {
-    this.logger.log(`POST /invoices/report/unpaid for business ${body.businessId}`);
+    this.logger.log(`[rid:${req.requestId || 'n/a'}] POST /invoices/report/unpaid for business ${body.businessId}`);
     try {
       return await this.service.generateUnpaidReport(body.businessId, req.tenantId);
     } catch (err: any) {
@@ -100,22 +101,27 @@ export class InvoicesController {
   async create(
     @Body() dto: CreateInvoiceDto,
     @Headers('x-tenant-id') tenantId: string,
+    @Headers('x-business-id') businessIdHeader: string,
     @Headers('x-user-id') userId: string,
     @Req() req: any,
   ) {
-    this.logger.log(`POST /invoices - User: ${userId}, TenantId: ${tenantId}`);
+    this.logger.log(`[rid:${req.requestId || 'n/a'}] POST /invoices - User: ${userId}, TenantId: ${tenantId}, BusinessId: ${businessIdHeader || req.businessId || dto.businessId}`);
     try {
-      // Extract first businessId from comma-separated tenantId
-      const businessId = tenantId?.split(',')[0]?.trim();
+      const companyId = tenantId?.split(',')[0]?.trim();
       const cleanUserId = userId?.split(',')[0]?.trim();
+      const resolvedBusinessId =
+        businessIdHeader?.split(',')[0]?.trim() ||
+        req.businessId ||
+        dto.businessId;
 
       return await this.service.create(
         {
           ...dto,
-          businessId,
+          businessId: resolvedBusinessId,
+          companyId,
           createdBy: cleanUserId,
         },
-        req.tenantId,
+        req.tenantId || companyId,
       );
     } catch (err: any) {
       this.logger.error(`Error in create: ${err.message}`, err.stack);
@@ -156,7 +162,7 @@ export class InvoicesController {
     Role.TEAM_MEMBER,
   )
   async findOne(@Param('id') id: string, @Req() req: any) {
-    this.logger.log(`GET /invoices/${id}`);
+    this.logger.log(`[rid:${req.requestId || 'n/a'}] GET /invoices/${id}`);
     return this.service.findOne(id, req.tenantId);
   }
 
@@ -169,7 +175,7 @@ export class InvoicesController {
     Role.ACCOUNTANT,
   )
   async send(@Param('id') id: string, @Req() req: any) {
-    this.logger.log(`POST /invoices/${id}/send`);
+    this.logger.log(`[rid:${req.requestId || 'n/a'}] POST /invoices/${id}/send`);
     return this.service.send(id, req.tenantId);
   }
 
@@ -182,7 +188,7 @@ export class InvoicesController {
     Role.ACCOUNTANT,
   )
   async smartSend(@Param('id') id: string, @Req() req: any) {
-    this.logger.log(`POST /invoices/${id}/smart-send`);
+    this.logger.log(`[rid:${req.requestId || 'n/a'}] POST /invoices/${id}/smart-send`);
     return this.service.sendSmartEmail(id, req.tenantId);
   }
 }

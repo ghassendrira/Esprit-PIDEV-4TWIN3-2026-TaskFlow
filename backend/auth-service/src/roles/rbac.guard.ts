@@ -12,6 +12,14 @@ export class RBACGuard implements CanActivate {
     private jwt: JwtService,
   ) {}
 
+  private normalizeTenantId(value: unknown): string | null {
+    if (Array.isArray(value)) value = value[0];
+    if (value === null || value === undefined) return null;
+    const v = String(value).trim();
+    if (!v || v === 'null' || v === 'undefined') return null;
+    return v;
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
       context.getHandler(),
@@ -72,10 +80,13 @@ export class RBACGuard implements CanActivate {
 
     const userId = payload.sub;
     
-    // Prioritize x-tenant-id header, then fallback to payload
-    const tenantId = request.headers['x-tenant-id'] || payload.tenantId || payload.company_id;
+    const headerTenantId = this.normalizeTenantId(request.headers['x-tenant-id']);
+    const payloadTenantId = this.normalizeTenantId(payload.tenantId);
+    const payloadCompanyId = this.normalizeTenantId(payload.company_id);
 
-    if (!userId || !tenantId) {
+    const tenantCandidates = [...new Set([headerTenantId, payloadTenantId, payloadCompanyId].filter(Boolean))] as string[];
+
+    if (!userId) {
       throw new ForbiddenException('User or Tenant context missing');
     }
 
@@ -99,31 +110,78 @@ export class RBACGuard implements CanActivate {
       return true;
     }
 
-    // TASK 6: Load role permissions
-    const memberships = await this.prisma.userTenantMembership.findMany({
-      where: {
-        userId,
-        tenantId,
-        deletedAt: null,
-      },
-      include: {
-        role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true,
+    let resolvedTenantId: string | null = null;
+    let memberships: any[] = [];
+
+    // 1) Try header/payload candidates in order
+    for (const tenantId of tenantCandidates) {
+      const candidateMemberships = await this.prisma.userTenantMembership.findMany({
+        where: {
+          userId,
+          tenantId,
+          deletedAt: null,
+        },
+        include: {
+          role: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+
+      if (candidateMemberships.length > 0) {
+        memberships = candidateMemberships;
+        resolvedTenantId = tenantId;
+        break;
+      }
+    }
+
+    // 2) Fallback to latest membership tenant if provided tenant context is stale/invalid
+    if (!resolvedTenantId) {
+      const latestMembership = await this.prisma.userTenantMembership.findFirst({
+        where: { userId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        select: { tenantId: true },
+      });
+
+      if (latestMembership?.tenantId) {
+        const candidateMemberships = await this.prisma.userTenantMembership.findMany({
+          where: {
+            userId,
+            tenantId: latestMembership.tenantId,
+            deletedAt: null,
+          },
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (candidateMemberships.length > 0) {
+          memberships = candidateMemberships;
+          resolvedTenantId = latestMembership.tenantId;
+          request.headers['x-tenant-id'] = resolvedTenantId;
+        }
+      }
+    }
 
     const userPermissions = memberships.flatMap(m => 
       m.role.permissions.map(rp => rp.permission.name)
     );
 
-    console.log(`[RBACGuard] User: ${userId} | Tenant: ${tenantId}`);
+    console.log(`[RBACGuard] User: ${userId} | Tenant: ${resolvedTenantId ?? 'UNRESOLVED'}`);
     console.log(`[RBACGuard] Required: ${requiredPermissions.join(', ')}`);
     console.log(`[RBACGuard] User has: ${userPermissions.join(', ')}`);
 

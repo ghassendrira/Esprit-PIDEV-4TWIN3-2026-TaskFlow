@@ -8,6 +8,7 @@ datasource db {
 
 model Business {
   id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
   tenantId  String   @db.Uuid
   ownerId   String?  @db.Uuid
   name      String
@@ -21,6 +22,7 @@ model Business {
 
   clients Client[]
 
+  @@index([companyId])
   @@index([tenantId])
   @@index([ownerId])
 }
@@ -28,6 +30,7 @@ model Business {
 model Client {
   id         String   @id @default(uuid()) @db.Uuid
   businessId String   @db.Uuid
+  assignedUserId String? @db.Uuid
   name       String
   email      String
   phone      String
@@ -41,6 +44,7 @@ model Client {
   communications ClientCommunication[]
 
   @@index([businessId])
+  @@index([assignedUserId])
   @@index([email])
 }
 

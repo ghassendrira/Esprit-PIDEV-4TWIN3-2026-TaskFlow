@@ -19,12 +19,15 @@ type InvoiceWithRelations = any;
 
 type BusinessRecord = {
   id: string;
+  companyId?: string;
   tenantId: string;
   name?: string;
 };
 
 type ClientRecord = {
   id: string;
+  businessId?: string;
+  assignedUserId?: string | null;
   email?: string;
   name?: string;
 };
@@ -49,6 +52,15 @@ export class InvoicesService {
     this.logger.log(
       `Ollama configured: ${this.ollamaBaseUrl} with model "${this.ollamaModel}"`,
     );
+  }
+
+  private matchesTenantContext(business: BusinessRecord, contextId: string): boolean {
+    const normalized = String(contextId ?? '').trim().toLowerCase();
+    if (!normalized) return false;
+    const businessId = String(business.id ?? '').trim().toLowerCase();
+    const companyId = String(business.companyId ?? '').trim().toLowerCase();
+    const tenantId = String(business.tenantId ?? '').trim().toLowerCase();
+    return normalized === businessId || normalized === companyId || normalized === tenantId;
   }
 
   private validateUuid(id: string) {
@@ -97,6 +109,23 @@ export class InvoicesService {
     }
   }
 
+  private async fetchClientsByBusiness(businessId: string): Promise<ClientRecord[]> {
+    try {
+      const response = await fetch(
+        `${this.businessServiceUrl}/clients/internal-by-business/${encodeURIComponent(businessId)}`,
+      );
+      if (!response.ok) return [];
+      const payload = await response.json();
+      return Array.isArray(payload) ? (payload as ClientRecord[]) : [];
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to fetch clients for business ${businessId}: ${error.message}`,
+        error.stack,
+      );
+      return [];
+    }
+  }
+
   private async verifyOwnership(
     id: string,
     tenantId: string,
@@ -119,9 +148,7 @@ export class InvoicesService {
       const business = await this.fetchBusiness(invoice.businessId);
       if (!business) return null;
 
-      if (
-        String(business.tenantId).toLowerCase() !== String(tenantId).toLowerCase()
-      ) {
+      if (!this.matchesTenantContext(business, tenantId)) {
         return null;
       }
 
@@ -144,13 +171,52 @@ export class InvoicesService {
       throw new BadRequestException('Business not found');
     }
 
-    if (
-      String(business.tenantId).toLowerCase() !== String(tenantId).toLowerCase()
-    ) {
-      throw new BadRequestException('Access denied for this business');
+    if (!this.matchesTenantContext(business, tenantId)) {
+      throw new BadRequestException('Business not in this tenant');
     }
 
     return business;
+  }
+
+  private async assertClientBelongsToBusiness(
+    clientId: string,
+    businessId: string,
+  ): Promise<ClientRecord> {
+    const client = await this.fetchClient(clientId);
+    if (!client) {
+      throw new BadRequestException('Client not found');
+    }
+
+    if (
+      client.businessId &&
+      String(client.businessId).toLowerCase() !== String(businessId).toLowerCase()
+    ) {
+      throw new BadRequestException(
+        'Client does not belong to the selected business',
+      );
+    }
+
+    return client;
+  }
+
+  private assertClientAssignedToUser(
+    client: ClientRecord,
+    assignedUserId: string | undefined,
+  ) {
+    if (!assignedUserId) {
+      return;
+    }
+
+    const clientOwnerId = String(client.assignedUserId ?? '').trim();
+    if (!clientOwnerId) {
+      throw new BadRequestException('Client is not associated with any employee');
+    }
+
+    if (clientOwnerId.toLowerCase() !== String(assignedUserId).trim().toLowerCase()) {
+      throw new BadRequestException(
+        'Client does not belong to the selected employee',
+      );
+    }
   }
 
   private computeItemsTotal(items: CreateInvoiceDto['items']) {
@@ -381,7 +447,8 @@ RULES:
       throw new BadRequestException('Business not found for invoice reminder');
     }
 
-    if (String(business.tenantId).toLowerCase() !== String(tenantId).toLowerCase()) {
+    const companyId = business.companyId ?? business.tenantId;
+    if (String(companyId).toLowerCase() !== String(tenantId).toLowerCase()) {
       throw new BadRequestException('Access denied for this business');
     }
 
@@ -515,12 +582,37 @@ RULES:
     return invoice;
   }
 
-  async listByBusiness(businessId: string, tenantId: string) {
+  async listByBusiness(
+    businessId: string,
+    tenantId: string,
+    _currentUserId?: string,
+    employeeUserId?: string,
+  ) {
     this.validateUuid(businessId);
     await this.assertBusinessTenant(businessId, tenantId);
 
+    const normalizedEmployeeUserId = String(employeeUserId ?? '').trim();
+    let filteredClientIds: string[] | undefined;
+    if (normalizedEmployeeUserId) {
+      const clients = await this.fetchClientsByBusiness(businessId);
+      filteredClientIds = clients
+        .filter((c) => String(c.assignedUserId ?? '').trim() === normalizedEmployeeUserId)
+        .map((c) => c.id)
+        .filter((id) => Boolean(id));
+    }
+
     const invoices = await this.prisma.invoice.findMany({
-      where: { businessId, deletedAt: null },
+      where: {
+        businessId,
+        deletedAt: null,
+        ...(filteredClientIds
+          ? {
+              clientId: {
+                in: filteredClientIds.length ? filteredClientIds : ['__none__'],
+              },
+            }
+          : {}),
+      },
       orderBy: { createdAt: 'desc' },
       include: { items: true, payments: true },
     });
@@ -539,6 +631,9 @@ RULES:
     if (!dto.clientId) throw new BadRequestException('clientId is required');
 
     await this.assertBusinessTenant(dto.businessId, tenantId);
+    const client = await this.assertClientBelongsToBusiness(dto.clientId, dto.businessId);
+    const createdByUserId = dto.createdByUserId ?? dto.createdBy;
+    this.assertClientAssignedToUser(client, createdByUserId);
 
     const invoiceNumber = (dto.invoiceNumber?.trim() || `INV-${Date.now()}`).slice(0, 64);
     const issueDate = dto.issueDate ? new Date(dto.issueDate) : new Date();
@@ -552,7 +647,7 @@ RULES:
       data: {
         businessId: dto.businessId,
         clientId: dto.clientId,
-        createdBy: dto.createdBy ?? undefined,
+        createdBy: createdByUserId ?? undefined,
         invoiceNumber,
         status: dto.status ?? 'DRAFT',
         issueDate,
@@ -579,6 +674,19 @@ RULES:
   async update(id: string, dto: UpdateInvoiceDto, tenantId: string) {
     const invoice = await this.verifyOwnership(id, tenantId);
     if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const targetBusinessId = dto.businessId ?? invoice.businessId;
+    const targetClientId = dto.clientId ?? invoice.clientId;
+
+    await this.assertBusinessTenant(targetBusinessId, tenantId);
+    const client = await this.assertClientBelongsToBusiness(
+      targetClientId,
+      targetBusinessId,
+    );
+    this.assertClientAssignedToUser(
+      client,
+      dto.createdByUserId ?? dto.createdBy ?? invoice.createdBy ?? undefined,
+    );
 
     const issueDate = dto.issueDate ? new Date(dto.issueDate) : undefined;
     const dueDate = dto.dueDate ? new Date(dto.dueDate) : undefined;

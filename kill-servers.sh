@@ -38,20 +38,23 @@ log_header()  {
 log_header "Arrêt de tous les services TaskFlow"
 
 # ─── 0. Détection des services en cours ─────────────────────────────────────
-declare -A PORT_NAMES=(
-  [3000]="API Gateway"
-  [3001]="auth-service"
-  [3002]="tenant-service"
-  [3003]="business-service"
-  [3004]="notification-service"
-  [3005]="invoice-service"
-  [3006]="expense-service"
-  [3008]="audit-service"
-  [4200]="Frontend Angular"
-  [8000]="ML Service (Python)"
-  [8001]="Chatbot Finance (Python)"
-  [11434]="Ollama (LLM)"
-)
+port_name() {
+  case "$1" in
+    3000) echo "API Gateway" ;;
+    3001) echo "auth-service" ;;
+    3002) echo "tenant-service" ;;
+    3003) echo "business-service" ;;
+    3004) echo "notification-service" ;;
+    3005) echo "invoice-service" ;;
+    3006) echo "expense-service" ;;
+    3008) echo "audit-service" ;;
+    4200) echo "Frontend Angular" ;;
+    8000) echo "ML Service (Python)" ;;
+    8001) echo "Chatbot Finance (Python)" ;;
+    11434) echo "Ollama (LLM)" ;;
+    *) echo "Service inconnu" ;;
+  esac
+}
 
 echo -e "${BOLD}Services actuellement en marche :${NC}"
 echo ""
@@ -61,7 +64,7 @@ found_docker=false
 for port in 3000 3001 3002 3003 3004 3005 3006 3008 4200 8000 8001 11434; do
   pids=$(lsof -ti :"$port" 2>/dev/null || true)
   if [ -n "$pids" ]; then
-    name="${PORT_NAMES[$port]}"
+    name="$(port_name "$port")"
     proc=$(ps -p "$(echo "$pids" | head -1)" -o comm= 2>/dev/null || echo "?")
     echo -e "  ${GREEN}●${NC}  ${BOLD}${name}${NC} (port ${port}) — ${proc} [PID: $(echo "$pids" | tr '\n' ' ')]"
     found_app=true
@@ -151,7 +154,7 @@ if [ "$stop_app" = true ]; then
     pids=$(lsof -ti :"$port" 2>/dev/null || true)
     if [ -n "$pids" ]; then
       echo "$pids" | xargs kill -9 2>/dev/null || true
-      log_success "Port $port libéré (${PORT_NAMES[$port]})"
+      log_success "Port $port libéré ($(port_name "$port"))"
     fi
   done
 

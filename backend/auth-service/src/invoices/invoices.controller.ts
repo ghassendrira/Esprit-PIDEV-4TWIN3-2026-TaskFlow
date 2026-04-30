@@ -11,9 +11,10 @@ export class InvoicesController {
   listByBusiness(
     @Headers('authorization') authorization: string,
     @Headers('x-tenant-id') tenantId: string,
+    @Headers('x-employee-user-id') employeeUserId: string | undefined,
     @Param('businessId') businessId: string,
   ) {
-    return this.service.listByBusiness(authorization, tenantId, businessId);
+    return this.service.listByBusiness(authorization, tenantId, businessId, employeeUserId);
   }
 
   @Post()

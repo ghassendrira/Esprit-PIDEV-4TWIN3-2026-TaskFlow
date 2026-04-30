@@ -22,74 +22,78 @@ Chart.register(...registerables);
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <div class="space-y-6 text-slate-100">
-      <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <a routerLink="/dashboard" class="text-xs font-semibold text-blue-400 hover:text-blue-300 mb-2 inline-block">← Dashboard</a>
-          <h1 class="text-2xl font-bold tracking-tight">Risque de paiement</h1>
-          <p class="text-sm text-slate-400 mt-1">Scoring ML par facture (tenant courant).</p>
-        </div>
-      </header>
+     <div class="space-y-6 text-slate-100">
+       <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+         <div>
+           <a routerLink="/dashboard" class="text-xs font-semibold text-blue-400 hover:text-blue-300 mb-2 inline-block">← Dashboard</a>
+           <h1 class="text-2xl font-bold tracking-tight">Risque de paiement</h1>
+           <p class="text-sm text-slate-400 mt-1">Scoring ML par facture (tenant courant).</p>
+         </div>
+       </header>
 
-      <div *ngIf="!businessId()" class="rounded-2xl border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+       <div *ngIf="!businessId()" class="rounded-2xl border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
         Sélectionnez un business (Settings) pour charger les données.
-      </div>
+       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4" *ngIf="businessId()">
-        <div class="rounded-2xl border border-white/5 bg-[#1e2937] p-6 lg:col-span-1">
-          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Score global</p>
-          <p class="text-4xl font-black mt-2" [style.color]="globalColor()">{{ globalScore() ?? '—' }}</p>
-          <p class="text-sm font-semibold mt-1" [style.color]="globalColor()">{{ globalLabel() }}</p>
-          <p class="text-xs text-slate-500 mt-4">Moyenne des scores sur l’ensemble des factures du business.</p>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-[#1e2937] p-4 lg:col-span-2 min-h-[240px]">
-          <p class="text-sm font-bold text-slate-200 mb-2">Répartition par niveau</p>
-          <div class="h-[200px] flex items-center justify-center">
-            <canvas #riskChart></canvas>
-          </div>
-        </div>
-      </div>
+       <div *ngIf="error()" class="rounded-2xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-200">
+         {{ error() }}
+       </div>
 
-      <div class="rounded-2xl border border-white/5 bg-[#1e2937] overflow-hidden" *ngIf="businessId()">
-        <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-          <h2 class="font-bold text-slate-100">Factures</h2>
-          <span *ngIf="loading()" class="text-xs text-slate-500">Chargement…</span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-[#0f172a] text-left text-xs uppercase tracking-wider text-slate-400">
-              <tr>
-                <th class="px-4 py-3">N°</th>
-                <th class="px-4 py-3">Client</th>
-                <th class="px-4 py-3 text-right">Montant</th>
-                <th class="px-4 py-3">Score</th>
-                <th class="px-4 py-3">Probabilité</th>
-                <th class="px-4 py-3">Statut</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
-              <tr *ngFor="let row of rows()" class="hover:bg-white/5">
-                <td class="px-4 py-3 font-mono text-blue-400">{{ row.invoiceNumber }}</td>
-                <td class="px-4 py-3">{{ row.clientName }}</td>
-                <td class="px-4 py-3 text-right font-semibold">{{ row.totalAmount | number:'1.2-2' }} TND</td>
-                <td class="px-4 py-3">
-                  <span class="font-bold" [style.color]="riskLevelColor(row.riskLevel)">{{ row.riskScore }}</span>
-                </td>
-                <td class="px-4 py-3">{{ row.riskProbability | percent:'1.0-0' }}</td>
-                <td class="px-4 py-3">
-                  <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border border-white/10"
-                        [style.color]="riskLevelColor(row.riskLevel)">{{ row.riskLabel }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `,
+       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4" *ngIf="businessId()">
+         <div class="rounded-2xl border border-white/5 bg-[#1e2937] p-6 lg:col-span-1">
+           <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Score global</p>
+           <p class="text-4xl font-black mt-2" [style.color]="globalColor()">{{ globalScore() ?? '—' }}</p>
+           <p class="text-sm font-semibold mt-1" [style.color]="globalColor()">{{ globalLabel() }}</p>
+           <p class="text-xs text-slate-500 mt-4">Moyenne des scores sur l'ensemble des factures du business.</p>
+         </div>
+         <div class="rounded-2xl border border-white/5 bg-[#1e2937] p-4 lg:col-span-2 min-h-[240px]">
+           <p class="text-sm font-bold text-slate-200 mb-2">Répartition par niveau</p>
+           <div class="h-[200px] flex items-center justify-center">
+             <canvas #riskChart></canvas>
+           </div>
+         </div>
+       </div>
+
+       <div class="rounded-2xl border border-white/5 bg-[#1e2937] overflow-hidden" *ngIf="businessId()">
+         <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+           <h2 class="font-bold text-slate-100">Factures</h2>
+           <span *ngIf="loading()" class="text-xs text-slate-500">Chargement…</span>
+         </div>
+         <div class="overflow-x-auto">
+           <table class="w-full text-sm">
+             <thead class="bg-[#0f172a] text-left text-xs uppercase tracking-wider text-slate-400">
+               <tr>
+                 <th class="px-4 py-3">N°</th>
+                 <th class="px-4 py-3">Client</th>
+                 <th class="px-4 py-3 text-right">Montant</th>
+                 <th class="px-4 py-3">Score</th>
+                 <th class="px-4 py-3">Probabilité</th>
+                 <th class="px-4 py-3">Statut</th>
+               </tr>
+             </thead>
+             <tbody class="divide-y divide-white/5">
+               <tr *ngFor="let row of rows()" class="hover:bg-white/5">
+                 <td class="px-4 py-3 font-mono text-blue-400">{{ row.invoiceNumber }}</td>
+                 <td class="px-4 py-3">{{ row.clientName }}</td>
+                 <td class="px-4 py-3 text-right font-semibold">{{ row.totalAmount | number:'1.2-2' }} TND</td>
+                 <td class="px-4 py-3">
+                   <span class="font-bold" [style.color]="riskLevelColor(row.riskLevel)">{{ row.riskScore }}</span>
+                 </td>
+                 <td class="px-4 py-3">{{ row.riskProbability | percent:'1.0-0' }}</td>
+                 <td class="px-4 py-3">
+                   <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border border-white/10"
+                         [style.color]="riskLevelColor(row.riskLevel)">{{ row.riskLabel }}</span>
+                 </td>
+               </tr>
+             </tbody>
+           </table>
+         </div>
+       </div>
+     </div>
+   `,
 })
 export class PaymentRiskComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('riskChart') riskCanvas!: ElementRef<HTMLCanvasElement>;
+   @ViewChild('riskChart') riskCanvas!: ElementRef<HTMLCanvasElement>;
 
   private mlAnalytics = inject(MlAnalyticsService);
   private businessSelection = inject(BusinessSelectionService);
@@ -97,6 +101,7 @@ export class PaymentRiskComponent implements AfterViewInit, OnDestroy {
   businessId = computed(() => this.businessSelection.selectedBusinessId());
   rows = signal<InvoiceMlRow[]>([]);
   loading = signal(false);
+  error = signal<string | null>(null);
 
   globalScore = computed(() => {
     const r = this.rows();
@@ -128,13 +133,18 @@ export class PaymentRiskComponent implements AfterViewInit, OnDestroy {
       return;
     }
     this.loading.set(true);
+    this.error.set(null);
     this.mlAnalytics.loadInvoicesWithRisk(id).subscribe({
       next: (list) => {
         this.rows.set(list);
         this.loading.set(false);
+        this.error.set(null);
         setTimeout(() => this.renderChart(list), 0);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.loading.set(false);
+        this.error.set('AI ne parvient pas à analyser le risque de paiement. Vérifiez la connexion et réessayez.');
+      },
     });
   }
 

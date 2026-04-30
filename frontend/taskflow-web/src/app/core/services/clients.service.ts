@@ -5,6 +5,7 @@ import { ApiService } from './api.service';
 export interface ClientDto {
   id: string;
   businessId: string;
+  assignedUserId?: string | null;
   name: string;
   email: string;
   phone: string;
@@ -22,13 +23,20 @@ export class ClientsService {
     return this.api.get<ClientDto[]>('/clients/all');
   }
 
-  listByBusiness(businessId: string, tenantId?: string) {
-    const headers = tenantId ? new HttpHeaders().set('X-Tenant-Id', tenantId) : undefined;
+  listByBusiness(businessId: string, tenantId?: string, employeeUserId?: string) {
+    let headers: HttpHeaders | undefined;
+    if (tenantId) {
+      headers = (headers ?? new HttpHeaders()).set('X-Tenant-Id', tenantId);
+    }
+    if (employeeUserId) {
+      headers = (headers ?? new HttpHeaders()).set('X-Employee-User-Id', employeeUserId);
+    }
     return this.api.get<ClientDto[]>(`/clients/by-business/${encodeURIComponent(businessId)}`, headers ? { headers } : undefined);
   }
 
   create(payload: {
     businessId: string;
+    assignedUserId?: string;
     name: string;
     email?: string;
     phone?: string;
@@ -42,6 +50,7 @@ export class ClientsService {
     id: string,
     payload: {
       name?: string;
+      assignedUserId?: string | null;
       email?: string;
       phone?: string;
       address?: string;

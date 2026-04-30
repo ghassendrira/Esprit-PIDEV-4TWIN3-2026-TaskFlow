@@ -2,7 +2,7 @@
   "name": "taskflow",
   "private": true,
   "scripts": {
-    "start:db": "docker compose up -d",
+    "start:db": "docker compose up -d postgres pgadmin redis",
     "stop:db": "docker compose down",
     "start:services": "concurrently \"npm --prefix backend/api-gateway run start:dev\" \"npm --prefix backend/auth-service run start:dev\" \"npm --prefix backend/business-service run start:dev\" \"npm --prefix backend/audit-service run start:dev\" \"npm --prefix backend/expense-service run start:dev\" \"npm --prefix backend/invoice-service run start:dev\" \"npm --prefix backend/notification-service run start:dev\" \"npm --prefix backend/tenant-service run start:dev\"",
     "start": "npm run start:db && npm run start:services"

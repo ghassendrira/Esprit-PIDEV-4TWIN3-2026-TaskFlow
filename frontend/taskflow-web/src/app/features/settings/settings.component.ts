@@ -539,6 +539,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   companyLogo: string | null = null;
 
   isSavingAll = false;
+  private isRecoveringUnauthorized = false;
 
   ngOnInit() {
     // Avoid calling protected endpoints if token is missing.
@@ -649,10 +650,58 @@ export class SettingsComponent implements OnInit, OnDestroy {
     });
   }
 
+  private decodeJwtPayload(token: string): any | null {
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(atob(normalized));
+    } catch {
+      return null;
+    }
+  }
+
+  private restoreTenantContextFromToken(): boolean {
+    const token = this.auth.token();
+    if (!token) return false;
+
+    const payload = this.decodeJwtPayload(token);
+    const candidate =
+      String(payload?.tenantId ?? '').trim() ||
+      String(payload?.company_id ?? '').trim() ||
+      String(payload?.businessId ?? '').trim() ||
+      String(localStorage.getItem('tenantId') ?? '').trim() ||
+      String(localStorage.getItem('activeTenantId') ?? '').trim();
+
+    if (!candidate || candidate === 'null' || candidate === 'undefined') {
+      return false;
+    }
+
+    localStorage.setItem('tenantId', candidate);
+    localStorage.setItem('activeTenantId', candidate);
+    return true;
+  }
+
   private handleUnauthorized() {
-    // Token missing/expired: clear local session and return user to login.
-    this.auth.logout();
-    this.router.navigate(['/auth/login']);
+    // Missing token is the only case where logout is valid.
+    if (!this.auth.token()) {
+      this.auth.logout();
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    // Stay on Settings page and try one self-healing pass for tenant context.
+    if (!this.isRecoveringUnauthorized && this.restoreTenantContextFromToken()) {
+      this.isRecoveringUnauthorized = true;
+      this.showToast('Contexte session restaure. Rechargement Settings...', 'error');
+      this.loadData();
+      this.loadOptions();
+      this.isRecoveringUnauthorized = false;
+      return;
+    }
+
+    // Keep user on Settings without forced navigation/logout.
+    this.showToast('Impossible de charger Settings avec ce contexte.', 'error');
   }
 
   showToast(message: string, type: 'success' | 'error') {

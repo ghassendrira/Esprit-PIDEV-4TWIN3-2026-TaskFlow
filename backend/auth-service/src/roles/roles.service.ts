@@ -26,10 +26,14 @@ export class RolesService implements OnModuleInit {
       createdPermissions.push(perm);
     }
 
+    const allPermissions = await this.prisma.permission.findMany({
+      select: { id: true },
+    });
+
     // Assign permissions to standard roles
     // NOTE: OWNER is used by some tenant creation flows; keep it permissioned to avoid RBAC lockouts.
-    const adminRoles = ['BUSINESS_OWNER', 'OWNER', 'ADMIN', 'SUPER_ADMIN'];
-    for (const roleName of adminRoles) {
+    const seededRoles = ['BUSINESS_OWNER', 'BUSINESS_ADMIN', 'OWNER', 'ADMIN', 'SUPER_ADMIN', 'ACCOUNTANT', 'TEAM_MEMBER'];
+    for (const roleName of seededRoles) {
       // Ensure official standard role exists.
       let standardRole = await this.prisma.role.findFirst({
         where: { name: roleName, tenantId: null, isStandard: true },
@@ -68,8 +72,13 @@ export class RolesService implements OnModuleInit {
         select: { id: true },
       });
 
+      const permissionsForRole =
+        roleName === 'ADMIN' || roleName === 'BUSINESS_ADMIN' || roleName === 'SUPER_ADMIN'
+          ? allPermissions
+          : createdPermissions;
+
       for (const role of rolesToSeed) {
-        for (const perm of createdPermissions) {
+        for (const perm of permissionsForRole) {
           await this.prisma.rolePermission.upsert({
             where: {
               roleId_permissionId: {
@@ -136,6 +145,7 @@ export class RolesService implements OnModuleInit {
 
     // Define filter based on user role
     let whereClause: any = {
+      deletedAt: null,
       OR: [
         { isStandard: true },
         ...(tid ? [
@@ -276,6 +286,66 @@ export class RolesService implements OnModuleInit {
 
     // If it's an admin, they can do anything, or if it's an owner/BO and they passed the checks above.
     return this.updateRolePermissions(roleId, permissionIds);
+  }
+
+  async deleteRole(roleId: string, userId: string, tenantId?: string, isAdmin: boolean = false) {
+    const role = await this.prisma.role.findUnique({
+      where: { id: roleId },
+    });
+
+    if (!role || role.deletedAt) {
+      throw new NotFoundException('Role not found');
+    }
+
+    if (role.isStandard) {
+      throw new ForbiddenException('Standard roles cannot be deleted');
+    }
+
+    if (!isAdmin) {
+      if (!tenantId) {
+        throw new ForbiddenException('Tenant context required');
+      }
+
+      const membership = await this.prisma.userTenantMembership.findFirst({
+        where: {
+          userId,
+          tenantId,
+          deletedAt: null,
+          role: { name: { in: ['BUSINESS_OWNER', 'OWNER', 'ADMIN'] } },
+        },
+        include: { role: true },
+      });
+
+      if (!membership) {
+        throw new ForbiddenException('Insufficient permissions to delete roles');
+      }
+
+      const roleTenant = role.tenantId || role.company_id;
+      if (!roleTenant || roleTenant !== tenantId) {
+        throw new ForbiddenException('You can only delete roles from your company');
+      }
+    }
+
+    const assignmentsCount = await this.prisma.userTenantMembership.count({
+      where: {
+        roleId,
+        deletedAt: null,
+      },
+    });
+
+    if (assignmentsCount > 0) {
+      throw new ConflictException('Cannot delete a role that is currently assigned to users');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.rolePermission.deleteMany({ where: { roleId } }),
+      this.prisma.role.update({
+        where: { id: roleId },
+        data: { deletedAt: new Date() },
+      }),
+    ]);
+
+    return { success: true, message: 'Role deleted successfully' };
   }
 
   private async updateRolePermissions(roleId: string, permissionIds: string[]) {

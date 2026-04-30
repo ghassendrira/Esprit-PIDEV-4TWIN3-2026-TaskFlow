@@ -7,20 +7,49 @@ export class MlService {
   private http = inject(HttpClient);
   private API = environment.apiUrl;
 
+  private getBusinessId(): string {
+    return (
+      localStorage.getItem('activeBusinessId')?.split(',')[0].trim() ||
+      localStorage.getItem('businessId')?.split(',')[0].trim() ||
+      ''
+    );
+  }
+
+  private getTenantId(): string {
+    return (
+      localStorage.getItem('activeTenantId')?.split(',')[0].trim() ||
+      localStorage.getItem('tenantId')?.split(',')[0].trim() ||
+      ''
+    );
+  }
+
   private getHeaders() {
+    const businessId = this.getBusinessId();
+    const tenantId = this.getTenantId();
     return {
       'x-user-id': localStorage.getItem('userId')?.split(',')[0].trim() || '',
       'x-user-role': localStorage.getItem('userRole')?.split(',')[0].trim() || '',
-      'x-tenant-id': localStorage.getItem('tenantId')?.split(',')[0].trim() || '',
+      // Backend ML auth-service expects tenant for authorization and business for data scope.
+      'x-tenant-id': tenantId,
+      'x-business-id': businessId,
     };
   }
 
+  private getBusinessParams(): Record<string, string> {
+    const businessId = this.getBusinessId();
+    const params: Record<string, string> = {};
+    if (businessId) params['businessId'] = businessId;
+    return params;
+  }
+
   // 1. Risque paiement par facture
-  getInvoiceRisk(invoiceId: string, invoiceData: any) {
-    return this.http.post(
+  getInvoiceRisk(invoiceId: string, _invoiceData: any) {
+    return this.http.get(
       `${this.API}/ml/risk/${invoiceId}`,
-      invoiceData,
-      { headers: this.getHeaders() }
+      {
+        headers: this.getHeaders(),
+        params: this.getBusinessParams(),
+      }
     );
   }
 
@@ -28,7 +57,10 @@ export class MlService {
   getAllRisks() {
     return this.http.get<any>(
       `${this.API}/ml/risk`,
-      { headers: this.getHeaders() }
+      {
+        headers: this.getHeaders(),
+        params: this.getBusinessParams(),
+      }
     );
   }
 
@@ -36,7 +68,10 @@ export class MlService {
   getClientsSegmentation() {
     return this.http.get<any>(
       `${this.API}/ml/segmentation`,
-      { headers: this.getHeaders() }
+      {
+        headers: this.getHeaders(),
+        params: this.getBusinessParams(),
+      }
     );
   }
 
@@ -45,7 +80,10 @@ export class MlService {
     return this.http.post<SegmentClientResponse>(
       `${this.API}/ml/segmentation/${clientId}`,
       { recency, frequency, monetary, business_id: businessId },
-      { headers: this.getHeaders() }
+      {
+        headers: this.getHeaders(),
+        params: this.getBusinessParams(),
+      }
     );
   }
 
@@ -55,7 +93,7 @@ export class MlService {
       `${this.API}/ml/cashflow`,
       {
         headers: this.getHeaders(),
-        params: { months: months.toString() }
+        params: { months: months.toString(), ...this.getBusinessParams() }
       }
     );
   }
@@ -64,7 +102,10 @@ export class MlService {
   getAnomalies() {
     return this.http.get<AnomalyResponse[]>(
       `${this.API}/ml/anomalies`,
-      { headers: this.getHeaders() }
+      {
+        headers: this.getHeaders(),
+        params: this.getBusinessParams(),
+      }
     );
   }
 
@@ -73,7 +114,10 @@ export class MlService {
     return this.http.post<CategorizeExpenseResponse>(
       `${this.API}/ml/categorize`,
       { description },
-      { headers: this.getHeaders() }
+      {
+        headers: this.getHeaders(),
+        params: this.getBusinessParams(),
+      }
     );
   }
 }

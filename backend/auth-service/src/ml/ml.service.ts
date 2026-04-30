@@ -3,9 +3,7 @@ import axios, { AxiosResponse } from 'axios';
 
 @Injectable()
 export class MlService {
-  private readonly invoiceUrl = process.env.INVOICE_SERVICE_URL || 'http://localhost:3003';
-  private readonly businessUrl = process.env.BUSINESS_SERVICE_URL || 'http://localhost:3004';
-  private readonly expenseUrl = process.env.EXPENSE_SERVICE_URL || 'http://localhost:3005';
+  private readonly authApiUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
   private readonly mlApiUrl = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
   constructor() {}
@@ -24,15 +22,29 @@ export class MlService {
       });
       return response.data;
     } catch (error) {
-      console.error(`Error calling ${url}:`, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error calling ${url}:`, message);
       return null;
     }
   }
 
-  async getCashflow(businessId: string, months = 6) {
+  private authHeaders(tenantId: string, authorization: string) {
+    const headers: Record<string, string> = {
+      Authorization: authorization,
+    };
+    if (tenantId) headers['X-Tenant-Id'] = tenantId;
+    return headers;
+  }
+
+  async getCashflow(
+    businessId: string,
+    tenantId: string,
+    authorization: string,
+    months = 6,
+  ) {
     // Get historical invoice data from invoice service
-    const invoices = await this.callService(`${this.invoiceUrl}/invoices/by-business/${businessId}`, {
-      headers: { 'X-Tenant-Id': businessId }
+    const invoices = await this.callService(`${this.authApiUrl}/invoices/by-business/${businessId}`, {
+      headers: this.authHeaders(tenantId, authorization),
     });
 
     if (!invoices || !Array.isArray(invoices)) {
@@ -123,17 +135,17 @@ export class MlService {
     };
   }
 
-  async getSegmentation(businessId: string) {
-    const clients = await this.callService(`${this.businessUrl}/clients/by-business/${businessId}`, {
-      headers: { 'X-Tenant-Id': businessId }
+  async getSegmentation(businessId: string, tenantId: string, authorization: string) {
+    const clients = await this.callService(`${this.authApiUrl}/clients/by-business/${businessId}`, {
+      headers: this.authHeaders(tenantId, authorization),
     });
 
     if (!clients || !Array.isArray(clients) || clients.length === 0) {
       return { segments: { champion: 0, fidele: 0, aRisque: 0, perdus: 0 }, clients: [] };
     }
 
-    const allInvoices = await this.callService(`${this.invoiceUrl}/invoices/by-business/${businessId}`, {
-      headers: { 'X-Tenant-Id': businessId }
+    const allInvoices = await this.callService(`${this.authApiUrl}/invoices/by-business/${businessId}`, {
+      headers: this.authHeaders(tenantId, authorization),
     }) || [];
 
     const now = new Date();
@@ -202,10 +214,14 @@ export class MlService {
     };
   }
 
-  async getAnomalies(businessId: string) {
+  async getAnomalies(businessId: string, tenantId: string, authorization: string) {
     const [invoices, expenses] = await Promise.all([
-      this.callService(`${this.invoiceUrl}/invoices/by-business/${businessId}`, { headers: { 'X-Tenant-Id': businessId } }),
-      this.callService(`${this.expenseUrl}/expenses/by-business/${businessId}`, { headers: { 'X-Tenant-Id': businessId } })
+      this.callService(`${this.authApiUrl}/invoices/by-business/${businessId}`, {
+        headers: this.authHeaders(tenantId, authorization),
+      }),
+      this.callService(`${this.authApiUrl}/expenses/by-business/${businessId}`, {
+        headers: this.authHeaders(tenantId, authorization),
+      }),
     ]);
 
     const invAnomalyIds = new Set<string>();
@@ -289,9 +305,14 @@ export class MlService {
     };
   }
 
-  async getInvoiceRisk(businessId: string, invoiceId: string) {
-    const invoices = await this.callService(`${this.invoiceUrl}/invoices/by-business/${businessId}`, {
-      headers: { 'X-Tenant-Id': businessId }
+  async getInvoiceRisk(
+    businessId: string,
+    tenantId: string,
+    authorization: string,
+    invoiceId: string,
+  ) {
+    const invoices = await this.callService(`${this.authApiUrl}/invoices/by-business/${businessId}`, {
+      headers: this.authHeaders(tenantId, authorization),
     });
 
     if (!invoices || !Array.isArray(invoices)) {
@@ -314,7 +335,7 @@ export class MlService {
       if (dueDate && !isNaN(dueDate.getTime())) {
         const daysLeft = Math.floor((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         if (daysLeft < 0) { riskScore = 0.85; riskLevel = 'HIGH'; riskEmoji = '🔴'; }
-        else if (daysLeft <= 7) { riskScore = 0.60; riskLevel = 'MEDIUM'; riskEmoji = '🟡'; }
+        else if (daysLeft <= 30) { riskScore = 0.60; riskLevel = 'MEDIUM'; riskEmoji = '🟡'; }
       }
     } else if (status === 'PAID') {
       riskScore = 0.05; riskLevel = 'LOW'; riskEmoji = '🟢';
@@ -330,16 +351,18 @@ export class MlService {
     };
   }
 
-  async getAllRisks(businessId: string) {
-    const invoices = await this.callService(`${this.invoiceUrl}/invoices/by-business/${businessId}`, {
-      headers: { 'X-Tenant-Id': businessId }
+  async getAllRisks(businessId: string, tenantId: string, authorization: string) {
+    const invoices = await this.callService(`${this.authApiUrl}/invoices/by-business/${businessId}`, {
+      headers: this.authHeaders(tenantId, authorization),
     });
 
     if (!invoices || !Array.isArray(invoices)) {
       return { stats: { total: 0, high: 0, medium: 0, low: 0 }, invoices: [] };
     }
 
-    const risks = await Promise.all(invoices.map(inv => this.getInvoiceRisk(businessId, inv.id)));
+    const risks = await Promise.all(
+      invoices.map((inv) => this.getInvoiceRisk(businessId, tenantId, authorization, inv.id)),
+    );
 
     return {
       stats: {

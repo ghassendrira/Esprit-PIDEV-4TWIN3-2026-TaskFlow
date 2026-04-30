@@ -101,7 +101,8 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
         const protectedPages = [
           '/dashboard', '/invoices', '/expenses',
           '/clients', '/settings', '/team',
-          '/employees', '/ml'
+          '/employees', '/ml', '/admin', '/onboarding',
+          '/support', '/ai-assistant'
         ];
 
         const isProtected = protectedPages.some(

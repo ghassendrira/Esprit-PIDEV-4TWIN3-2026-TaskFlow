@@ -28,6 +28,48 @@ export class UsersController {
     private jwt: JwtService,
   ) {}
 
+  private sanitizeTenantId(value?: string | null): string | null {
+    if (!value) return null;
+    const v = String(value).trim();
+    if (!v || v === 'null' || v === 'undefined') return null;
+    return v;
+  }
+
+  private async resolveTenantIdForUser(
+    userId: string,
+    payload: any,
+    tenantIdFromHeader?: string,
+  ): Promise<string> {
+    const candidates: string[] = [];
+    const fromHeader = this.sanitizeTenantId(tenantIdFromHeader);
+    const fromPayloadTenant = this.sanitizeTenantId((payload as any)?.tenantId);
+    const fromPayloadCompany = this.sanitizeTenantId((payload as any)?.company_id);
+
+    if (fromHeader) candidates.push(fromHeader);
+    if (fromPayloadTenant) candidates.push(fromPayloadTenant);
+    if (fromPayloadCompany) candidates.push(fromPayloadCompany);
+
+    for (const tenantId of [...new Set(candidates)]) {
+      const hasMembership = await this.prisma.userTenantMembership.findFirst({
+        where: { userId, tenantId, deletedAt: null },
+        select: { id: true },
+      });
+      if (hasMembership) return tenantId;
+    }
+
+    const latestMembership = await this.prisma.userTenantMembership.findFirst({
+      where: { userId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { tenantId: true },
+    });
+
+    if (!latestMembership?.tenantId) {
+      throw new UnauthorizedException('No membership found');
+    }
+
+    return latestMembership.tenantId;
+  }
+
   private async assertBusinessOwner(authHeader?: string, tenantIdFromHeader?: string): Promise<{
     userId: string;
     tenantId: string;
@@ -61,13 +103,14 @@ export class UsersController {
     const userId = payload?.sub;
     if (!userId) throw new UnauthorizedException();
 
-    // Find the specific membership if tenantId is provided
-    // We look for any membership that has the required permissions (already checked by Guard)
-    // but we still want to ensure the user is at least an OWNER/ADMIN/BUSINESS_OWNER for data integrity.
+    const resolvedTenantId = await this.resolveTenantIdForUser(userId, payload, tenantIdFromHeader);
+
+    // Find the specific membership for the resolved tenant.
     const membership = await this.prisma.userTenantMembership.findFirst({
-      where: { 
+      where: {
         userId,
-        tenantId: tenantIdFromHeader || undefined,
+        tenantId: resolvedTenantId,
+        deletedAt: null,
       },
       include: { role: true },
     });
@@ -193,69 +236,7 @@ export class UsersController {
     const userId = payload?.sub;
     if (!userId) throw new UnauthorizedException();
 
-    // 1. Check x-tenant-id header (highest priority)
-    // 2. Check company_id or tenantId in JWT payload
-    // 3. Fallback to the user's most recent membership
-    let tenantId = (tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined') ? tenantIdFromHeader : null;
-    
-    if (!tenantId) {
-      tenantId = (payload as any).tenantId || (payload as any).company_id;
-    }
-
-    if (!tenantId) {
-      const membership = await this.prisma.userTenantMembership.findFirst({
-        where: { userId },
-        orderBy: { createdAt: 'desc' }
-      });
-      if (!membership) throw new UnauthorizedException('No membership found');
-      tenantId = membership.tenantId;
-    }
-
-    const elevatedRoleNames = new Set(['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD',
-      'ROLE_SUPER_ADMIN', 'ROLE_SUPER_MANAGER', 'ROLE_ADMIN', 'ROLE_NIGHT_SHIFT_LEAD']);
-    const jwtRoles = Array.isArray((payload as any)?.roles) ? (payload as any).roles : [];
-    const isElevated = jwtRoles.map((r: any) => String(r ?? '').toUpperCase()).some((r: string) => elevatedRoleNames.has(r));
-
-    // SUPER_ADMIN sees ALL users from the User table directly (with best membership role)
-    if (isElevated) {
-      const allUsers = await this.prisma.user.findMany({
-        where: { deletedAt: null },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          isActive: true,
-          createdAt: true,
-          memberships: {
-            where: { deletedAt: null },
-            include: { role: { select: { name: true } } },
-            orderBy: { joinedAt: 'desc' },
-            take: 1,
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      return allUsers.map((u) => {
-        const rawRole = u.memberships[0]?.role?.name?.toUpperCase() ?? 'TEAM_MEMBER';
-        let displayRole = rawRole;
-        if (displayRole === 'TEAM_MEMBER') displayRole = 'TEAM-MEMBER';
-        if (displayRole === 'ADMIN' || displayRole === 'NIGHT_SHIFT_LEAD') displayRole = 'ADMIN';
-        if (displayRole === 'ACCOUNTANT') displayRole = 'ACCOUNTANT';
-        if (displayRole === 'BUSINESS_OWNER' || displayRole === 'OWNER' || displayRole === 'PROJECT_MANAGER') displayRole = 'BUSINESS_OWNER';
-        if (displayRole === 'SUPER_ADMIN' || displayRole === 'SUPER_MANAGER') displayRole = 'SUPER_ADMIN';
-        return {
-          id: u.id,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          email: u.email,
-          role: displayRole,
-          isActive: u.isActive,
-          createdAt: u.createdAt,
-        };
-      });
-    }
+    const tenantId = await this.resolveTenantIdForUser(userId, payload, tenantIdFromHeader);
 
     const memberships = await (async () => {
       return this.prisma.userTenantMembership.findMany({
@@ -287,8 +268,8 @@ export class UsersController {
       let displayRole = m.role.name.toUpperCase();
       
       // Ensure specific mappings for frontend expectations
-      if (displayRole === 'TEAM_MEMBER') displayRole = 'TEAM-MEMBER';
-      if (displayRole === 'ADMIN' || displayRole === 'NIGHT_SHIFT_LEAD') displayRole = 'ADMIN';
+      if (displayRole === 'TEAM-MEMBER') displayRole = 'TEAM_MEMBER';
+      if (displayRole === 'ADMIN' || displayRole === 'BUSINESS_ADMIN' || displayRole === 'NIGHT_SHIFT_LEAD') displayRole = 'ADMIN';
       if (displayRole === 'ACCOUNTANT') displayRole = 'ACCOUNTANT';
       if (displayRole === 'BUSINESS_OWNER' || displayRole === 'OWNER' || displayRole === 'PROJECT_MANAGER') displayRole = 'BUSINESS_OWNER';
       if (displayRole === 'SUPER_ADMIN' || displayRole === 'SUPER_MANAGER') displayRole = 'SUPER_ADMIN';

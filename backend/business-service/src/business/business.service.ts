@@ -6,6 +6,7 @@ export class BusinessService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: {
+    companyId?: string;
     tenantId: string;
     ownerId?: string;
     name: string;
@@ -16,6 +17,7 @@ export class BusinessService {
   }) {
     const business = await this.prisma.business.create({
       data: {
+        companyId: data.companyId ?? data.tenantId,
         tenantId: data.tenantId,
         ownerId: data.ownerId,
         name: data.name,
@@ -26,6 +28,7 @@ export class BusinessService {
       },
       select: {
         id: true,
+        companyId: true,
         tenantId: true,
         ownerId: true,
         name: true,
@@ -55,6 +58,7 @@ export class BusinessService {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
+        companyId: true,
         tenantId: true,
         name: true,
         logoUrl: true,
@@ -68,10 +72,11 @@ export class BusinessService {
 
   byTenant(tenantId: string) {
     return this.prisma.business.findMany({
-      where: { tenantId },
+      where: { companyId: tenantId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
+        companyId: true,
         tenantId: true,
         name: true,
         logoUrl: true,
@@ -89,6 +94,7 @@ export class BusinessService {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
+        companyId: true,
         tenantId: true,
         name: true,
         logoUrl: true,
@@ -105,6 +111,7 @@ export class BusinessService {
       where: { id },
       select: {
         id: true,
+        companyId: true,
         tenantId: true,
         name: true,
         logoUrl: true,
@@ -117,7 +124,26 @@ export class BusinessService {
   }
 
   countByTenant(tenantId: string) {
-    return this.prisma.business.count({ where: { tenantId } });
+    return this.prisma.business.count({ where: { companyId: tenantId } });
+  }
+
+  byCompany(companyId: string) {
+    return this.prisma.business.findMany({
+      where: { companyId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        companyId: true,
+        tenantId: true,
+        ownerId: true,
+        name: true,
+        logoUrl: true,
+        currency: true,
+        taxRate: true,
+        category: true,
+        createdAt: true,
+      },
+    });
   }
 
   update(
@@ -141,6 +167,7 @@ export class BusinessService {
       },
       select: {
         id: true,
+        companyId: true,
         tenantId: true,
         name: true,
         logoUrl: true,

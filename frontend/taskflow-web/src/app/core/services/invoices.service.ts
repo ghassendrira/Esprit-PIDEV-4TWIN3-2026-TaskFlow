@@ -4,6 +4,7 @@ import { ApiService } from './api.service';
 
 export type InvoiceDto = {
   id: string;
+  companyId?: string;
   businessId: string;
   clientId: string;
   invoiceNumber: string;
@@ -20,8 +21,16 @@ export type InvoiceDto = {
 export class InvoicesService {
   private api = inject(ApiService);
 
-  listByBusiness(businessId: string, tenantId?: string) {
-    return this.api.get<any[]>(`/invoices/by-business/${encodeURIComponent(businessId)}`);
+  listByBusiness(businessId: string, tenantId?: string, employeeUserId?: string) {
+    let headers: HttpHeaders | undefined;
+    if (employeeUserId) {
+      headers = (headers ?? new HttpHeaders()).set('X-Employee-User-Id', employeeUserId);
+    }
+
+    return this.api.get<any[]>(
+      `/invoices/by-business/${encodeURIComponent(businessId)}`,
+      headers ? { headers } : undefined,
+    );
   }
 
   create(payload: any, tenantId?: string) {

@@ -41,20 +41,28 @@ export class ExpenseGuard implements CanActivate {
     const businessIdFromParam = this.normalizeHeader(request.params?.businessId as string | undefined);
     const businessIdFromHeader = this.normalizeHeader(request.headers['x-business-id'] || request.headers['X-Business-Id']);
     const businessIdFromBody = this.normalizeHeader((request.body as any)?.businessId);
-    const businessId = businessIdFromParam || businessIdFromHeader || businessIdFromBody || '';
+    const businessId = businessIdFromParam || businessIdFromHeader || businessIdFromBody || tenantId || '';
 
-    if (businessId) {
+    if (businessId && businessId !== tenantId) {
       const belongs = await this.businessBelongsToTenant(businessId, tenantId);
       if (!belongs) {
         throw new ForbiddenException('Business ID does not belong to tenant');
       }
     }
 
+    let normalizedRole = role.replace(/^ROLE_/, '').toUpperCase();
+    if (normalizedRole === 'OWNER') normalizedRole = 'BUSINESS_OWNER';
+    if (normalizedRole === 'ADMIN') normalizedRole = 'BUSINESS_ADMIN';
+    if (normalizedRole === 'TEAM') normalizedRole = 'TEAM_MEMBER';
+    if (normalizedRole === 'SUPER_MANAGER') normalizedRole = 'SUPER_ADMIN';
+    if (normalizedRole === 'PROJECT_MANAGER') normalizedRole = 'BUSINESS_OWNER';
+
     (request as any).user = {
       userId,
-      role,
+      role: normalizedRole,
       tenantId,
       businessId,
+      requestId: this.normalizeHeader(request.headers['x-request-id'] || request.headers['X-Request-Id']) || 'n/a',
     };
 
     return true;

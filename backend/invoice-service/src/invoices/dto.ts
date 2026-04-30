@@ -20,6 +20,10 @@ class InvoiceItemDto {
 export class CreateInvoiceDto {
   @IsOptional()
   @IsUUID()
+  companyId?: string;
+
+  @IsOptional()
+  @IsUUID()
   businessId?: string;
 
   @IsUUID()
@@ -28,6 +32,10 @@ export class CreateInvoiceDto {
   @IsOptional()
   @IsString()
   createdBy?: string;
+
+  @IsOptional()
+  @IsUUID()
+  createdByUserId?: string;
 
   @IsOptional()
   @IsString()
@@ -73,4 +81,3 @@ export class CreateInvoiceDto {
 }
 
 export type UpdateInvoiceDto = Partial<CreateInvoiceDto>;
-

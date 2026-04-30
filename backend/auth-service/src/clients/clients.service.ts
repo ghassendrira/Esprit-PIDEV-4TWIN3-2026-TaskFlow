@@ -14,6 +14,18 @@ export class ClientsService {
     private jwt: JwtService,
   ) {}
 
+  private normalizeRoleName(role: unknown): string {
+    return String(role ?? '').trim().replace(/^ROLE_/, '').toUpperCase();
+  }
+
+  private elevatedAccessRoles(): string[] {
+    return ['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD'];
+  }
+
+  private isElevatedRole(roleName: unknown): boolean {
+    return new Set(this.elevatedAccessRoles()).has(this.normalizeRoleName(roleName));
+  }
+
   private businessBase() {
     return (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(
       /\/+$/,
@@ -60,20 +72,8 @@ export class ClientsService {
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException();
 
-    const elevatedRoleNames = new Set([
-      'SUPER_ADMIN',
-      'ROLE_SUPER_ADMIN',
-      'SUPER_MANAGER',
-      'ROLE_SUPER_MANAGER',
-      'ADMIN',
-      'ROLE_ADMIN',
-      'NIGHT_SHIFT_LEAD',
-      'ROLE_NIGHT_SHIFT_LEAD',
-      'BUSINESS_OWNER',
-      'ROLE_BUSINESS_OWNER',
-      'OWNER',
-      'ROLE_OWNER',
-    ]);
+    const elevatedRoleNames = this.elevatedAccessRoles();
+    const elevatedRoleSet = new Set(elevatedRoleNames);
 
     const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
     const email = String(payload?.email ?? '').trim().toLowerCase();
@@ -81,8 +81,8 @@ export class ClientsService {
 
     const jwtRoles = Array.isArray(payload?.roles) ? payload.roles : [];
     const hasElevatedJwtRole = jwtRoles
-      .map((r: any) => String(r ?? '').toUpperCase())
-      .some((r: string) => elevatedRoleNames.has(r));
+      .map((r: any) => this.normalizeRoleName(r))
+      .some((r: string) => elevatedRoleSet.has(r));
 
     const elevatedMembership = await this.prisma.userTenantMembership.findFirst({
       where: {
@@ -114,7 +114,7 @@ export class ClientsService {
       if (!m && !isElevated) {
         throw new UnauthorizedException('No membership found for this tenant');
       }
-      const roleName = m?.role?.name ?? 'ROLE_USER';
+      const roleName = m?.role?.name ?? (hasElevatedJwtRole ? 'SUPER_ADMIN' : 'ROLE_USER');
       return { userId, tenantId: tid, roleName };
     }
 
@@ -126,6 +126,39 @@ export class ClientsService {
     if (!m) throw new UnauthorizedException('No memberships found');
     const roleName = m.role?.name ?? 'ROLE_USER';
     return { userId, tenantId: m.tenantId, roleName };
+  }
+
+  private async resolveEffectiveEmployeeUserId(
+    tenantId: string,
+    currentUserId: string,
+    roleName: string,
+    requestedEmployeeUserId?: string,
+  ): Promise<string | undefined> {
+    const normalizedRequested = String(requestedEmployeeUserId ?? '').trim();
+    const isElevated = this.isElevatedRole(roleName);
+
+    if (!isElevated) {
+      return currentUserId;
+    }
+
+    if (!normalizedRequested) {
+      return undefined;
+    }
+
+    const membership = await this.prisma.userTenantMembership.findFirst({
+      where: {
+        userId: normalizedRequested,
+        tenantId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new UnauthorizedException('Target user not in this company');
+    }
+
+    return normalizedRequested;
   }
 
   private async assertBusinessAccess(tenantId: string, businessId: string) {
@@ -146,26 +179,28 @@ export class ClientsService {
     return list.some((b) => String(b?.id) === String(businessId));
   }
 
-  async listByBusiness(auth: string, tenantId: string | undefined, businessId: string) {
+  async listByBusiness(
+    auth: string,
+    tenantId: string | undefined,
+    businessId: string,
+    employeeUserId?: string,
+  ) {
     const { tenantId: resolvedTenantId, userId, roleName } = await this.resolveTenant(
       auth,
       tenantId,
     );
-    
-    // Check if user is Super Admin for bypass
-    const superAdminRole = await this.prisma.role.findFirst({
-      where: { name: { in: ['SUPER_ADMIN', 'ROLE_SUPER_ADMIN'] } }
-    });
-    const isSuperAdmin = superAdminRole ? await this.prisma.userTenantMembership.findFirst({
-      where: { userId, roleId: superAdminRole.id, deletedAt: null }
-    }) : null;
 
-    if (!isSuperAdmin) {
-      const ok = await this.assertBusinessAccess(resolvedTenantId, businessId);
-      if (!ok) throw new UnauthorizedException('Business not accessible for this tenant');
-    } else {
-      console.log(`[Clients] SUPER_ADMIN bypass for business ${businessId}`);
+    const ok = await this.assertBusinessAccess(resolvedTenantId, businessId);
+    if (!ok && !this.isElevatedRole(roleName)) {
+      throw new UnauthorizedException('Business not accessible for this tenant');
     }
+
+    const effectiveEmployeeUserId = await this.resolveEffectiveEmployeeUserId(
+      resolvedTenantId,
+      userId,
+      roleName,
+      employeeUserId,
+    );
 
     const url = `${this.businessBase()}/clients/by-business/${encodeURIComponent(
       businessId,
@@ -177,6 +212,9 @@ export class ClientsService {
           'X-Tenant-Id': resolvedTenantId,
           'X-User-Id': userId,
           'X-User-Role': roleName,
+          ...(effectiveEmployeeUserId
+            ? { 'X-Employee-User-Id': effectiveEmployeeUserId }
+            : {}),
         },
       });
       if (!r.ok) {
@@ -196,6 +234,7 @@ export class ClientsService {
     tenantId: string | undefined,
     body: {
       businessId: string;
+      assignedUserId?: string;
       name: string;
       email?: string;
       phone?: string;
@@ -209,6 +248,12 @@ export class ClientsService {
     );
     const ok = await this.assertBusinessAccess(resolvedTenantId, body.businessId);
     if (!ok) throw new UnauthorizedException('Business not accessible for this tenant');
+    const effectiveEmployeeUserId = await this.resolveEffectiveEmployeeUserId(
+      resolvedTenantId,
+      userId,
+      roleName,
+      body.assignedUserId,
+    );
 
     const url = `${this.businessBase()}/clients`;
     const r = await fetch(url, {
@@ -220,7 +265,10 @@ export class ClientsService {
         'X-User-Id': userId,
         'X-User-Role': roleName,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        assignedUserId: effectiveEmployeeUserId ?? null,
+      }),
     });
 
     if (!r.ok) {
@@ -262,6 +310,7 @@ export class ClientsService {
     tenantId: string | undefined,
     id: string,
     body: {
+      assignedUserId?: string | null;
       name?: string;
       email?: string;
       phone?: string;
@@ -273,6 +322,15 @@ export class ClientsService {
     const client = await this.getClientFromBusinessService(id, resolvedTenantId, roleName, auth, userId);
     const ok = await this.assertBusinessAccess(resolvedTenantId, String(client?.businessId));
     if (!ok) throw new UnauthorizedException('Client not accessible for this tenant');
+    const effectiveEmployeeUserId =
+      body.assignedUserId !== undefined
+        ? await this.resolveEffectiveEmployeeUserId(
+            resolvedTenantId,
+            userId,
+            roleName,
+            body.assignedUserId ?? undefined,
+          )
+        : undefined;
 
     const url = `${this.businessBase()}/clients/${encodeURIComponent(id)}`;
     const r = await fetch(url, {
@@ -284,7 +342,12 @@ export class ClientsService {
         'X-User-Id': userId,
         'X-User-Role': roleName,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        ...(body.assignedUserId !== undefined
+          ? { assignedUserId: effectiveEmployeeUserId ?? null }
+          : {}),
+      }),
     });
 
     if (!r.ok) {

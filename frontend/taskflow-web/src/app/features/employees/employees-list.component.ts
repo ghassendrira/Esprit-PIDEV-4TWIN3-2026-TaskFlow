@@ -231,7 +231,7 @@ export class EmployeesListComponent implements OnInit {
   employees = signal<Employee[]>([]);
   searchQuery = '';
   activeFilter = signal('Tous');
-  roles = ['Tous', 'ACCOUNTANT', 'ADMIN', 'TEAM-MEMBER'];
+  roles = ['Tous', 'ACCOUNTANT', 'ADMIN', 'TEAM_MEMBER'];
 
   userName = computed(() => this.auth.user()?.name || 'Admin');
 
@@ -315,7 +315,12 @@ export class EmployeesListComponent implements OnInit {
   }
 
   loadEmployees() {
-    this.auth.getEmployees().subscribe({
+    const tenantId = this.tenant.currentTenantId() || localStorage.getItem('activeTenantId') || localStorage.getItem('tenantId') || '';
+    const request$ = tenantId
+      ? this.auth.getEmployeesForTenant(tenantId)
+      : this.auth.getEmployees();
+
+    request$.subscribe({
       next: (data) => this.employees.set(data),
       error: (err) => console.error('Failed to load employees', err)
     });

@@ -18,6 +18,7 @@ export class TenantsService {
 
   async listAll() {
     return this.prisma.tenant.findMany({
+      where: { deletedAt: null },
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -88,8 +89,8 @@ export class TenantsService {
   }
 
   async findById(id: string) {
-    const t = await this.prisma.tenant.findUnique({
-      where: { id },
+    const t = await this.prisma.tenant.findFirst({
+      where: { id, deletedAt: null },
       select: {
         id: true,
         name: true,
@@ -108,7 +109,7 @@ export class TenantsService {
 
   async findByName(name: string) {
     const t = await this.prisma.tenant.findFirst({
-      where: { name },
+      where: { name, deletedAt: null },
       select: {
         id: true,
         name: true,

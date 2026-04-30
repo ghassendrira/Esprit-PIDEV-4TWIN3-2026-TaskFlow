@@ -66,6 +66,22 @@ export class SettingsService {
     ];
   }
 
+  private hasElevatedRoleValue(role: unknown): boolean {
+    const normalized = String(role ?? '').trim().toUpperCase();
+    if (!normalized) return false;
+
+    return new Set([
+      'SUPER_ADMIN',
+      'SUPER_MANAGER',
+      'ADMIN',
+      'NIGHT_SHIFT_LEAD',
+      'ROLE_SUPER_ADMIN',
+      'ROLE_SUPER_MANAGER',
+      'ROLE_ADMIN',
+      'ROLE_NIGHT_SHIFT_LEAD',
+    ]).has(normalized);
+  }
+
   private async resolveTenant(
     authHeader?: string,
     tenantId?: string,
@@ -98,21 +114,16 @@ export class SettingsService {
     const userId = payload?.sub as string;
     if (!userId) throw new UnauthorizedException();
 
-    const elevatedRoleNames = new Set([
-      'SUPER_ADMIN',
-      'SUPER_MANAGER',
-      'ADMIN',
-      'NIGHT_SHIFT_LEAD',
-    ]);
-
     const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
     const email = String(payload?.email ?? '').trim().toLowerCase();
     const isAdminEmail = !!adminEmail && !!email && email === adminEmail;
 
     const jwtRoles = Array.isArray(payload?.roles) ? payload.roles : [];
-    const hasElevatedJwtRole = jwtRoles
-      .map((r: any) => String(r ?? '').toUpperCase())
-      .some((r: string) => elevatedRoleNames.has(r));
+    const hasElevatedJwtRole = jwtRoles.some((role: unknown) =>
+      this.hasElevatedRoleValue(role),
+    );
+
+    const elevatedRoleNames = ['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD'];
 
     const elevatedMembership = await this.prisma.userTenantMembership.findFirst({
       where: {
@@ -212,19 +223,20 @@ export class SettingsService {
       const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
       const email = String(payload?.email ?? '').trim().toLowerCase();
       const isAdminEmail = !!adminEmail && !!email && email === adminEmail;
+      const elevatedRoleNames = ['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD'];
 
-      const elevatedRoleNames = new Set(['SUPER_ADMIN', 'SUPER_MANAGER', 'ADMIN', 'NIGHT_SHIFT_LEAD']);
       const jwtRoles = Array.isArray(payload?.roles) ? payload.roles : [];
-      const hasElevatedJwtRole = jwtRoles
-        .map((r: any) => String(r ?? '').toUpperCase())
-        .some((r: string) => elevatedRoleNames.has(r));
+      const hasElevatedJwtRole = jwtRoles.some((role: unknown) =>
+        this.hasElevatedRoleValue(role),
+      );
 
       const elevatedMembership = await this.prisma.userTenantMembership.findFirst({
         where: {
           userId,
+          deletedAt: null,
           role: {
             name: {
-              in: Array.from(elevatedRoleNames),
+              in: elevatedRoleNames,
             },
           },
         },
@@ -330,14 +342,19 @@ export class SettingsService {
       currency: string;
       taxRate: number;
       category: string;
+      companyId: string;
       tenantId: string;
     }>
   > {
     const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
     const baseUrl = base.replace(/\/+$/, '');
+    const requestedTenantId =
+      tenantId && tenantId !== 'undefined' && tenantId !== 'null'
+        ? tenantId.split(',')[0].trim()
+        : '';
 
-    // SUPER_ADMIN sees ALL businesses across all tenants
-    if (this.isElevatedToken(auth)) {
+    // SUPER_ADMIN sees ALL businesses only when no company is explicitly selected
+    if (this.isElevatedToken(auth) && !requestedTenantId) {
       try {
         const r = await fetch(`${baseUrl}/businesses/all`);
         if (!r.ok) return [];
@@ -348,15 +365,19 @@ export class SettingsService {
           currency: b.currency,
           taxRate: b.taxRate,
           category: b.category,
-          tenantId: b.tenantId,
+          companyId: b.companyId ?? b.tenantId,
+          tenantId: b.tenantId ?? b.companyId,
         }));
       } catch {
         return [];
       }
     }
 
-    const { tenantId: resolvedTenantId } = await this.resolveTenant(auth, tenantId);
-    const url = `${baseUrl}/businesses/by-tenant/${resolvedTenantId}`;
+    const { tenantId: resolvedTenantId } = await this.resolveTenant(
+      auth,
+      requestedTenantId || undefined,
+    );
+    const url = `${baseUrl}/businesses/company/${resolvedTenantId}`;
     try {
       const r = await fetch(url);
       if (!r.ok) return [];
@@ -367,7 +388,8 @@ export class SettingsService {
         currency: b.currency,
         taxRate: b.taxRate,
         category: b.category,
-        tenantId: b.tenantId || resolvedTenantId,
+        companyId: b.companyId || b.tenantId || resolvedTenantId,
+        tenantId: b.tenantId || b.companyId || resolvedTenantId,
       }));
     } catch {
       return [];
@@ -391,6 +413,7 @@ export class SettingsService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          companyId: resolvedTenantId,
           tenantId: resolvedTenantId,
           name: dto.name,
           logoUrl: dto.logoUrl ?? '',
@@ -417,6 +440,8 @@ export class SettingsService {
         currency: b.currency,
         taxRate: b.taxRate,
         category: b.category,
+        companyId: b.companyId ?? b.tenantId ?? resolvedTenantId,
+        tenantId: b.tenantId ?? b.companyId ?? resolvedTenantId,
       },
     };
   }
@@ -453,6 +478,8 @@ export class SettingsService {
         currency: b.currency,
         taxRate: b.taxRate,
         category: b.category,
+        companyId: b.companyId ?? b.tenantId,
+        tenantId: b.tenantId ?? b.companyId,
       },
     };
   }

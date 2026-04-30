@@ -112,7 +112,7 @@ export class AuthService {
           return 'ROLE_BUSINESS_OWNER' as Role;
         if (role === 'ROLE_TEAM_MEMBER' || role === 'ROLE_TEAM') return 'ROLE_TEAM';
         if (role === 'ROLE_SUPER_ADMIN' || role === 'ROLE_SUPER_MANAGER') return 'ROLE_SUPER_ADMIN';
-        if (role === 'ROLE_ADMIN' || role === 'ROLE_NIGHT_SHIFT_LEAD') return 'ROLE_ADMIN';
+        if (role === 'ROLE_ADMIN' || role === 'ROLE_BUSINESS_ADMIN' || role === 'ROLE_NIGHT_SHIFT_LEAD') return 'ROLE_ADMIN';
         if (role === 'ROLE_ACCOUNTANT') return 'ROLE_ACCOUNTANT';
         return role as Role;
       });
@@ -223,6 +223,14 @@ export class AuthService {
       user.business?.id      ||
       user.businesses?.[0]?.id || '';
 
+    // Récupérer tenantId séparément (ne jamais l'écraser avec businessId)
+    const tenantId =
+      user.tenantId ||
+      response.tenantId ||
+      user.company_id ||
+      response.company_id ||
+      '';
+
     console.log('Login response:', {
       userId    : user.id,
       role,
@@ -238,8 +246,10 @@ export class AuthService {
     localStorage.setItem('accessToken',    token);
     localStorage.setItem('userId',         user.id || '');
     localStorage.setItem('userRole',       role);
-    localStorage.setItem('tenantId',       businessId);
-    localStorage.setItem('activeTenantId', businessId);
+    if (tenantId) {
+      localStorage.setItem('tenantId', tenantId);
+      localStorage.setItem('activeTenantId', tenantId);
+    }
     localStorage.setItem('businessId',     businessId);
     localStorage.setItem(
       'businessName',
@@ -306,6 +316,14 @@ export class AuthService {
 
   assignPermissions(roleId: string, permissionIds: string[]) {
     return this.api.post<any>(`/roles/${roleId}/permissions`, { permissionIds });
+  }
+
+  createRole(payload: { name: string; isStandard?: boolean }) {
+    return this.api.post<any>('/roles/create', payload);
+  }
+
+  deleteRole(roleId: string) {
+    return this.api.delete<any>(`/roles/${roleId}`);
   }
 
   forgotPassword(payload: { email: string }) {

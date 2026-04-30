@@ -21,6 +21,8 @@ export interface UserContext {
   userId: string;
   role: string;
   businessId: string;
+  tenantId?: string;
+  requestId?: string;
 }
 
 @Injectable()
@@ -28,6 +30,22 @@ export class ExpensesService {
   private readonly logger = new Logger(ExpensesService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  private ensureContext(ctx: UserContext) {
+    const userId = String(ctx.userId ?? '').trim();
+    const businessId = String(ctx.businessId ?? '').trim();
+    if (!userId) {
+      throw new BadRequestException('x-user-id missing in context');
+    }
+    if (!businessId) {
+      throw new BadRequestException('x-business-id (or resolved business context) missing');
+    }
+    return {
+      userId,
+      businessId,
+      requestId: String(ctx.requestId ?? 'n/a').trim() || 'n/a',
+    };
+  }
 
   private async createAuditLog(
     ctx: UserContext,
@@ -203,6 +221,9 @@ export class ExpensesService {
 
   async create(dto: CreateExpenseDto, ctx: UserContext) {
     // Tous les utilisateurs de la plateforme peuvent créer des expenses, PEU IMPORTE leur rôle.
+    const resolved = this.ensureContext(ctx);
+    this.logger.log(`[rid:${resolved.requestId}] Creating expense for user=${resolved.userId} business=${resolved.businessId}`);
+
     const expense = await this.prisma.expense.create({
       data: {
         amount: dto.amount,
@@ -210,8 +231,8 @@ export class ExpensesService {
         description: dto.description || '',
         categoryId: dto.categoryId,
         receiptUrl: dto.receiptUrl || null,
-        businessId: ctx.businessId,
-        createdBy: ctx.userId,
+        businessId: resolved.businessId,
+        createdBy: resolved.userId,
         status: ExpenseStatus.PENDING,
       },
       include: { category: true },
@@ -222,8 +243,8 @@ export class ExpensesService {
     // Notifier ACCOUNTANT + BUSINESS_ADMIN après création
     await this.notify(
       ['ACCOUNTANT', 'BUSINESS_ADMIN'],
-      `New expense created by ${ctx.userId} for amount ${expense.amount}`,
-      { expenseId: expense.id, businessId: ctx.businessId },
+      `New expense created by ${resolved.userId} for amount ${expense.amount}`,
+      { expenseId: expense.id, businessId: resolved.businessId, requestId: resolved.requestId },
     );
 
     return expense;
