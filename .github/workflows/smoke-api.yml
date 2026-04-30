@@ -1,0 +1,70 @@
+name: Smoke API
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Start DB containers
+        run: docker compose up -d postgres pgadmin redis
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install backend dependencies
+        run: |
+          for svc in api-gateway auth-service tenant-service business-service notification-service invoice-service expense-service audit-service; do
+            npm --prefix backend/$svc install
+          done
+
+      - name: Prepare env files and schema
+        run: |
+          chmod +x start-all.sh
+          ./start-all.sh &
+          for i in {1..120}; do
+            if curl -sSf http://localhost:3000/ >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run smoke API script
+        env:
+          BASE_URL: http://localhost:3000
+          ADMIN_EMAIL: admin@taskflow.local
+          ADMIN_PASSWORD: Admin1234!
+        run: |
+          chmod +x scripts/smoke-api.sh
+          scripts/smoke-api.sh
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          ls -la runtime-logs || true
+          for f in runtime-logs/*.log; do
+            echo "===== $f ====="
+            tail -n 120 "$f" || true
+          done
+
+      - name: Stop services
+        if: always()
+        run: |
+          chmod +x kill-servers.sh
+          ./kill-servers.sh << 'EOF'
+          y
+          y
+          EOF

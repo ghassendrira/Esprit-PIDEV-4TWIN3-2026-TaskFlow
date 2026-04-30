@@ -64,16 +64,43 @@ type AdminPasswordRequestParams = {
 
 @Injectable()
 export class NotificationService {
+  private resolveBrevoApiKey(): string {
+    const raw =
+      process.env.BREVO_API_KEY ??
+      process.env.SENDINBLUE_API_KEY ??
+      process.env.SIB_API_KEY ??
+      '';
+    return String(raw).trim().replace(/^['\"]|['\"]$/g, '');
+  }
+
+  private getBrevoApi(context: string): any | null {
+    const apiKey = this.resolveBrevoApiKey();
+    if (!apiKey || apiKey.toLowerCase() === 'change-me') {
+      console.warn(`[NotificationService] ${context}: Brevo key missing or invalid. Set BREVO_API_KEY (or SENDINBLUE_API_KEY).`);
+      return null;
+    }
+
+    const client = SibApiV3Sdk.ApiClient.instance;
+    (client.authentications as any)['api-key'].apiKey = apiKey;
+    return new (SibApiV3Sdk as any).TransactionalEmailsApi();
+  }
+
+  getEmailProviderHealth() {
+    const hasBrevoKey = Boolean(this.resolveBrevoApiKey());
+    return {
+      provider: 'brevo',
+      configured: hasBrevoKey,
+      sender: process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>',
+      hasBrevoKey,
+    };
+  }
+
   async sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
-    if (!apiKey) {
-      console.warn('BREVO_API_KEY is not set — skipping email send. Add BREVO_API_KEY to notification-service .env to enable emails.');
+    const api = this.getBrevoApi('sendInvoiceEmail');
+    if (!api) {
       return;
     }
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const logoUrl = 'https://via.placeholder.com/150x50/4F46E5/FFFFFF?text=TaskFlow';
     const primaryColor = '#4F46E5';
@@ -325,12 +352,10 @@ export class NotificationService {
     }
   }
   async sendWelcomeEmail({ email, fullName }: WelcomeParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
+    const api = this.getBrevoApi('sendWelcomeEmail');
+    if (!api) return;
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -417,15 +442,9 @@ export class NotificationService {
     pdfBase64: string;
     invoiceNumber: string;
   }): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
-    if (!apiKey) {
-      console.warn('BREVO_API_KEY is not set — skipping smart email send.');
-      return;
-    }
+    const api = this.getBrevoApi('sendSmartInvoiceEmail');
+    if (!api) return;
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     try {
       const sender = this.parseSender(from);
@@ -449,12 +468,10 @@ export class NotificationService {
   }
 
   async sendAdminRegistrationNotification(params: AdminRegistrationParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
+    const api = this.getBrevoApi('sendAdminRegistrationNotification');
+    if (!api) return;
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -495,15 +512,10 @@ export class NotificationService {
   }
 
   async sendApprovalEmail(params: ApprovalEmailParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
-    if (!apiKey) {
-      throw new Error('BREVO_API_KEY is missing');
-    }
+    const api = this.getBrevoApi('sendApprovalEmail');
+    if (!api) return;
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -547,15 +559,10 @@ export class NotificationService {
   }
 
   async sendRejectionEmail(params: RejectionEmailParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
-    if (!apiKey) {
-      throw new Error('BREVO_API_KEY is missing');
-    }
+    const api = this.getBrevoApi('sendRejectionEmail');
+    if (!api) return;
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -601,13 +608,10 @@ export class NotificationService {
   async sendEmployeeWelcomeEmail(
     params: EmployeeWelcomeEmailParams,
   ): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
+    const api = this.getBrevoApi('sendEmployeeWelcomeEmail');
+    if (!api) return;
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -656,12 +660,10 @@ export class NotificationService {
   }
 
   async sendResetPasswordEmail(params: ResetPasswordParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
+    const api = this.getBrevoApi('sendResetPasswordEmail');
+    if (!api) return;
     const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -707,12 +709,10 @@ export class NotificationService {
   }
 
   async sendAdminPasswordRequestNotification(params: AdminPasswordRequestParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
+    const api = this.getBrevoApi('sendAdminPasswordRequestNotification');
+    if (!api) return;
     const adminEmail = process.env.ADMIN_EMAIL ?? 'nour.hasni02@gmail.com';
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -892,11 +892,9 @@ export class NotificationService {
   }
 
   async sendExpenseApprovedEmail(params: ExpenseNotificationParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
+    const api = this.getBrevoApi('sendExpenseApprovedEmail');
+    if (!api) return;
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const html = this.generateTaskFlowEmailTemplate({
       title: 'Expense Approved',
@@ -922,11 +920,9 @@ export class NotificationService {
   }
 
   async sendExpenseRejectedEmail(params: ExpenseNotificationParams): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY ?? '';
+    const api = this.getBrevoApi('sendExpenseRejectedEmail');
+    if (!api) return;
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const client = SibApiV3Sdk.ApiClient.instance;
-    (client.authentications as any)['api-key'].apiKey = apiKey;
-    const api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
 
     const html = this.generateTaskFlowEmailTemplate({
       title: 'Expense Rejected',

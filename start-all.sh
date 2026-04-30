@@ -59,17 +59,6 @@ declare -a PRISMA_SERVICES=(
   "audit-service"
 )
 
-# Base de données par service
-declare -A DB_MAP=(
-  ["auth-service"]="taskflow_auth"
-  ["tenant-service"]="taskflow_tenant"
-  ["business-service"]="taskflow_business"
-  ["notification-service"]="taskflow_notification"
-  ["invoice-service"]="taskflow_invoice"
-  ["expense-service"]="taskflow_expense"
-  ["audit-service"]="taskflow_audit"
-)
-
 DB_BASE="postgresql://postgres:taskflow2026@localhost:5432"
 
 # ─── Fonctions utilitaires ───────────────────────────────────────────────────
@@ -151,6 +140,35 @@ wait_for_postgres() {
   log_success "PostgreSQL est prêt !"
 }
 
+wait_for_docker() {
+  local max_wait=${1:-120}
+  local waited=0
+
+  if docker info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log_warn "Docker daemon indisponible. Tentative de démarrage de Docker Desktop..."
+  if command -v open >/dev/null 2>&1; then
+    open -a Docker >/dev/null 2>&1 || true
+  fi
+
+  while ! docker info >/dev/null 2>&1; do
+    sleep 2
+    waited=$((waited + 2))
+    if [ "$waited" -ge "$max_wait" ]; then
+      log_error "Docker n'est toujours pas accessible après ${max_wait}s."
+      log_info "Contexte Docker actuel: $(docker context show 2>/dev/null || echo 'indisponible')"
+      log_info "Détail erreur:"
+      docker info 2>&1 | head -3
+      return 1
+    fi
+  done
+
+  log_success "Docker daemon est prêt"
+  return 0
+}
+
 create_databases() {
   log_info "Création des bases de données par service..."
   local dbs=("taskflow_auth" "taskflow_tenant" "taskflow_business" "taskflow_notification" "taskflow_invoice" "taskflow_expense" "taskflow_audit")
@@ -164,12 +182,29 @@ create_databases() {
   done
 }
 
+get_db_name_for_service() {
+  local svc="$1"
+  case "$svc" in
+    auth-service) echo "taskflow_auth" ;;
+    tenant-service) echo "taskflow_tenant" ;;
+    business-service) echo "taskflow_business" ;;
+    notification-service) echo "taskflow_notification" ;;
+    invoice-service) echo "taskflow_invoice" ;;
+    expense-service) echo "taskflow_expense" ;;
+    audit-service) echo "taskflow_audit" ;;
+    *) echo "" ;;
+  esac
+}
+
 ensure_env_file() {
   local svc=$1
   local svc_dir="$BACKEND_DIR/$svc"
   local env_file="$svc_dir/.env"
-  local db_name="${DB_MAP[$svc]}"
+  local env_example_file="$svc_dir/.env.example"
+  local db_name
   local port
+
+  db_name="$(get_db_name_for_service "$svc")"
 
   # Récupérer le port depuis SERVICES
   for entry in "${SERVICES[@]}"; do
@@ -182,6 +217,16 @@ ensure_env_file() {
   # Ne pas écraser un .env existant
   if [ -f "$env_file" ]; then
     # Corriger JWT_EXPIRES_IN=7d → 604800 si présent
+    if grep -q 'JWT_EXPIRES_IN=7d' "$env_file"; then
+      sed -i '' 's/JWT_EXPIRES_IN=7d/JWT_EXPIRES_IN=604800/g' "$env_file"
+      log_success "$svc — JWT_EXPIRES_IN corrigé à 604800"
+    fi
+    return
+  fi
+
+  if [ -f "$env_example_file" ]; then
+    cp "$env_example_file" "$env_file"
+    log_success "$svc — .env créé depuis .env.example"
     if grep -q 'JWT_EXPIRES_IN=7d' "$env_file"; then
       sed -i '' 's/JWT_EXPIRES_IN=7d/JWT_EXPIRES_IN=604800/g' "$env_file"
       log_success "$svc — JWT_EXPIRES_IN corrigé à 604800"
@@ -237,8 +282,8 @@ if ! command -v docker &>/dev/null; then
 fi
 log_success "Docker trouvé"
 
-if ! docker info &>/dev/null; then
-  log_error "Docker n'est pas démarré. Lancez Docker Desktop puis relancez."
+if ! wait_for_docker 150; then
+  log_error "Docker n'est pas démarré ou inaccessible. Ouvrez Docker Desktop puis relancez."
   exit 1
 fi
 log_success "Docker est actif"
@@ -257,11 +302,11 @@ log_success "npm $(npm -v)"
 
 mkdir -p "$LOGS_DIR"
 
-# ─── Étape 1 : Docker (PostgreSQL + PgAdmin) ────────────────────────────────
-log_header "Étape 1/12 — Docker : PostgreSQL + PgAdmin"
+# ─── Étape 1 : Docker (PostgreSQL + PgAdmin + Redis) ───────────────────────
+log_header "Étape 1/12 — Docker : PostgreSQL + PgAdmin + Redis"
 
 cd "$PROJECT_ROOT"
-docker compose up -d 2>&1 | tail -5
+docker compose up -d postgres pgadmin redis 2>&1 | tail -5
 wait_for_postgres
 create_databases
 
@@ -369,6 +414,11 @@ log_header "Étape 8/12 — ML Service : environnement Python"
 
 ML_SERVICE_DIR="$BACKEND_DIR/ml-service"
 if [ -f "$ML_SERVICE_DIR/main.py" ]; then
+  if [ ! -f "$ML_SERVICE_DIR/.env" ] && [ -f "$ML_SERVICE_DIR/.env.example" ]; then
+    cp "$ML_SERVICE_DIR/.env.example" "$ML_SERVICE_DIR/.env"
+    log_success "ml-service — .env créé depuis .env.example"
+  fi
+
   if ! command -v python3 &>/dev/null; then
     log_warn "Python3 non trouvé — ml-service ignoré"
   else
