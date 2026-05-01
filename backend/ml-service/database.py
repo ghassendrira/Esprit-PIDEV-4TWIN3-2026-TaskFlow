@@ -8,12 +8,37 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Primary DB: taskflow_business (clients)
 DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise RuntimeError('DATABASE_URL must be set in backend/ml-service/.env')
 
 engine = create_engine(
     DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=1,
+    max_overflow=2,
+)
+
+# Secondary DB: taskflow_invoice (invoices)
+INVOICE_DATABASE_URL = os.getenv(
+    'INVOICE_DATABASE_URL',
+    DATABASE_URL.replace('/taskflow_business', '/taskflow_invoice')
+)
+invoice_engine = create_engine(
+    INVOICE_DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=1,
+    max_overflow=2,
+)
+
+# Tertiary DB: taskflow_expense (expenses)
+EXPENSE_DATABASE_URL = os.getenv(
+    'EXPENSE_DATABASE_URL',
+    DATABASE_URL.replace('/taskflow_business', '/taskflow_expense')
+)
+expense_engine = create_engine(
+    EXPENSE_DATABASE_URL,
     pool_pre_ping=True,
     pool_size=1,
     max_overflow=2,
@@ -102,139 +127,122 @@ def get_real_table_names() -> dict:
 
 def init_table_names():
     """Initialize table names at startup"""
-    global TABLE_NAMES
+    defaults = {
+        'client': '"Client"',
+        'invoice': '"Invoice"',
+        'expense': '"Expense"',
+        'business': '"Business"',
+    }
     try:
-        TABLE_NAMES = get_real_table_names()
-        print(f"✅ Tables discovered: {TABLE_NAMES}")
+        result = get_real_table_names()
+        TABLE_NAMES.clear()
+        TABLE_NAMES.update(result)
+        print(f"✅ Tables discovered: {dict(TABLE_NAMES)}")
     except Exception as e:
         print(f"❌ Error during table discovery: {e}")
-        # Fallback to defaults
-        TABLE_NAMES = {
-            'client': '"Client"',
-            'invoice': '"Invoice"',
-            'expense': '"Expense"',
-            'business': '"Business"',
-        }
-
-
+        TABLE_NAMES.clear()
+        TABLE_NAMES.update(defaults)
 def get_clients(business_id: str) -> pd.DataFrame:
-    """Get clients with invoice counts and totals for ML analysis"""
-    init_table_names()
+    """Get clients with invoice counts and totals for ML analysis.
+    Clients are in taskflow_business, invoices in taskflow_invoice — merged in Python."""
     
-    client_table  = TABLE_NAMES.get('client', '"Client"')
-    invoice_table = TABLE_NAMES.get('invoice', '"Invoice"')
-    
-    # Get available columns for client table
-    client_cols = get_columns(client_table.strip('"'))
-    
-    # Detect correct column names (handle both camelCase and snake_case)
-    name_col = 'name' if 'name' in client_cols else \
-               'nom'  if 'nom'  in client_cols else 'email'
-    
-    biz_col = '"businessId"' if '"businessId"' in str(client_cols) or 'businessId' in client_cols else \
-              '"business_id"' if '"business_id"' in str(client_cols) or 'business_id' in client_cols else \
-              '"businessId"'
-    
-    del_col = '"deletedAt"' if '"deletedAt"' in str(client_cols) or 'deletedAt' in client_cols else 'NULL'
-    
-    # Get available columns for invoice table
-    inv_cols = get_columns(invoice_table.strip('"'))
-    
-    # Detect correct column names for invoice
-    amount_col = '"totalTTC"' if '"totalTTC"' in str(inv_cols) or 'totalTTC' in inv_cols else \
-                 '"total"' if '"total"' in str(inv_cols) or 'total' in inv_cols else \
-                 '0'
-    
-    client_fk = '"clientId"' if '"clientId"' in str(inv_cols) or 'clientId' in inv_cols else \
-                '"client_id"' if '"client_id"' in str(inv_cols) or 'client_id' in inv_cols else \
-                '"clientId"'
-    
-    inv_biz_col = '"businessId"' if '"businessId"' in str(inv_cols) or 'businessId' in inv_cols else \
-                  '"business_id"' if '"business_id"' in str(inv_cols) or 'business_id' in inv_cols else \
-                  '"businessId"'
-
-    query = text(f"""
+    # 1. Fetch clients from taskflow_business
+    client_query = text("""
         SELECT 
-            c.id,
-            c.{biz_col},
-            c.{name_col} AS name,
-            c.email,
-            c."createdAt",
-            COUNT(i.id)  AS invoice_count,
-            COALESCE(SUM(
-                CAST(COALESCE(
-                    i.{amount_col}::text, '0'
-                ) AS FLOAT)
-            ), 0)        AS total_monetary,
-            MAX(i."createdAt") AS last_invoice_date
-        FROM {client_table} c
-        LEFT JOIN {invoice_table} i
-               ON i.{client_fk} = c.id
-              AND i."deletedAt"  IS NULL
-        WHERE c.{biz_col} = :business_id
-          AND ({del_col} IS NULL 
-               OR c."deletedAt" IS NULL)
-        GROUP BY c.id, c.{biz_col},
-                 c.{name_col}, c.email, 
-                 c."createdAt"
+            id,
+            "businessId",
+            name,
+            email,
+            "createdAt"
+        FROM "Client"
+        WHERE "businessId" = :business_id
+          AND "deletedAt" IS NULL
     """)
 
     try:
         with engine.connect() as conn:
-            return pd.read_sql(
-                query, conn,
-                params={'business_id': business_id}
-            )
+            clients_df = pd.read_sql(client_query, conn, params={'business_id': business_id})
     except Exception as e:
-        print(f"❌ Error in get_clients: {e}")
+        print(f"❌ Error fetching clients: {e}")
         return pd.DataFrame()
 
-def get_invoices(business_id: str) -> pd.DataFrame:
-    """Get invoices for ML analysis"""
-    init_table_names()
-    
-    invoice_table = TABLE_NAMES.get('invoice', '"Invoice"')
-    client_table  = TABLE_NAMES.get('client', '"Client"')
-    
-    inv_cols = get_columns(invoice_table.strip('"'))
-    
-    # Detect correct column names
-    amount_col = '"totalTTC"' if '"totalTTC"' in str(inv_cols) or 'totalTTC' in inv_cols else \
-                 '"total"' if '"total"' in str(inv_cols) or 'total' in inv_cols else \
-                 '0'
-    
-    biz_col = '"businessId"' if '"businessId"' in str(inv_cols) or 'businessId' in inv_cols else \
-              '"business_id"' if '"business_id"' in str(inv_cols) or 'business_id' in inv_cols else \
-              '"businessId"'
-    
-    client_fk = '"clientId"' if '"clientId"' in str(inv_cols) or 'clientId' in inv_cols else \
-                '"client_id"' if '"client_id"' in str(inv_cols) or 'client_id' in inv_cols else \
-                '"clientId"'
+    if clients_df.empty:
+        return pd.DataFrame()
 
-    query = text(f"""
+    # 2. Fetch invoices from taskflow_invoice (different DB)
+    invoice_query = text("""
         SELECT 
-            i.id,
-            i.{biz_col},
-            i.{client_fk},
-            i.{amount_col} AS amount,
-            i.status,
-            i."createdAt",
-            i."dueDate",
-            c.name AS client_name
-        FROM {invoice_table} i
-        LEFT JOIN {client_table} c
-               ON c.id = i.{client_fk}
-        WHERE i.{biz_col}   = :business_id
-          AND i."deletedAt" IS NULL
-        ORDER BY i."createdAt" ASC
+            "clientId",
+            "totalAmount",
+            "createdAt" AS invoice_date
+        FROM "Invoice"
+        WHERE "businessId" = :business_id
+          AND "deletedAt" IS NULL
     """)
 
     try:
-        with engine.connect() as conn:
-            return pd.read_sql(
-                query, conn,
-                params={'business_id': business_id}
-            )
+        with invoice_engine.connect() as conn:
+            invoices_df = pd.read_sql(invoice_query, conn, params={'business_id': business_id})
+    except Exception as e:
+        print(f"⚠️  Could not fetch invoices (using 0 values): {e}")
+        invoices_df = pd.DataFrame(columns=['clientId', 'totalAmount', 'invoice_date'])
+
+    # 3. Merge in Python
+    if invoices_df.empty:
+        clients_df['invoice_count'] = 0
+        clients_df['total_monetary'] = 0.0
+        clients_df['last_invoice_date'] = pd.NaT
+    else:
+        agg = invoices_df.groupby('clientId').agg(
+            invoice_count=('totalAmount', 'count'),
+            total_monetary=('totalAmount', 'sum'),
+            last_invoice_date=('invoice_date', 'max'),
+        ).reset_index()
+        clients_df = clients_df.merge(
+            agg,
+            left_on='id',
+            right_on='clientId',
+            how='left'
+        )
+        clients_df['invoice_count'] = clients_df['invoice_count'].fillna(0).astype(int)
+        clients_df['total_monetary'] = clients_df['total_monetary'].fillna(0.0)
+        clients_df['last_invoice_date'] = pd.to_datetime(clients_df['last_invoice_date'])
+
+    return clients_df
+
+def get_invoices(business_id: str) -> pd.DataFrame:
+    """Get invoices for ML analysis — from taskflow_invoice DB"""
+    query = text("""
+        SELECT 
+            id,
+            "businessId",
+            "clientId",
+            "totalAmount" AS amount,
+            status,
+            "createdAt",
+            "dueDate"
+        FROM "Invoice"
+        WHERE "businessId" = :business_id
+          AND "deletedAt" IS NULL
+        ORDER BY "createdAt" ASC
+    """)
+
+    try:
+        with invoice_engine.connect() as conn:
+            df = pd.read_sql(query, conn, params={'business_id': business_id})
+        # Fetch client names from taskflow_business
+        if not df.empty:
+            client_ids = df['clientId'].dropna().unique().tolist()
+            if client_ids:
+                placeholders = ','.join([f"'{c}'" for c in client_ids])
+                name_query = text(f'SELECT id, name FROM "Client" WHERE id IN ({placeholders})')
+                with engine.connect() as conn:
+                    names_df = pd.read_sql(name_query, conn)
+                name_map = dict(zip(names_df['id'].astype(str), names_df['name']))
+                df['client_name'] = df['clientId'].astype(str).map(name_map).fillna('Unknown')
+            else:
+                df['client_name'] = 'Unknown'
+        return df
     except Exception as e:
         print(f"❌ Error in get_invoices: {e}")
         return pd.DataFrame()
@@ -276,7 +284,7 @@ def get_expenses(business_id: str) -> pd.DataFrame:
     """)
 
     try:
-        with engine.connect() as conn:
+        with expense_engine.connect() as conn:
             return pd.read_sql(
                 query, conn,
                 params={'business_id': business_id}

@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from database import get_clients, save_model_params
@@ -41,14 +42,25 @@ def train_segmentation(business_id: str) -> dict:
     save_model_params(business_id, 'SEGMENTATION', params)
 
     clients = []
+    label_to_segment_id = {
+        'Champion': 'champion',
+        'Fidèle': 'fidele',
+        'À Risque': 'aRisque',
+        'Perdu': 'perdu',
+    }
     for _, row in df.iterrows():
         label_info = segment_labels.get(str(row['segment']), {})
+        label = label_info.get('label', 'Inconnu')
         clients.append({
             'id': str(row['id']),
             'name': row.get('name', ''),
-            'label': label_info.get('label', 'Inconnu'),
+            'label': label,
+            'segment_id': label_to_segment_id.get(label, 'fidele'),
+            'segmentId': label_to_segment_id.get(label, 'fidele'),
+            'segment_label': label,
             'color': label_info.get('color', 'gray'),
             'emoji': label_info.get('emoji', '❓'),
+            'action': label_info.get('action', ''),
             'recency': int(row['recency']),
             'frequency': int(row['frequency']),
             'monetary': round(float(row['monetary']), 2),
@@ -85,6 +97,19 @@ def assign_segment_labels(centers: np.ndarray) -> dict:
 
 def segment_without_ml(df: pd.DataFrame) -> dict:
     now = pd.Timestamp.now()
+    label_to_segment_id = {
+        'Champion': 'champion',
+        'Fidèle': 'fidele',
+        'À Risque': 'aRisque',
+        'Perdu': 'perdu',
+    }
+    label_to_action = {
+        'Champion': 'Offrir avantages premium',
+        'Fidèle': 'Maintenir la relation',
+        'À Risque': 'Relance commerciale urgente',
+        'Perdu': 'Campagne de réactivation',
+    }
+
     clients = []
     for _, row in df.iterrows():
         last = pd.to_datetime(row['last_invoice_date']) if pd.notna(row.get('last_invoice_date')) else None
@@ -105,8 +130,12 @@ def segment_without_ml(df: pd.DataFrame) -> dict:
             'id': str(row['id']),
             'name': row.get('name', ''),
             'label': label,
+            'segment_id': label_to_segment_id.get(label, 'fidele'),
+            'segmentId': label_to_segment_id.get(label, 'fidele'),
+            'segment_label': label,
             'color': color,
             'emoji': emoji,
+            'action': label_to_action.get(label, ''),
             'recency': recency,
             'frequency': frequency,
             'monetary': round(monetary, 2),

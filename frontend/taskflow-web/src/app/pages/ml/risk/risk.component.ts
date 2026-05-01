@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MlService } from '../../../core/services/ml.service';
@@ -144,6 +144,8 @@ export class RiskComponent implements OnInit {
   private businessSelection = inject(BusinessSelectionService);
   private settings = inject(SettingsService);
   private auth = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
+  private zone = inject(NgZone);
 
   businesses = signal<Array<{ id: string; name: string; tenantId: string }>>([]);
   selectedBusinessId = '';
@@ -167,7 +169,6 @@ export class RiskComponent implements OnInit {
       '';
 
     if (this.isAdmin() && tenantId) {
-      // Admin: fetch businesses for their tenant, then load risks for first
       this.settings.getBusinessesForTenant(tenantId).subscribe({
         next: (bs: any[]) => {
           const list = (bs || []).map((b: any) => ({
@@ -177,19 +178,18 @@ export class RiskComponent implements OnInit {
           }));
           this.businesses.set(list);
           if (list.length > 0) {
-            // Prefer previously selected business if still valid
             const existing = this.businessSelection.selectedBusinessId();
             const valid = list.find((b) => b.id === existing);
             const chosen = valid || list[0];
             this.selectBusiness(chosen.id, chosen.tenantId);
           } else {
             this.loading = false;
+            this.cdr.detectChanges();
           }
         },
-        error: () => { this.loading = false; },
+        error: () => { this.loading = false; this.cdr.detectChanges(); },
       });
     } else {
-      // Normal user: fetch their businesses
       this.settings.getBusinesses().subscribe({
         next: (bs: any[]) => {
           const list = (bs || []).map((b: any) => ({
@@ -205,9 +205,10 @@ export class RiskComponent implements OnInit {
             this.selectBusiness(chosen.id, chosen.tenantId);
           } else {
             this.loading = false;
+            this.cdr.detectChanges();
           }
         },
-        error: () => { this.loading = false; },
+        error: () => { this.loading = false; this.cdr.detectChanges(); },
       });
     }
   }
@@ -226,49 +227,57 @@ export class RiskComponent implements OnInit {
   loadData() {
     if (!this.selectedBusinessId) return;
     this.loading = true;
+    this.cdr.detectChanges();
+
     this.ml.getAllRisks().subscribe({
       next: (res: any) => {
-        const invList: any[] = res.invoices || (Array.isArray(res) ? res : []);
-        this.invoices = invList.map((inv: any) => {
-          const score = inv.riskScore || 0;
-          let level: string = inv.riskLevel || 'LOW';
-          let emoji = inv.riskEmoji || '🟢';
-          let action = inv.message || 'Facture saine, aucun suivi particulier.';
+        this.zone.run(() => {
+          const invList: any[] = res.invoices || (Array.isArray(res) ? res : []);
+          this.invoices = invList.map((inv: any) => {
+            const score = inv.riskScore || 0;
+            const level: string = (inv.riskLevel || 'LOW').toUpperCase();
 
-          if (score > 0.67 || level === 'HIGH') {
-            level = 'HIGH'; emoji = '🔴';
-            action = 'Urgent : Contacter le client, risque d\'impayé élevé.';
-          } else if (score > 0.33 || level === 'MEDIUM') {
-            level = 'MEDIUM'; emoji = '🟡';
-            action = 'Suivi recommandé : Envoyer un rappel automatique.';
-          } else {
-            level = 'LOW'; emoji = '🟢';
-            action = 'Facture saine, aucun suivi particulier.';
-          }
+            let emoji = '🟢';
+            if (level === 'HIGH') emoji = '🔴';
+            else if (level === 'MEDIUM') emoji = '🟡';
 
-          return {
-            ...inv,
-            invoiceNumber: inv.number || inv.invoiceNumber || `INV-${(inv.id || '').substring(0, 8)}`,
-            riskScore: score,
-            riskLevel: level,
-            riskEmoji: emoji,
-            action,
-          };
-        });
+            let action = inv.reason || inv.message || '';
+            if (!action) {
+              if (level === 'HIGH') action = 'Urgent : Contacter le client, risque d\'impayé élevé.';
+              else if (level === 'MEDIUM') action = 'Suivi recommandé : Envoyer un rappel automatique.';
+              else action = 'Facture saine, aucun suivi particulier.';
+            }
 
-        this.stats = res.stats
-          ? { total: res.stats.total || 0, high: res.stats.high || 0, medium: res.stats.medium || 0, low: res.stats.low || 0 }
-          : {
-              total: this.invoices.length,
-              high: this.invoices.filter(i => i.riskLevel === 'HIGH').length,
-              medium: this.invoices.filter(i => i.riskLevel === 'MEDIUM').length,
-              low: this.invoices.filter(i => i.riskLevel === 'LOW').length,
+            return {
+              ...inv,
+              invoiceNumber: inv.number || inv.invoiceNumber || `INV-${(inv.id || '').substring(0, 8)}`,
+              riskScore: score,
+              riskLevel: level,
+              riskEmoji: emoji,
+              action,
             };
+          });
 
-        this.applyFilter();
-        this.loading = false;
+          this.stats = res.stats
+            ? { total: res.stats.total || 0, high: res.stats.high || 0, medium: res.stats.medium || 0, low: res.stats.low || 0 }
+            : {
+                total: this.invoices.length,
+                high: this.invoices.filter(i => i.riskLevel === 'HIGH').length,
+                medium: this.invoices.filter(i => i.riskLevel === 'MEDIUM').length,
+                low: this.invoices.filter(i => i.riskLevel === 'LOW').length,
+              };
+
+          this.applyFilter();
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       },
-      error: () => { this.loading = false; },
+      error: () => {
+        this.zone.run(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      },
     });
   }
 

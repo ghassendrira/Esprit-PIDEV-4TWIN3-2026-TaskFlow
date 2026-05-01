@@ -966,7 +966,7 @@ export class ProxyController {
   @Get('ml/cashflow')
   async mlCashflow(@Req() req: Request, @Res() res: Response) {
     const qs = req.url.split('?')[1] || '';
-    const url = `http://localhost:3001/ml/cashflow${qs ? '?' + qs : ''}`;
+    const url = `http://localhost:8000/ml/cashflow${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -983,7 +983,7 @@ export class ProxyController {
   @Get('ml/segmentation')
   async mlSegmentation(@Req() req: Request, @Res() res: Response) {
     const qs = req.url.split('?')[1] || '';
-    const url = `http://localhost:3001/ml/segmentation${qs ? '?' + qs : ''}`;
+    const url = `http://localhost:8000/ml/segmentation${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -1005,7 +1005,7 @@ export class ProxyController {
     @Res() res: Response,
   ) {
     const qs = req.url.split('?')[1] || '';
-    const url = `http://localhost:3001/ml/segmentation/${encodeURIComponent(clientId)}${qs ? '?' + qs : ''}`;
+    const url = `http://localhost:8000/ml/segmentation/${encodeURIComponent(clientId)}${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -1023,7 +1023,7 @@ export class ProxyController {
   @Get('ml/anomalies')
   async mlAnomalies(@Req() req: Request, @Res() res: Response) {
     const qs = req.url.split('?')[1] || '';
-    const url = `http://localhost:3001/ml/anomalies${qs ? '?' + qs : ''}`;
+    const url = `http://localhost:8000/ml/anomalies${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -1040,7 +1040,7 @@ export class ProxyController {
   @Get('ml/risk')
   async mlRisk(@Req() req: Request, @Res() res: Response) {
     const qs = req.url.split('?')[1] || '';
-    const url = `http://localhost:3001/ml/risk${qs ? '?' + qs : ''}`;
+    const url = `http://localhost:8000/ml/risk${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
@@ -1057,7 +1057,7 @@ export class ProxyController {
   @Get('ml/risk/:invoiceId')
   async mlRiskInvoice(@Param('invoiceId') invoiceId: string, @Req() req: Request, @Res() res: Response) {
     const qs = req.url.split('?')[1] || '';
-    const url = `http://localhost:3001/ml/risk/${encodeURIComponent(invoiceId)}${qs ? '?' + qs : ''}`;
+    const url = `http://localhost:8000/ml/risk/${encodeURIComponent(invoiceId)}${qs ? '?' + qs : ''}`;
     try {
       const r = await fetch(url, {
         method: 'GET',
