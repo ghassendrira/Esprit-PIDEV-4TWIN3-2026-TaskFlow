@@ -19,7 +19,7 @@
 ###############################################################################
 
 # Ne PAS utiliser set -e : on gère les erreurs manuellement
-# pour éviter que le script ne crashe sur un warning npm
+# pour éviter que le script ne crashe sur un warning npmdds
 
 # ─── Couleurs ────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
