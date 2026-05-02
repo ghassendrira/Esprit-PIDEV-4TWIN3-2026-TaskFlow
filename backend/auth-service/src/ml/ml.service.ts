@@ -215,93 +215,29 @@ export class MlService {
   }
 
   async getAnomalies(businessId: string, tenantId: string, authorization: string) {
-    const [invoices, expenses] = await Promise.all([
-      this.callService(`${this.authApiUrl}/invoices/by-business/${businessId}`, {
-        headers: this.authHeaders(tenantId, authorization),
-      }),
-      this.callService(`${this.authApiUrl}/expenses/by-business/${businessId}`, {
-        headers: this.authHeaders(tenantId, authorization),
-      }),
-    ]);
-
-    const invAnomalyIds = new Set<string>();
-    if (Array.isArray(invoices)) {
-      for (let i = 0; i < invoices.length; i++) {
-        for (let j = i + 1; j < invoices.length; j++) {
-          const a = invoices[i]; const b = invoices[j];
-          const amtA = Number(a.totalTTC || a.totalAmount || 0);
-          const amtB = Number(b.totalTTC || b.totalAmount || 0);
-
-          const dateA = new Date(a.createdAt || a.issueDate).getTime();
-          const dateB = new Date(b.createdAt || b.issueDate).getTime();
-          if (isNaN(dateA) || isNaN(dateB)) continue;
-
-          const dateDiff = Math.abs(dateA - dateB) / (1000 * 60 * 60 * 24);
-          if (a.clientId === b.clientId && Math.abs(amtA - amtB) < 0.01 && dateDiff <= 1) {
-            invAnomalyIds.add(a.id); invAnomalyIds.add(b.id);
-          }
-        }
+    // Use the dedicated FastAPI ML service for advanced anomaly detection
+    const mlResult = await this.callService(`${this.mlApiUrl}/ml/anomalies`, {
+      method: 'GET',
+      headers: {
+        'x-tenant-id': tenantId,
+        'x-business-id': businessId,
+        'Authorization': authorization
       }
+    });
+
+    if (mlResult && mlResult.summary) {
+      return mlResult;
     }
 
-    const expAnomalyIds = new Set<string>();
-    if (Array.isArray(expenses)) {
-      for (let i = 0; i < expenses.length; i++) {
-        for (let j = i + 1; j < expenses.length; j++) {
-          const a = expenses[i]; const b = expenses[j];
-
-          const dateA = new Date(a.date || a.createdAt).getTime();
-          const dateB = new Date(b.date || b.createdAt).getTime();
-          if (isNaN(dateA) || isNaN(dateB)) continue;
-
-          const dateDiff = Math.abs(dateA - dateB) / (1000 * 60 * 60 * 24);
-          if ((a.createdByUserId || a.createdBy) === (b.createdByUserId || b.createdBy) &&
-              Math.abs(Number(a.amount) - Number(b.amount)) < 0.01 &&
-              a.categoryId === b.categoryId && dateDiff <= 1) {
-            expAnomalyIds.add(a.id); expAnomalyIds.add(b.id);
-          }
-        }
-      }
-    }
-
-    const invAnomalies = (invoices || []).filter(i => invAnomalyIds.has(i.id)).map(i => ({
-      ...i, isAnomaly: true, riskLevel: 'HIGH', message: '⚠️ Facture dupliquée'
-    }));
-    const invNormal = (invoices || []).filter(i => !invAnomalyIds.has(i.id)).map(i => ({
-      ...i, isAnomaly: false, riskLevel: 'LOW', message: '✅ Normale'
-    }));
-    const expAnomalies = (expenses || []).filter(e => expAnomalyIds.has(e.id)).map(e => ({
-      ...e, isAnomaly: true, riskLevel: 'HIGH', message: '⚠️ Dépense dupliquée'
-    }));
-    const expNormal = (expenses || []).filter(e => !expAnomalyIds.has(e.id)).map(e => ({
-      ...e, isAnomaly: false, riskLevel: 'LOW', message: '✅ Normale'
-    }));
-
+    // Fallback if ML service is unavailable: return empty structure
     return {
       summary: {
-        totalInvoices: (invoices || []).length,
-        invoiceAnomalies: invAnomalies.length,
-        invoiceNormal: invNormal.length,
-        invoiceAnomalyRate: (invoices || []).length > 0 ? Math.round(invAnomalies.length / invoices.length * 100) : 0,
-        totalExpenses: (expenses || []).length,
-        expenseAnomalies: expAnomalies.length,
-        expenseNormal: expNormal.length,
-        expenseAnomalyRate: (expenses || []).length > 0 ? Math.round(expAnomalies.length / expenses.length * 100) : 0,
-        totalAnomalies: invAnomalies.length + expAnomalies.length,
-        totalNormal: invNormal.length + expNormal.length,
+        totalInvoices: 0, invoiceAnomalies: 0, invoiceNormal: 0, invoiceAnomalyRate: 0,
+        totalExpenses: 0, expenseAnomalies: 0, expenseNormal: 0, expenseAnomalyRate: 0,
+        totalAnomalies: 0, totalNormal: 0
       },
-      invoices: {
-        anomalyCount: invAnomalies.length,
-        normalCount: invNormal.length,
-        anomalies: invAnomalies,
-        normal: invNormal
-      },
-      expenses: {
-        anomalyCount: expAnomalies.length,
-        normalCount: expNormal.length,
-        anomalies: expAnomalies,
-        normal: expNormal
-      }
+      invoices: { anomalyCount: 0, normalCount: 0, anomalies: [], normal: [] },
+      expenses: { anomalyCount: 0, normalCount: 0, anomalies: [], normal: [] }
     };
   }
 

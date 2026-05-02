@@ -211,20 +211,24 @@ def get_clients(business_id: str) -> pd.DataFrame:
     return clients_df
 
 def get_invoices(business_id: str) -> pd.DataFrame:
-    """Get invoices for ML analysis — from taskflow_invoice DB"""
+    """Get invoices for ML analysis — from taskflow_invoice DB (Prisma schema)"""
     query = text("""
         SELECT 
             id,
             "businessId",
             "clientId",
-            "totalAmount" AS amount,
+            "invoiceNumber",
+            "totalAmount"          AS amount,
+            "totalAmount"          AS "totalTTC",
+            "taxAmount",
             status,
-            "createdAt",
-            "dueDate"
+            "issueDate"            AS "createdAt",
+            "dueDate",
+            "createdAt"            AS "insertedAt"
         FROM "Invoice"
         WHERE "businessId" = :business_id
           AND "deletedAt" IS NULL
-        ORDER BY "createdAt" ASC
+        ORDER BY "issueDate" ASC
     """)
 
     try:
@@ -248,47 +252,37 @@ def get_invoices(business_id: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 def get_expenses(business_id: str) -> pd.DataFrame:
-    """Get expenses for ML analysis"""
-    init_table_names()
-    
-    expense_table = TABLE_NAMES.get('expense', '"Expense"')
-    
-    exp_cols = get_columns(expense_table.strip('"'))
-    
-    biz_col = '"businessId"' if '"businessId"' in str(exp_cols) or 'businessId' in exp_cols else \
-              '"business_id"' if '"business_id"' in str(exp_cols) or 'business_id' in exp_cols else \
-              '"businessId"'
-    
-    user_col = '"createdBy"' if '"createdBy"' in str(exp_cols) or 'createdBy' in exp_cols else \
-               '"created_by"' if '"created_by"' in str(exp_cols) or 'created_by' in exp_cols else \
-               '"createdBy"'
-    
-    cat_col = '"categoryId"' if '"categoryId"' in str(exp_cols) or 'categoryId' in exp_cols else \
-              '"category_id"' if '"category_id"' in str(exp_cols) or 'category_id' in exp_cols else \
-              '"categoryId"'
-
-    query = text(f"""
+    """Get expenses for ML analysis — from taskflow_expense DB (Prisma schema)"""
+    # Schema is known from Prisma: id, businessId, amount, date, description,
+    # status, categoryId, createdBy, createdAt, updatedAt, deletedAt
+    query = text("""
         SELECT 
             e.id,
-            e.{biz_col},
-            e.{user_col},
+            e."businessId",
+            e."createdBy",
             e.amount,
             e.date,
             e.description,
             e.status,
-            e.{cat_col}
-        FROM {expense_table} e
-        WHERE e.{biz_col}   = :business_id
+            e."categoryId",
+            e."createdAt"
+        FROM "Expense" e
+        WHERE e."businessId" = :business_id
           AND e."deletedAt" IS NULL
         ORDER BY e."createdAt" ASC
     """)
 
     try:
         with expense_engine.connect() as conn:
-            return pd.read_sql(
-                query, conn,
-                params={'business_id': business_id}
-            )
+            df = pd.read_sql(query, conn, params={'business_id': business_id})
+        # Normalize column names so anomaly.py can use 'createdBy' consistently
+        if not df.empty:
+            # Ensure 'createdBy' column exists (alias for anomaly logic)
+            if 'createdBy' not in df.columns and 'createdby' in df.columns:
+                df.rename(columns={'createdby': 'createdBy'}, inplace=True)
+            if 'categoryId' not in df.columns and 'categoryid' in df.columns:
+                df.rename(columns={'categoryid': 'categoryId'}, inplace=True)
+        return df
     except Exception as e:
         print(f"❌ Error in get_expenses: {e}")
         return pd.DataFrame()

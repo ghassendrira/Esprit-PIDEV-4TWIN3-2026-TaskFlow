@@ -11,6 +11,7 @@ export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
   const activeTenantId = localStorage.getItem('activeTenantId');
   const tenantId = localStorage.getItem('tenantId');
   const businessTenantId = localStorage.getItem('businessTenantId');
+  const activeBusinessId = localStorage.getItem('activeBusinessId') || localStorage.getItem('businessId');
   
   // Utiliser activeTenantId en priorité, sinon tenantId
   const finalTenantId = activeTenantId || tenantId || businessTenantId;
@@ -38,6 +39,7 @@ export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
   if (userId) headers['x-user-id'] = userId;
   if (userRole) headers['x-user-role'] = userRole;
   if (finalTenantId) headers['x-tenant-id'] = finalTenantId;
+  if (activeBusinessId) headers['x-business-id'] = activeBusinessId;
 
   const cloned = req.clone({
     setHeaders: headers

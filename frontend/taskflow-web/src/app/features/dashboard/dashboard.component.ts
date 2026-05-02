@@ -64,7 +64,7 @@ import { InvoicesService } from '../../core/services/invoices.service';
         <div *ngIf="mlLoading()" class="text-sm muted text-center py-4">
           <span class="animate-pulse">Chargement des indicateurs ML…</span>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           <a
             routerLink="/ml/risk"
             class="group rounded-2xl border border-white/5 bg-[#1e2937] p-5 transition hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
@@ -100,15 +100,7 @@ import { InvoicesService } from '../../core/services/invoices.service';
             <span class="inline-block mt-3 text-blue-400 text-xs font-bold">Détails →</span>
           </a>
 
-          <a
-            routerLink="/ml/anomalies"
-            class="group rounded-2xl border border-white/5 bg-[#1e2937] p-5 transition hover:border-blue-500/40 hover:shadow-lg"
-          >
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Anomalies</p>
-            <p class="text-3xl font-black text-amber-400 mt-2">{{ anomalyCount() }}</p>
-            <p class="text-xs text-slate-500 mt-1">Détectées ce mois (ML)</p>
-            <span class="inline-block mt-3 text-blue-400 text-xs font-bold">Examiner →</span>
-          </a>
+
         </div>
       </section>
 
@@ -181,11 +173,7 @@ import { InvoicesService } from '../../core/services/invoices.service';
               class="text-sm font-semibold text-blue-500 hover:text-blue-400 py-2 px-3 rounded-lg bg-slate-800/50 border border-white/5"
               >Trésorerie</a
             >
-            <a
-              routerLink="/ml/anomalies"
-              class="text-sm font-semibold text-blue-500 hover:text-blue-400 py-2 px-3 rounded-lg bg-slate-800/50 border border-white/5"
-              >Anomalies</a
-            >
+
           </div>
         </tf-card>
       </section>

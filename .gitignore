@@ -9,3 +9,4 @@ __pycache__/
 *.py[cod]
 __pycache__/
 *.pyc
+.github/workflows/smoke-api.yml
