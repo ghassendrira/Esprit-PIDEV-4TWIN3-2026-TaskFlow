@@ -7,93 +7,98 @@ export class RolesService implements OnModuleInit {
   constructor(private prisma: PrismaService) {}
 
   async onModuleInit() {
-    // TASK 2: Seed default permissions
-    const permissions = [
-      { name: 'Create_User', description: 'Can create users' },
-      { name: 'Read_User', description: 'Can read user information' },
-      { name: 'Update_User', description: 'Can update user information' },
-      { name: 'Delete_User', description: 'Can delete users' },
-      { name: 'Manage_User', description: 'Full access to user management' },
-    ];
+    try {
+      // TASK 2: Seed default permissions
+      const permissions = [
+        { name: 'Create_User', description: 'Can create users' },
+        { name: 'Read_User', description: 'Can read user information' },
+        { name: 'Update_User', description: 'Can update user information' },
+        { name: 'Delete_User', description: 'Can delete users' },
+        { name: 'Manage_User', description: 'Full access to user management' },
+      ];
 
-    const createdPermissions: any[] = [];
-    for (const p of permissions) {
-      const perm = await this.prisma.permission.upsert({
-        where: { name: p.name },
-        update: { description: p.description },
-        create: { name: p.name, description: p.description },
-      });
-      createdPermissions.push(perm);
-    }
-
-    const allPermissions = await this.prisma.permission.findMany({
-      select: { id: true },
-    });
-
-    // Assign permissions to standard roles
-    // NOTE: OWNER is used by some tenant creation flows; keep it permissioned to avoid RBAC lockouts.
-    const seededRoles = ['BUSINESS_OWNER', 'BUSINESS_ADMIN', 'OWNER', 'ADMIN', 'SUPER_ADMIN', 'ACCOUNTANT', 'TEAM_MEMBER'];
-    for (const roleName of seededRoles) {
-      // Ensure official standard role exists.
-      let standardRole = await this.prisma.role.findFirst({
-        where: { name: roleName, tenantId: null, isStandard: true },
-      });
-
-      // If not found, look for any role with that name and no tenantId (legacy)
-      if (!standardRole) {
-        const legacy = await this.prisma.role.findFirst({
-          where: { name: roleName, tenantId: null },
+      const createdPermissions: any[] = [];
+      for (const p of permissions) {
+        const perm = await this.prisma.permission.upsert({
+          where: { name: p.name },
+          update: { description: p.description },
+          create: { name: p.name, description: p.description },
         });
-
-        if (legacy) {
-          standardRole = await this.prisma.role.update({
-            where: { id: legacy.id },
-            data: { isStandard: true },
-          });
-        }
+        createdPermissions.push(perm);
       }
 
-      if (!standardRole) {
-        standardRole = await this.prisma.role.create({
-          data: {
-            name: roleName,
-            isStandard: true,
-            tenantId: null,
-            company_id: null,
-          },
-        });
-      }
-
-      // Seed permissions to:
-      // - the official standard role, AND
-      // - any tenant-scoped roles with the same name (legacy/custom), so RBAC doesn't break.
-      const rolesToSeed = await this.prisma.role.findMany({
-        where: { name: roleName, deletedAt: null },
+      const allPermissions = await this.prisma.permission.findMany({
         select: { id: true },
       });
 
-      const permissionsForRole =
-        roleName === 'ADMIN' || roleName === 'BUSINESS_ADMIN' || roleName === 'SUPER_ADMIN'
-          ? allPermissions
-          : createdPermissions;
+      // Assign permissions to standard roles
+      // NOTE: OWNER is used by some tenant creation flows; keep it permissioned to avoid RBAC lockouts.
+      const seededRoles = ['BUSINESS_OWNER', 'BUSINESS_ADMIN', 'OWNER', 'ADMIN', 'SUPER_ADMIN', 'ACCOUNTANT', 'TEAM_MEMBER'];
+      for (const roleName of seededRoles) {
+        // Ensure official standard role exists.
+        let standardRole = await this.prisma.role.findFirst({
+          where: { name: roleName, tenantId: null, isStandard: true },
+        });
 
-      for (const role of rolesToSeed) {
-        for (const perm of permissionsForRole) {
-          await this.prisma.rolePermission.upsert({
-            where: {
-              roleId_permissionId: {
-                roleId: role.id,
-                permissionId: perm.id,
-              },
-            },
-            update: {},
-            create: {
-              roleId: role.id,
-              permissionId: perm.id,
+        // If not found, look for any role with that name and no tenantId (legacy)
+        if (!standardRole) {
+          const legacy = await this.prisma.role.findFirst({
+            where: { name: roleName, tenantId: null },
+          });
+
+          if (legacy) {
+            standardRole = await this.prisma.role.update({
+              where: { id: legacy.id },
+              data: { isStandard: true },
+            });
+          }
+        }
+
+        if (!standardRole) {
+          standardRole = await this.prisma.role.create({
+            data: {
+              name: roleName,
+              isStandard: true,
+              tenantId: null,
+              company_id: null,
             },
           });
         }
+
+        // Seed permissions to:
+        // - the official standard role, AND
+        // - any tenant-scoped roles with the same name (legacy/custom), so RBAC doesn't break.
+        const rolesToSeed = await this.prisma.role.findMany({
+          where: { name: roleName, deletedAt: null },
+          select: { id: true },
+        });
+
+        const permissionsForRole =
+          roleName === 'ADMIN' || roleName === 'BUSINESS_ADMIN' || roleName === 'SUPER_ADMIN'
+            ? allPermissions
+            : createdPermissions;
+
+        for (const role of rolesToSeed) {
+          for (const perm of permissionsForRole) {
+            await this.prisma.rolePermission.upsert({
+              where: {
+                roleId_permissionId: {
+                  roleId: role.id,
+                  permissionId: perm.id,
+                },
+              },
+              update: {},
+              create: {
+                roleId: role.id,
+                permissionId: perm.id,
+              },
+            });
+          }
+        }
       }
+    } catch (error) {
+      console.error('[RolesService] Failed to seed roles and permissions:', error);
+      console.warn('[RolesService] Continuing without seeding - database may not be ready yet');
     }
   }
 

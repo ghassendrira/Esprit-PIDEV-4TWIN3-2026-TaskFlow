@@ -9,6 +9,6 @@ export default defineConfig({
     path: "prisma/migrations",          // dossier des migrations
   },
   datasource: {
-    url: env("DATABASE_URL_INVOICE"),   // ← Prisma cherche CETTE variable dans .env
+    url: env("DATABASE_URL_INVOICE") || env("DATABASE_URL"),   // ← Prisma cherche CETTE variable dans .env
   },
 });

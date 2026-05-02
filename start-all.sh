@@ -196,15 +196,32 @@ get_db_name_for_service() {
   esac
 }
 
+get_db_env_name_for_service() {
+  local svc="$1"
+  case "$svc" in
+    auth-service) echo "DATABASE_URL_AUTH" ;;
+    tenant-service) echo "DATABASE_URL_TENANT" ;;
+    business-service) echo "DATABASE_URL_BUSINESS" ;;
+    notification-service) echo "DATABASE_URL_NOTIFICATION" ;;
+    invoice-service) echo "DATABASE_URL_INVOICE" ;;
+    expense-service) echo "DATABASE_URL_EXPENSE" ;;
+    audit-service) echo "DATABASE_URL_AUDIT" ;;
+    *) echo "DATABASE_URL" ;;
+  esac
+}
+
 ensure_env_file() {
   local svc=$1
   local svc_dir="$BACKEND_DIR/$svc"
   local env_file="$svc_dir/.env"
   local env_example_file="$svc_dir/.env.example"
   local db_name
+  local db_url
+  local db_env_name
   local port
 
   db_name="$(get_db_name_for_service "$svc")"
+  db_env_name="$(get_db_env_name_for_service "$svc")"
 
   # Récupérer le port depuis SERVICES
   for entry in "${SERVICES[@]}"; do
@@ -214,13 +231,19 @@ ensure_env_file() {
     fi
   done
 
-  # Ne pas écraser un .env existant
   if [ -f "$env_file" ]; then
     # Corriger JWT_EXPIRES_IN=7d → 604800 si présent
     if grep -q 'JWT_EXPIRES_IN=7d' "$env_file"; then
       sed -i '' 's/JWT_EXPIRES_IN=7d/JWT_EXPIRES_IN=604800/g' "$env_file"
       log_success "$svc — JWT_EXPIRES_IN corrigé à 604800"
     fi
+
+    if [ -n "$db_name" ] && ! grep -q "^${db_env_name}=" "$env_file"; then
+      db_url="postgresql://postgres:taskflow2026@localhost:5432/$db_name"
+      echo "${db_env_name}=$db_url" >> "$env_file"
+      log_success "$svc — $db_env_name ajouté"
+    fi
+
     return
   fi
 
@@ -231,15 +254,23 @@ ensure_env_file() {
       sed -i '' 's/JWT_EXPIRES_IN=7d/JWT_EXPIRES_IN=604800/g' "$env_file"
       log_success "$svc — JWT_EXPIRES_IN corrigé à 604800"
     fi
+
+    if [ -n "$db_name" ] && ! grep -q "^${db_env_name}=" "$env_file"; then
+      db_url="postgresql://postgres:taskflow2026@localhost:5432/$db_name"
+      echo "${db_env_name}=$db_url" >> "$env_file"
+      log_success "$svc — $db_env_name ajouté"
+    fi
+
     return
   fi
 
   if [ -n "$db_name" ]; then
-    local db_url="postgresql://postgres:taskflow2026@localhost:5432/$db_name"
+    db_url="postgresql://postgres:taskflow2026@localhost:5432/$db_name"
     cat > "$env_file" <<EOF
 PORT=${port:-3000}
 NODE_ENV=development
 DATABASE_URL=$db_url
+${db_env_name}=$db_url
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=604800
 OLLAMA_BASE_URL=http://localhost:11434
@@ -350,6 +381,12 @@ for svc in "${PRISMA_SERVICES[@]}"; do
       else
         npx prisma generate 2>&1 | tail -1
         npx prisma db push --accept-data-loss 2>&1 | tail -3
+      fi
+
+      # Generate writes root node_modules/.prisma; Nest/TS imports expect it under @prisma/client/.prisma
+      if [ -d "node_modules/.prisma" ] && [ -d "node_modules/@prisma/client" ]; then
+        rm -rf node_modules/@prisma/client/.prisma
+        cp -R node_modules/.prisma node_modules/@prisma/client/.prisma
       fi
     ) || log_warn "$svc — Prisma a retourné des warnings"
     log_success "$svc — schéma synchronisé"
