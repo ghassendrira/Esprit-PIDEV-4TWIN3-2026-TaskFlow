@@ -14,7 +14,7 @@ import { Company } from '../entities/Company.entity';
     PassportModule,
     TypeOrmModule.forFeature([User, Company]),
     JwtModule.register({
-      secret: (process.env.JWT_SECRET as string) || 'secretKey',
+      secret: process.env.JWT_SECRET || 'secretKey',
       signOptions: { expiresIn: '1d' },
     }),
   ],

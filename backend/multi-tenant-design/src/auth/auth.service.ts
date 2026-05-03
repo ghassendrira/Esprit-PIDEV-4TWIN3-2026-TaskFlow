@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
