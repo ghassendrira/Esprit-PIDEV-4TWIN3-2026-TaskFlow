@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+from typing import Optional, Dict, Any
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -89,6 +90,16 @@ def discover_tables() -> list:
         print(f"❌ Error discovering tables: {e}")
         return []
 
+def map_single_table(all_tables: list, keyword: str, exclude: str = None) -> str:
+    """Map a single logical table name to physical name"""
+    for table_name in all_tables:
+        table_lower = table_name.lower()
+        if keyword in table_lower:
+            if exclude and exclude in table_lower:
+                continue
+            return table_name
+    return None
+
 def get_real_table_names() -> dict:
     """
     Discover real table names and map them to logical names
@@ -97,38 +108,32 @@ def get_real_table_names() -> dict:
     all_tables = discover_tables()
     mapping = {}
 
-    for table_name in all_tables:
-        table_lower = table_name.lower()
-        
-        # Client table mapping
-        if 'client' in table_lower and 'invoice' not in table_lower:
-            if 'client' not in mapping:
-                mapping['client'] = table_name
-        
-        # Invoice table mapping
-        if 'invoice' in table_lower:
-            if 'invoice' not in mapping:
-                mapping['invoice'] = table_name
-        
-        # Expense table mapping (but NOT ExpenseCategory)
-        if 'expense' in table_lower and 'category' not in table_lower:
-            if 'expense' not in mapping:
-                mapping['expense'] = table_name
-        
-        # Business table mapping (but NOT BusinessUser)
-        if 'business' in table_lower and 'user' not in table_lower:
-            if 'business' not in mapping:
-                mapping['business'] = table_name
+    client_table = map_single_table(all_tables, 'client', 'invoice')
+    if client_table:
+        mapping['client'] = client_table
+
+    invoice_table = map_single_table(all_tables, 'invoice')
+    if invoice_table:
+        mapping['invoice'] = invoice_table
+
+    expense_table = map_single_table(all_tables, 'expense', 'category')
+    if expense_table:
+        mapping['expense'] = expense_table
+
+    business_table = map_single_table(all_tables, 'business', 'user')
+    if business_table:
+        mapping['business'] = business_table
 
     # Fallback defaults if discovery fails
-    if 'client' not in mapping:
-        mapping['client'] = '"Client"'
-    if 'invoice' not in mapping:
-        mapping['invoice'] = '"Invoice"'
-    if 'expense' not in mapping:
-        mapping['expense'] = '"Expense"'
-    if 'business' not in mapping:
-        mapping['business'] = '"Business"'
+    defaults = {
+        'client': '"Client"',
+        'invoice': '"Invoice"',
+        'expense': '"Expense"',
+        'business': '"Business"',
+    }
+    for key, default_value in defaults.items():
+        if key not in mapping:
+            mapping[key] = default_value
 
     return mapping
 
@@ -320,7 +325,7 @@ def save_model_params(business_id: str, model_type: str, params: dict, accuracy:
     except SQLAlchemyError as exc:
         raise RuntimeError(f"Failed to save model params: {exc}") from exc
 
-def get_model_params(business_id: str, model_type: str) -> dict:
+def get_model_params(business_id: str, model_type: str) -> Optional[Dict[str, Any]]:
     query = text('''
         SELECT params, accuracy, "trainedAt"
         FROM "MlModelParams"
