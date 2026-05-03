@@ -10,24 +10,23 @@
 
 import pg from 'pg';
 import { randomUUID } from 'crypto';
-
 const { Client } = pg;
 
-// ─── Database connections ────────────────────────────────────────────────────
+// ─── Database connections ─────────────────────────────────────────────────
 const businessDb = new Client({
-  host: 'localhost',
-  port: 5432,
-  user: 'postgres',
-  password: 'taskflow2026',
-  database: 'taskflow_business',
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD,        // ← plus de valeur par défaut
+  database: process.env.DB_BUSINESS || 'taskflow_business',
 });
 
 const invoiceDb = new Client({
-  host: 'localhost',
-  port: 5432,
-  user: 'postgres',
-  password: 'taskflow2026',
-  database: 'taskflow_invoice',
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD,        // ← plus de valeur par défaut
+  database: process.env.DB_INVOICE || 'taskflow_invoice',
 });
 
 // ─── Realistic data pools ────────────────────────────────────────────────────
