@@ -5,7 +5,6 @@ def count_records():
     DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/taskflow_business')
     INVOICE_DATABASE_URL = os.getenv('INVOICE_DATABASE_URL', DATABASE_URL.replace('/taskflow_business', '/taskflow_invoice'))
     
-    engine = create_engine(DATABASE_URL)
     invoice_engine = create_engine(INVOICE_DATABASE_URL)
     
     try:

@@ -40,10 +40,7 @@ const { PrismaPg } = require('@prisma/adapter-pg');
     const deletable = roles.filter((r) => {
       const hasUsers = (r.memberships?.length ?? 0) > 0;
       const isProtectedName = keepNames.has(String(r.name || '').toUpperCase());
-      if (hasUsers) return false;
-      if (isProtectedName) return false;
-      if (r.isStandard) return false;
-      return true;
+      return !hasUsers && !isProtectedName && !r.isStandard;
     });
 
     if (!deletable.length) {

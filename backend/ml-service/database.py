@@ -8,6 +8,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Constants
+TABLE_CLIENT = '"Client"'
+TABLE_INVOICE = '"Invoice"'
+TABLE_EXPENSE = '"Expense"'
+COLUMN_BUSINESS_ID = '"businessId"'
+COLUMN_DELETED_AT = '"deletedAt"'
+
 # Primary DB: taskflow_business (clients)
 DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:

@@ -224,7 +224,14 @@ for (let i = 0; i < 95; i++) {
   const email = `${fn.toLowerCase()}.${ln.toLowerCase().replace(/ /g,'')}${rand(1,99)}@${emailDomain}`;
   const id = uuid();
   ALL_USER_IDS.push(id);
-  const status = Math.random() > 0.1 ? 'ACTIVE' : (Math.random() > 0.5 ? 'PENDING' : 'REJECTED');
+  let status;
+  if (Math.random() > 0.1) {
+    status = 'ACTIVE';
+  } else if (Math.random() > 0.5) {
+    status = 'PENDING';
+  } else {
+    status = 'REJECTED';
+  }
   const created = randDate('2022-01-01', '2026-04-15');
   NEW_USERS.push({
     id, firstName: fn, lastName: ln, email,
@@ -794,9 +801,6 @@ async function main() {
 
   // ── PHASE 6: Invoices ──
   console.log('📦 Phase 6: Invoices...');
-  const DB_USER_ARR = Array.from(DB_USER_IDS);
-  const DB_CLIENT_ARR = Array.from(DB_CLIENT_IDS);
-  const DB_BIZ_ARR = Array.from(DB_BIZ_IDS);
   const VALID_INVOICES = NEW_INVOICES.filter(inv =>
     DB_BIZ_IDS.has(inv.businessId) && DB_CLIENT_IDS.has(inv.clientId) && DB_USER_IDS.has(inv.createdBy));
   await batchInsert(pools.invoice, 'Invoice', VALID_INVOICES,
@@ -859,7 +863,7 @@ async function main() {
   for (let i = 0; i < 250; i++) {
     const ts = randDate('2023-01-01', '2026-04-16');
     FINAL_CHAT_MSGS.push({
-      id: uuid(), roomId: pick(ACTUAL_ROOM_IDS), senderId: pick(DB_USER_ARR),
+      id: uuid(), roomId: pick(ACTUAL_ROOM_IDS), senderId: pick(Array.from(DB_USER_IDS)),
       senderName: pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES),
       senderRole: pick(['BUSINESS_OWNER','TEAM_MEMBER','ADMIN','SUPPORT']),
       content: pick(CHAT_MESSAGES), kind: 'FREE_TEXT', isRead: Math.random() > 0.3,
