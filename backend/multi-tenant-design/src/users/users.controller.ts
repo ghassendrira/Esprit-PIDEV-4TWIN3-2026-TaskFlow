@@ -5,7 +5,7 @@ import { UserRole } from '../entities/User.entity';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('create')
   @UseGuards(AuthGuard('jwt'))
@@ -21,7 +21,7 @@ export class UsersController {
 
     // Use the tenantId from header or from the user's active context
     const activeCompanyId = tenantId || req.user.company_id;
-    
+
     if (!activeCompanyId) {
       throw new ForbiddenException('No active company context');
     }
@@ -37,7 +37,9 @@ export class UsersController {
 
     // Add email notification logic
     try {
-      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
+      const rawUrl = process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004';
+      const notifBase = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
+      
       await fetch(`${notifBase}/notification/employee-welcome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,7 +65,7 @@ export class UsersController {
     @Headers('x-tenant-id') tenantId: string
   ) {
     const activeCompanyId = tenantId || req.user.company_id;
-    
+
     if (!activeCompanyId) {
       throw new ForbiddenException('No active company context');
     }
