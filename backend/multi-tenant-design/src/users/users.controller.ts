@@ -37,7 +37,7 @@ export class UsersController {
 
     // Add email notification logic
     try {
-      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
       await fetch(`${notifBase}/notification/employee-welcome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,3 +74,4 @@ export class UsersController {
     return this.authService.getUsersByCompany(activeCompanyId);
   }
 }
+

@@ -41,7 +41,7 @@ export class AdminController {
 
     const tenantServiceBase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
 
     try {
       const response = await fetch(`${tenantServiceBase}/tenants/${tenantId}`);
@@ -135,7 +135,7 @@ export class AdminController {
 
     const tenantServiceBase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
 
     const results: Array<{
       id: string;
@@ -321,7 +321,7 @@ export class AdminController {
     // Notify applicant via notification-service
     const notificationBase = (
       process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
 
     try {
       const r = await fetch(`${notificationBase}/notification/approval`, {
@@ -374,7 +374,7 @@ export class AdminController {
 
     const notificationBase = (
       process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
 
     try {
       const r = await fetch(`${notificationBase}/notification/rejection`, {
@@ -401,4 +401,5 @@ export class AdminController {
     return { success: true, emailSent: true };
   }
 }
+
 

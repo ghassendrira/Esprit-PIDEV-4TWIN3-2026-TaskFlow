@@ -79,7 +79,7 @@ export class OnboardingService {
     );
     const base = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     // Fetch current tenant to merge fields
     const current = await fetch(`${base}/tenants/${resolvedTenantId}`).then(
       (r) => (r.ok ? r.json() : null),
@@ -120,12 +120,12 @@ export class OnboardingService {
     );
     const tbase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const tenant = await fetch(`${tbase}/tenants/${resolvedTenantId}`).then(
       (r) => (r.ok ? r.json() : null),
     );
     const url = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const endpoint = `${url.replace(/\/+$/, '')}/businesses`;
+    const endpoint = `${url.replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/")}/businesses`;
     const r = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -161,12 +161,12 @@ export class OnboardingService {
     );
     const tbase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const tenant = await fetch(`${tbase}/tenants/${resolvedTenantId}`).then(
       (r) => (r.ok ? r.json() : null),
     );
     const url = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const endpoint = `${url.replace(/\/+$/, '')}/businesses/count-by-tenant/${resolvedTenantId}`;
+    const endpoint = `${url.replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/")}/businesses/count-by-tenant/${resolvedTenantId}`;
     try {
       const r = await fetch(endpoint, { method: 'GET' });
       const data = r.ok ? await r.json() : { count: 0 };
@@ -179,3 +179,4 @@ export class OnboardingService {
     }
   }
 }
+

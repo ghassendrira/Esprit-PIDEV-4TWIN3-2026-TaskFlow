@@ -104,7 +104,7 @@ export class ExpensesProxyService {
   }
 
   private async resolveTenantIdFromBusiness(businessId: string) {
-    const base = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/+$/, '');
+    const base = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const url = `${base}/businesses/${encodeURIComponent(businessId)}`;
 
     let r: Response;
@@ -148,7 +148,7 @@ export class ExpensesProxyService {
   }
 
   private async assertBusinessInTenant(tenantId: string, businessId: string) {
-    const base = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/+$/, '');
+    const base = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const url = `${base}/businesses/by-tenant/${encodeURIComponent(tenantId)}`;
 
     let r: Response;
@@ -175,7 +175,7 @@ export class ExpensesProxyService {
   }
 
   private expenseBase() {
-    return (process.env.EXPENSE_SERVICE_URL ?? 'http://localhost:3006').replace(/\/+$/, '');
+    return (process.env.EXPENSE_SERVICE_URL ?? 'http://localhost:3006').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
   }
 
   async listByBusiness(
@@ -328,3 +328,4 @@ export class ExpensesProxyService {
     }
   }
 }
+

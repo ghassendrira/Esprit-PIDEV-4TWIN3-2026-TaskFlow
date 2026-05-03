@@ -92,7 +92,7 @@ async function ensureMembership(params: {
 }
 
 async function ensureTenantId(name: string): Promise<string> {
-  const base = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+  const base = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
   const safeName = name.trim() || 'Tenant';
 
   // Try lookup by name (requires tenant-service route /tenants/by-name/:name)

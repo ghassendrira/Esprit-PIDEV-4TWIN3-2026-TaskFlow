@@ -144,7 +144,7 @@ export class AuthService {
     // 1) Créer le tenant via le Tenant Service (service séparé)
     const tenantServiceBase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     let createTenantRes: Response;
     try {
       const controller = new AbortController();
@@ -381,7 +381,7 @@ export class AuthService {
           lastName: user.lastName,
           userId: user.id,
         };
-        const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+        const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
         await fetch(`${notifBase}/notification/welcome`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -463,7 +463,7 @@ export class AuthService {
     let business: any = null;
     if (tenantId) {
       try {
-        const businessBase = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/+$/, '');
+        const businessBase = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
         const res = await fetch(`${businessBase}/businesses/by-tenant/${tenantId}`);
         if (res.ok) {
           const businesses = await res.json();
@@ -492,7 +492,7 @@ export class AuthService {
   }
 
   private async ensureTenantId(name: string): Promise<string> {
-    const base = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+    const base = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const safeName = name.trim() || 'Tenant';
 
     // Try lookup by name
@@ -718,7 +718,7 @@ export class AuthService {
 
     // Notify notification-service to send email
     try {
-      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
       await fetch(`${notifBase}/notification/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -755,7 +755,7 @@ export class AuthService {
 
     // Notify notification-service to alert Super Admin
     try {
-      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
       await fetch(`${notifBase}/notification/admin-password-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -825,7 +825,7 @@ export class AuthService {
 
     // Notify user via notification-service (reuse approval email or similar)
     try {
-      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
       await fetch(`${notifBase}/notification/approval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -863,7 +863,7 @@ export class AuthService {
 
     // Notify user via notification-service
     try {
-      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
       await fetch(`${notifBase}/notification/rejection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1332,7 +1332,7 @@ export class AuthService {
   private async notifyTenantService(companyName: string): Promise<void> {
     const base = process.env.TENANT_SERVICE_URL;
     if (!base) return;
-    const url = `${base.replace(/\/+$/, '')}/tenants/by-name/${encodeURIComponent(companyName)}`;
+    const url = `${base.replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/")}/tenants/by-name/${encodeURIComponent(companyName)}`;
     try {
       const res = await fetch(url, {
         method: 'GET',
@@ -1344,3 +1344,4 @@ export class AuthService {
     }
   }
 }
+

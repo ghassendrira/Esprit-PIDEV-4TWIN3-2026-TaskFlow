@@ -173,7 +173,7 @@ export class SettingsService {
     );
     const base = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     let r: Response;
     try {
       r = await fetch(`${base}/tenants/${resolvedTenantId}`);
@@ -216,7 +216,7 @@ export class SettingsService {
 
     const base = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
 
     // Platform admin can see all companies (tenants)
     try {
@@ -282,7 +282,7 @@ export class SettingsService {
     );
     const base = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const cur = await fetch(`${base}/tenants/${resolvedTenantId}`).then((x) =>
       x.ok ? x.json() : null,
     );
@@ -347,7 +347,7 @@ export class SettingsService {
     }>
   > {
     const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const baseUrl = base.replace(/\/+$/, '');
+    const baseUrl = base.replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const requestedTenantId =
       tenantId && tenantId !== 'undefined' && tenantId !== 'null'
         ? tenantId.split(',')[0].trim()
@@ -406,7 +406,7 @@ export class SettingsService {
       tenantId,
     );
     const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const url = `${base.replace(/\/+$/, '')}/businesses`;
+    const url = `${base.replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/")}/businesses`;
     let r: Response;
     try {
       r = await fetch(url, {
@@ -454,7 +454,7 @@ export class SettingsService {
   ) {
     await this.resolveTenant(auth, tenantId);
     const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const url = `${base.replace(/\/+$/, '')}/businesses/${id}`;
+    const url = `${base.replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/")}/businesses/${id}`;
     const r = await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -496,7 +496,7 @@ export class SettingsService {
     // Create ACTIVE tenant
     const base = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const r = await fetch(`${base}/tenants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -588,3 +588,4 @@ export class SettingsService {
     };
   }
 }
+

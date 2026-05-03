@@ -185,7 +185,7 @@ export class UsersController {
     try {
       const tenantServiceBase = (
         process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-      ).replace(/\/+$/, '');
+      ).replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
       const r = await fetch(`${tenantServiceBase}/tenants/${tenantId}`);
       if (r.ok) {
         const tenant = await r.json();
@@ -196,7 +196,7 @@ export class UsersController {
     }
 
     try {
-      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
       await fetch(`${notifBase}/notification/employee-welcome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -345,3 +345,4 @@ export class UsersController {
     return { success: true, message: 'Employee deleted successfully' };
   }
 }
+

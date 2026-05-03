@@ -72,7 +72,8 @@ async function ensureMembership(params) {
     });
 }
 async function ensureTenantId(name) {
-    const base = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+const rawUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+const base = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     const safeName = name.trim() || 'Tenant';
     try {
         const r = await fetch(`${base}/tenants/by-name/${encodeURIComponent(safeName)}`);

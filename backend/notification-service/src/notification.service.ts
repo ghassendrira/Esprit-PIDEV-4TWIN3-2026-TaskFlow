@@ -355,7 +355,7 @@ export class NotificationService {
     const api = this.getBrevoApi('sendWelcomeEmail');
     if (!api) return;
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
-    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
+    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
 
     const bg = '#0d2418';
     const primary = '#1e7a3e';
@@ -470,7 +470,7 @@ export class NotificationService {
   async sendAdminRegistrationNotification(params: AdminRegistrationParams): Promise<void> {
     const api = this.getBrevoApi('sendAdminRegistrationNotification');
     if (!api) return;
-    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
+    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
 
     const bg = '#0d2418';
@@ -514,7 +514,7 @@ export class NotificationService {
   async sendApprovalEmail(params: ApprovalEmailParams): Promise<void> {
     const api = this.getBrevoApi('sendApprovalEmail');
     if (!api) return;
-    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
+    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
 
     const bg = '#0d2418';
@@ -561,7 +561,7 @@ export class NotificationService {
   async sendRejectionEmail(params: RejectionEmailParams): Promise<void> {
     const api = this.getBrevoApi('sendRejectionEmail');
     if (!api) return;
-    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
+    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
 
     const bg = '#0d2418';
@@ -610,7 +610,7 @@ export class NotificationService {
   ): Promise<void> {
     const api = this.getBrevoApi('sendEmployeeWelcomeEmail');
     if (!api) return;
-    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
+    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
 
     const bg = '#0d2418';
@@ -662,7 +662,7 @@ export class NotificationService {
   async sendResetPasswordEmail(params: ResetPasswordParams): Promise<void> {
     const api = this.getBrevoApi('sendResetPasswordEmail');
     if (!api) return;
-    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
+    const frontend = (process.env.FRONTEND_URL ?? 'http://localhost:4200').replace(/\/$/, "").replace(/\/$/, "").split("/").filter(Boolean).join("/");
     const from = process.env.MAIL_FROM ?? 'TaskFlow <noreply@taskflow.tn>';
 
     const bg = '#0d2418';
@@ -947,3 +947,4 @@ export class NotificationService {
     }
   }
 }
+
