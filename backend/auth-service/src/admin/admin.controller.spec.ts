@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AdminController } from './admin.controller';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 
 describe('AdminController', () => {
   let controller: AdminController;
@@ -97,8 +97,73 @@ describe('AdminController', () => {
     });
   });
 
+  describe('approve', () => {
+    it('should approve pending user and notify', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'admin-id' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        role: { name: 'SUPER_ADMIN' },
+      });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'u1@test.com',
+        firstName: 'U1',
+        lastName: 'L1',
+        registrationStatus: 'PENDING',
+      });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1', email: 'u1@test.com' });
+      fetchMock.mockResolvedValue({ ok: true }); // notify approval
+
+      const result = await controller.approve('Bearer token', 'u1');
+      expect(result.success).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u1' },
+        data: expect.objectContaining({ registrationStatus: 'ACTIVE' }),
+      }));
+    });
+  });
+
+  describe('reject', () => {
+    it('should reject pending user', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'admin-id' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        role: { name: 'SUPER_ADMIN' },
+      });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'u1@test.com',
+        firstName: 'U1',
+        lastName: 'L1',
+        registrationStatus: 'PENDING',
+      });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1', email: 'u1@test.com' });
+      fetchMock.mockResolvedValue({ ok: true }); // notify rejection
+
+      const result = await controller.reject('Bearer token', 'u1', { reason: 'No' });
+      expect(result.success).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u1' },
+        data: expect.objectContaining({ registrationStatus: 'REJECTED' }),
+      }));
+    });
+  });
+
   describe('unblockAccount', () => {
-    it('should unblock account when user exists', async () => {
+    it('should unblock user', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'admin-id' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        role: { name: 'SUPER_ADMIN' },
+      });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
+
+      const result = await controller.unblockAccount('Bearer token', 'u1');
+      expect(result.success).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u1' },
+        data: expect.objectContaining({ loginAttempts: 0, blockedUntil: null }),
+      }));
+    });
+
+    it('should unblock account when user exists (legacy test case)', async () => {
       mockJwt.verifyAsync.mockResolvedValue({ sub: 'admin-id' });
       mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
         role: { name: 'SUPER_ADMIN' },

@@ -2,7 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+  BadGatewayException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('qrcode', () => ({
@@ -70,8 +76,8 @@ describe('AuthService', () => {
     mockJwt.signAsync.mockResolvedValue('jwt-token');
     mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
     global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      json: jest.fn().mockResolvedValue({}),
+      ok: true,
+      json: jest.fn().mockResolvedValue({ id: 'tenant-1' }),
       text: jest.fn().mockResolvedValue(''),
     } as any);
 
@@ -145,6 +151,130 @@ describe('AuthService', () => {
       const input = 'Hello World Éaccent!';
       const result = (service as any).slugify(input);
       expect(result).toBe('hello-world-eaccent');
+    });
+  });
+
+  describe('signup', () => {
+    it('should throw BadRequestException if recaptcha is missing', async () => {
+      await expect(service.signup({ recaptchaToken: '' } as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should return already registered response if user exists', async () => {
+      jest.spyOn(service as any, 'verifyRecaptcha').mockResolvedValue(true);
+      mockPrisma.user.findUnique.mockResolvedValue({ id: '1' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+
+      const result = await service.signup({
+        email: 'test@test.com',
+        firstName: 'F',
+        lastName: 'L',
+        companyName: 'C',
+        recaptchaToken: 'token',
+      } as any);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Si cette adresse email est éligible');
+    });
+
+    it('should create user and tenant if not exists', async () => {
+      jest.spyOn(service as any, 'verifyRecaptcha').mockResolvedValue(true);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ id: 'tenant-1' }),
+        }) // create tenant
+        .mockResolvedValueOnce({ ok: true }); // notify admin
+
+      (mockPrisma as any).$transaction = jest.fn().mockImplementation(async (cb) => {
+        const tx = {
+          user: {
+            create: jest.fn().mockResolvedValue({
+              id: 'u1',
+              firstName: 'F',
+              lastName: 'L',
+              email: 'test@test.com',
+              isActive: false,
+            }),
+          },
+          role: {
+            findFirst: jest.fn().mockResolvedValue({ id: 'r1' }),
+          },
+          userTenantMembership: {
+            upsert: jest.fn(),
+          },
+        };
+        return await cb(tx);
+      });
+
+      const result = await service.signup({
+        email: 'test@test.com',
+        firstName: 'F',
+        lastName: 'L',
+        companyName: 'C',
+        recaptchaToken: 'token',
+      } as any);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should throw BadRequestException if fields are missing', async () => {
+      jest.spyOn(service as any, 'verifyRecaptcha').mockResolvedValue(true);
+      await expect(service.signup({ recaptchaToken: 'token', email: 'test@test.com' } as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadGatewayException if tenant service fails', async () => {
+      jest.spyOn(service as any, 'verifyRecaptcha').mockResolvedValue(true);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('service down'));
+
+      await expect(service.signup({
+        email: 'test@test.com',
+        firstName: 'F',
+        lastName: 'L',
+        companyName: 'C',
+        recaptchaToken: 'token',
+      } as any)).rejects.toThrow(BadGatewayException);
+    });
+
+    it('should throw InternalServerErrorException if tenant creation fails', async () => {
+      jest.spyOn(service as any, 'verifyRecaptcha').mockResolvedValue(true);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        statusText: 'Error',
+        text: jest.fn().mockResolvedValue('fail'),
+      });
+
+      await expect(service.signup({
+        email: 'test@test.com',
+        firstName: 'F',
+        lastName: 'L',
+        companyName: 'C',
+        recaptchaToken: 'token',
+      } as any)).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('should return already registered response on P2002 error in transaction', async () => {
+      jest.spyOn(service as any, 'verifyRecaptcha').mockResolvedValue(true);
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'u1' });
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ id: 'tenant-1' }),
+      });
+
+      (mockPrisma as any).$transaction = jest.fn().mockRejectedValue({ code: 'P2002' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+
+      const result = await service.signup({
+        email: 'test@test.com',
+        firstName: 'F',
+        lastName: 'L',
+        companyName: 'C',
+        recaptchaToken: 'token',
+      } as any);
+
+      expect(result.success).toBe(true);
     });
   });
 

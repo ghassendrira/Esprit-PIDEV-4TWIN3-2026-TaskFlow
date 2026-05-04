@@ -8,7 +8,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ClientsService } from './clients.service.js';
+import { ClientsService } from './clients.service';
 
 @Controller('clients')
 export class ClientsController {

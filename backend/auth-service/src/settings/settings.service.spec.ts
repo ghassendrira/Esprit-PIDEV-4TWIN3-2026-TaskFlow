@@ -13,9 +13,15 @@ describe('SettingsService', () => {
     userTenantMembership: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
     },
     role: {
       findFirst: jest.fn(),
+      create: jest.fn(),
+    },
+    user: {
+      update: jest.fn(),
     },
   };
 
@@ -97,5 +103,73 @@ describe('SettingsService', () => {
     expect(result.business).toEqual(
       expect.objectContaining({ id: 'b1', name: 'Biz', currency: 'USD' }),
     );
+  });
+
+  it('should get all tenants', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1', email: 'admin@test.com' });
+    process.env.ADMIN_EMAIL = 'admin@test.com';
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue([{ id: 't1', name: 'Tenant 1' }]),
+    });
+
+    const result = await service.getAllTenants('Bearer token');
+    expect(result).toEqual([{ id: 't1', name: 'Tenant 1' }]);
+  });
+
+  it('should request a tenant', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.role.findFirst.mockResolvedValue({ id: 'r1' });
+    mockPrisma.user.update.mockResolvedValue({ id: 'user1' });
+    mockPrisma.userTenantMembership.findMany.mockResolvedValue([{ id: 'm1' }]);
+    mockPrisma.userTenantMembership.update.mockResolvedValue({ id: 'm1' });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ id: 't1', name: 'New Tenant' }),
+    });
+
+    const result = await service.requestTenant('Bearer token', { name: 'New Tenant' });
+    expect(result.success).toBe(true);
+    expect(result.message).toBeDefined();
+  });
+
+  it('should update a tenant', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ id: 't1', name: 'Updated' }),
+    });
+
+    const result = await service.updateTenant('Bearer token', { name: 'Updated' } as any, 't1');
+    expect(result.success).toBe(true);
+    expect(result.tenant.name).toBe('Updated');
+  });
+
+  it('should get businesses', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue([{ id: 'b1', name: 'Biz 1' }]),
+    });
+
+    const result = await service.getBusinesses('Bearer token', 't1');
+    expect(result).toEqual([
+      expect.objectContaining({ id: 'b1', name: 'Biz 1' }),
+    ]);
+  });
+
+  it('should update a business', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ id: 'b1', name: 'Updated Biz' }),
+    });
+
+    const result = await service.updateBusiness('Bearer token', 'b1', { name: 'Updated Biz' } as any, 't1');
+    expect(result.success).toBe(true);
+    expect(result.business.name).toBe('Updated Biz');
   });
 });
