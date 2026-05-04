@@ -15,10 +15,12 @@ describe('RolesService', () => {
     permission: {
       findMany: jest.fn(),
       createMany: jest.fn(),
+      upsert: jest.fn(),
     },
     rolePermission: {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
+      upsert: jest.fn(),
     },
   };
 

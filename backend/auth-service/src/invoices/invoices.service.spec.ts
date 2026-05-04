@@ -9,6 +9,10 @@ describe('InvoicesProxyService', () => {
   let prisma: PrismaService;
   let jwt: JwtService;
 
+  beforeAll(() => {
+    global.fetch = jest.fn();
+  });
+
   const mockPrisma = {
     userTenantMembership: {
       findFirst: jest.fn(),

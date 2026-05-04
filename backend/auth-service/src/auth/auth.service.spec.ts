@@ -18,6 +18,10 @@ describe('AuthService', () => {
   let prisma: PrismaService;
   let jwt: JwtService;
 
+  beforeAll(() => {
+    global.fetch = jest.fn();
+  });
+
   const mockPrisma = {
     user: {
       findUnique: jest.fn(),

@@ -9,6 +9,10 @@ describe('AdminController', () => {
   let prisma: PrismaService;
   let jwt: JwtService;
 
+  beforeAll(() => {
+    global.fetch = jest.fn();
+  });
+
   const mockPrisma = {
     user: {
       findMany: jest.fn(),
