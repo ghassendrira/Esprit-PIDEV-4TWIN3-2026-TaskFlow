@@ -17,8 +17,8 @@ type JwtPayload = { sub: string; email: string };
 @Controller('admin')
 export class AdminController {
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
   ) {}
 
   private async resolveCompanyName(tenantId?: string): Promise<string> {

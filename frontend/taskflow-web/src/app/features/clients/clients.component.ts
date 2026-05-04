@@ -115,11 +115,11 @@ import { AppDialogComponent } from '../../shared/components/app-dialog/app-dialo
 
     <tf-app-dialog
       [open]="deleteDialogOpen()"
-      title="Delete client"
+      [title]="'employees.delete' | t"
       [message]="deleteDialogMessage()"
       mode="confirm"
-      confirmLabel="Delete"
-      cancelLabel="Cancel"
+      [confirmLabel]="'common.delete' | t"
+      [cancelLabel]="'common.cancel' | t"
       [danger]="true"
       (confirm)="confirmDelete()"
       (cancel)="closeDeleteDialog()"
@@ -129,7 +129,7 @@ import { AppDialogComponent } from '../../shared/components/app-dialog/app-dialo
 export class ClientsComponent implements OnInit {
   private settings = inject(SettingsService);
   private clientsApi = inject(ClientsService);
-  private language = inject(LanguageService);
+  private lang = inject(LanguageService);
 
   businesses = signal<Array<{ id: string; name: string }>>([]);
   activeBusinessId = signal<string>('');
@@ -218,27 +218,27 @@ export class ClientsComponent implements OnInit {
     const taxNumber = this.form.taxNumber.trim();
 
     if (name.length < 2 || name.length > 80) {
-      this.errorMessage = 'Le nom du client doit contenir entre 2 et 80 caractères.';
+      this.errorMessage = this.lang.translate('clients.validation.name-length');
       return;
     }
 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      this.errorMessage = 'Adresse email invalide.';
+      this.errorMessage = this.lang.translate('clients.validation.invalid-email');
       return;
     }
 
     if (phone && !/^[+0-9()\-\s]{8,20}$/.test(phone)) {
-      this.errorMessage = 'Numéro de téléphone invalide.';
+      this.errorMessage = this.lang.translate('clients.validation.invalid-phone');
       return;
     }
 
     if (address && address.length > 255) {
-      this.errorMessage = 'Adresse trop longue.';
+      this.errorMessage = this.lang.translate('clients.validation.address-too-long');
       return;
     }
 
     if (taxNumber && taxNumber.length > 40) {
-      this.errorMessage = 'Matricule trop long.';
+      this.errorMessage = this.lang.translate('clients.validation.tax-too-long');
       return;
     }
 
@@ -277,9 +277,7 @@ export class ClientsComponent implements OnInit {
 
   remove(c: ClientDto) {
     this.pendingDeleteClient.set(c);
-    this.deleteDialogMessage.set(
-      this.language.translate('clients.delete-confirm', { name: c.name }),
-    );
+    this.deleteDialogMessage.set(this.lang.translate('clients.delete-confirm'));
     this.deleteDialogOpen.set(true);
   }
 

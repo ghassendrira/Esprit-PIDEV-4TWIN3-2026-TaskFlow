@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { JwtService } from '@nestjs/jwt';
 import {
+  Injectable,
+  UnauthorizedException,
   BadGatewayException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { JwtService } from '@nestjs/jwt';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { UpdateBusinessDto } from './dto/update-business.dto';
@@ -12,8 +13,8 @@ import { UpdateBusinessDto } from './dto/update-business.dto';
 @Injectable()
 export class SettingsService {
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
   ) {}
 
   countries() {
@@ -255,7 +256,7 @@ export class SettingsService {
     const brand = (cur?.branding ?? {}) as Record<string, any>;
     const merged = {
       ...brand,
-      ...(dto.branding ?? {}),
+      ...(dto.branding || {}),
       ...(dto.category ? { category: dto.category } : {}),
     };
     const payload: any = {
@@ -298,7 +299,7 @@ export class SettingsService {
       const list = r.ok ? await r.json() : [];
       if (!Array.isArray(list)) return [];
       return list
-        .filter((b: any) => !b?.deletedAt)
+        .filter((b: any) => b?.deletedAt == null)
         .map((b: any) => ({
           id: String(b.id),
           name: String(b.name ?? ''),
@@ -465,11 +466,9 @@ export class SettingsService {
       }
     }
 
-    if (!role) {
-      role = await this.prisma.role.create({
-        data: { name: 'BUSINESS_OWNER', isStandard: true, tenantId: null as any },
-      });
-    }
+    role ??= await this.prisma.role.create({
+      data: { name: 'BUSINESS_OWNER', isStandard: true, tenantId: null as any },
+    });
 
     // Create UserTenantMembership for the owner (Manual check instead of upsert to avoid constraint errors)
     const existingMembership = await this.prisma.userTenantMembership.findFirst({

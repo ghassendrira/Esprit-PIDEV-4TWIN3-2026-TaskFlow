@@ -24,8 +24,8 @@ type JwtPayload = { sub: string };
 @UseGuards(RBACGuard)
 export class UsersController {
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
   ) {}
 
   private async assertBusinessOwner(authHeader?: string, tenantIdFromHeader?: string): Promise<{
@@ -126,10 +126,10 @@ export class UsersController {
       const r = await fetch(`${tenantServiceBase}/tenants/${tenantId}`);
       if (r.ok) {
         const tenant = await r.json();
-        companyName = tenant?.name ?? companyName;
+        companyName = tenant?.name ?? 'Votre entreprise';
       }
-    } catch {
-      // fallback
+    } catch (e) {
+      console.error('[UsersController] Failed to fetch company name:', e);
     }
 
     try {

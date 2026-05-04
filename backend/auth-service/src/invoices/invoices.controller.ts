@@ -3,7 +3,7 @@ import { InvoicesProxyService } from './invoices.service';
 
 @Controller('invoices')
 export class InvoicesController {
-  constructor(private service: InvoicesProxyService) {}
+  constructor(private readonly service: InvoicesProxyService) {}
 
   @Get('by-business/:businessId')
   listByBusiness(

@@ -1,5 +1,7 @@
+// Importe les types nécessaires pour le modèle
 import { LabeledExample, ModelSnapshot, PredictionResult, PredictionScore } from './ai.types';
 
+// Liste des mots vides (stop words) à ignorer lors de la tokenisation
 const STOP_WORDS = new Set([
   'a',
   'about',
@@ -41,23 +43,28 @@ const STOP_WORDS = new Set([
   'your',
 ]);
 
+// Classe du modèle de classification de texte naïf Bayesien
 export class NaiveBayesTextModel {
-  private labelCounts = new Map<string, number>();
-  private labelTokenCounts = new Map<string, number>();
-  private tokenCountsByLabel = new Map<string, Map<string, number>>();
-  private vocabulary = new Set<string>();
-  private lastTrainingSize = 0;
+  private labelCounts = new Map<string, number>(); // Nombre d'exemples par étiquette
+  private labelTokenCounts = new Map<string, number>(); // Nombre total de tokens par étiquette
+  private tokenCountsByLabel = new Map<string, Map<string, number>>(); // Nombre de chaque token par étiquette
+  private vocabulary = new Set<string>(); // Ensemble des tokens uniques
+  private lastTrainingSize = 0; // Taille du dernier entraînement
 
+  // Entraîne le modèle sur un ensemble d'exemples
   train(examples: LabeledExample[]): void {
-    this.labelCounts.clear();
+    this.labelCounts.clear(); // Réinitialise les compteurs
     this.labelTokenCounts.clear();
     this.tokenCountsByLabel.clear();
     this.vocabulary.clear();
     this.lastTrainingSize = examples.length;
 
     for (const example of examples) {
-      const label = this.normalizeLabel(example.label);
-      const tokens = this.tokenize(example.text);
+      const label = this.normalizeLabel(example.label); // Normalise l'étiquette
+      const tokens = this.tokenize(example.text); // Tokenise le texte
+//
+// Ce fichier définit le modèle de classification de texte naïf Bayesien utilisé pour catégoriser automatiquement des textes (ex : dépenses).
+// Il gère l'entraînement, la prédiction et la gestion du vocabulaire pour la classification automatique.
 
       this.labelCounts.set(label, (this.labelCounts.get(label) ?? 0) + 1);
       this.labelTokenCounts.set(label, (this.labelTokenCounts.get(label) ?? 0) + tokens.length);

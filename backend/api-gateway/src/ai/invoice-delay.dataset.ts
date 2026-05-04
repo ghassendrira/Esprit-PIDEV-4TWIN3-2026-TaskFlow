@@ -1,28 +1,31 @@
+// Importe le type d'exemple pour le retard de facture
 import { InvoiceDelayExample } from './invoice-delay.model';
 
+// Fonction utilitaire pour créer un exemple de retard de facture
 const ex = (
-  amount: number,
-  dueDays: number,
-  clientLateRatio: number,
-  previousLateCount: number,
-  openInvoiceCount: number,
-  late: boolean,
-  overdueInvoiceCount?: number,
+  amount: number, // Montant de la facture
+  dueDays: number, // Nombre de jours avant échéance
+  clientLateRatio: number, // Ratio de retard du client
+  previousLateCount: number, // Nombre de retards précédents
+  openInvoiceCount: number, // Nombre de factures ouvertes
+  late: boolean, // Facture en retard ou non
+  overdueInvoiceCount?: number, // Nombre de factures en retard (optionnel)
 ): InvoiceDelayExample => ({
   features: {
-    amount,
-    dueDays,
-    clientLateRatio,
-    previousLateCount,
-    openInvoiceCount,
+    amount, // Montant
+    dueDays, // Jours avant échéance
+    clientLateRatio, // Ratio de retard client
+    previousLateCount, // Retards précédents
+    openInvoiceCount, // Factures ouvertes
     overdueInvoiceCount:
-      overdueInvoiceCount ?? (late ? Math.max(1, previousLateCount + Math.ceil(openInvoiceCount / 2)) : Math.min(1, Math.floor(openInvoiceCount / 4))),
+      overdueInvoiceCount ?? (late ? Math.max(1, previousLateCount + Math.ceil(openInvoiceCount / 2)) : Math.min(1, Math.floor(openInvoiceCount / 4))), // Calcul automatique si non fourni
   },
-  late,
+  late, // Statut de retard
 });
 
+// Jeu de données d'exemples pour entraîner le modèle de prédiction de retard de facture
 export const INVOICE_DELAY_DATASET: InvoiceDelayExample[] = [
-  ex(180, 30, 0.04, 0, 1, false),
+  ex(180, 30, 0.04, 0, 1, false), // Facture payée à temps
   ex(240, 45, 0.05, 0, 1, false),
   ex(320, 30, 0.08, 0, 2, false),
   ex(420, 60, 0.07, 1, 1, false),
@@ -42,7 +45,7 @@ export const INVOICE_DELAY_DATASET: InvoiceDelayExample[] = [
   ex(1350, 60, 0.14, 1, 3, false),
   ex(1600, 30, 0.2, 1, 4, false),
   ex(2200, 45, 0.24, 2, 3, false),
-  ex(2800, 30, 0.3, 2, 4, true),
+  ex(2800, 30, 0.3, 2, 4, true), // Facture en retard
   ex(3200, 15, 0.35, 3, 5, true),
   ex(4100, 7, 0.42, 4, 6, true),
   ex(5200, 15, 0.5, 5, 4, true),
@@ -53,20 +56,21 @@ export const INVOICE_DELAY_DATASET: InvoiceDelayExample[] = [
   ex(4300, 30, 0.48, 4, 8, true),
   ex(1500, 7, 0.46, 3, 4, true),
   ex(1750, 15, 0.58, 5, 5, true),
-    // Ajout d'exemples on_time pour montants faibles et moyens
-    ex(0, 30, 0, 0, 0, false),
-    ex(100, 30, 0, 0, 0, false),
-    ex(500, 30, 0, 0, 0, false),
-    ex(800, 30, 0, 0, 0, false),
-    ex(1200, 30, 0, 0, 0, false),
-    ex(1500, 30, 0, 0, 0, false),
-    ex(2000, 30, 0, 0, 0, false),
-    ex(2500, 30, 0, 0, 0, false),
-    ex(3000, 30, 0, 0, 0, false),
-    ex(3500, 30, 0, 0, 0, false),
-    ex(4000, 30, 0, 0, 0, false),
-    ex(4500, 30, 0, 0, 0, false),
-    ex(5000, 30, 0, 0, 0, false),
+  // Ajout d'exemples on_time pour montants faibles et moyens
+  ex(0, 30, 0, 0, 0, false), // Montant nul, à temps
+  ex(100, 30, 0, 0, 0, false),
+  ex(500, 30, 0, 0, 0, false),
+
+  // Ajout d'exemples supplémentaires
+  ex(1200, 30, 0, 0, 0, false),
+  ex(1500, 30, 0, 0, 0, false),
+  ex(2000, 30, 0, 0, 0, false),
+  ex(2500, 30, 0, 0, 0, false),
+  ex(3000, 30, 0, 0, 0, false),
+  ex(3500, 30, 0, 0, 0, false),
+  ex(4000, 30, 0, 0, 0, false),
+  ex(4500, 30, 0, 0, 0, false),
+  ex(5000, 30, 0, 0, 0, false),
   ex(2000, 30, 0.44, 4, 6, true),
   ex(2900, 7, 0.66, 7, 6, true),
   ex(3400, 15, 0.73, 7, 7, true),
@@ -106,3 +110,7 @@ export const INVOICE_DELAY_DATASET: InvoiceDelayExample[] = [
   ex(20000, 30, 0, 0, 0, false),
   ex(4180, 30, 0, 0, 0, false), // doublon volontaire pour renforcer le signal sur ce montant
 ];
+
+//
+// Ce fichier définit un jeu de données d'exemples pour entraîner et tester le modèle de prédiction du retard de paiement des factures.
+// Chaque exemple représente une facture avec ses caractéristiques et son statut (en retard ou non).

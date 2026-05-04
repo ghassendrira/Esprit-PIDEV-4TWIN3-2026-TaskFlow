@@ -122,9 +122,9 @@ import { AppDialogComponent } from '../../shared/components/app-dialog/app-dialo
             [(ngModel)]="form.status"
             name="status"
           >
-            <option value="PENDING">PENDING</option>
-            <option value="APPROVED">APPROVED</option>
-            <option value="REJECTED">REJECTED</option>
+            <option value="PENDING">{{ 'expenses.status.pending' | t }}</option>
+            <option value="APPROVED">{{ 'expenses.status.approved' | t }}</option>
+            <option value="REJECTED">{{ 'expenses.status.rejected' | t }}</option>
           </select>
         </div>
 
@@ -176,7 +176,7 @@ import { AppDialogComponent } from '../../shared/components/app-dialog/app-dialo
               <td class="px-3 py-2">{{ e.date | date:'dd MMM yyyy' }}</td>
               <td class="px-3 py-2">{{ e.description }}</td>
               <td class="px-3 py-2">{{ e.amount }}</td>
-              <td class="px-3 py-2">{{ e.status }}</td>
+              <td class="px-3 py-2">{{ 'expenses.status.' + e.status.toLowerCase() | t }}</td>
               <td class="px-3 py-2">
                 <div class="flex gap-2">
                   <button
@@ -211,7 +211,7 @@ import { AppDialogComponent } from '../../shared/components/app-dialog/app-dialo
       [message]="dialogMessage()"
       [mode]="dialogMode()"
       [confirmLabel]="dialogConfirmLabel()"
-      cancelLabel="Cancel"
+      [cancelLabel]="'common.cancel' | t"
       [danger]="dialogDanger()"
       (confirm)="handleDialogConfirm()"
       (cancel)="closeDialog()"
@@ -222,7 +222,7 @@ export class ExpensesComponent implements OnInit {
   private settings = inject(SettingsService);
   private expensesApi = inject(ExpensesService);
   private auth = inject(AuthService);
-  private language = inject(LanguageService);
+  private lang = inject(LanguageService);
 
   businesses = signal<Array<{ id: string; name: string }>>([]);
   tenants = signal<Array<{ id: string; name: string }>>([]);
@@ -236,7 +236,7 @@ export class ExpensesComponent implements OnInit {
   dialogTitle = signal('');
   dialogMessage = signal('');
   dialogMode = signal<'alert' | 'confirm' | 'prompt'>('alert');
-  dialogConfirmLabel = signal('OK');
+  dialogConfirmLabel = signal(this.lang.translate('common.ok'));
   dialogDanger = signal(false);
   pendingDeleteExpense = signal<any | null>(null);
   errorMessage: string | null = null;
@@ -376,22 +376,22 @@ export class ExpensesComponent implements OnInit {
     const receiptUrl = String(this.form.receiptUrl || '').trim();
 
     if (description.length < 3 || description.length > 255) {
-      this.errorMessage = 'La description doit contenir entre 3 et 255 caractères.';
+      this.errorMessage = this.lang.translate('expenses.validation.description-length');
       return;
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      this.errorMessage = 'Le montant doit être supérieur à 0.';
+      this.errorMessage = this.lang.translate('expenses.validation.amount-positive');
       return;
     }
 
     if (!date) {
-      this.errorMessage = 'La date est obligatoire.';
+      this.errorMessage = this.lang.translate('expenses.validation.date-required');
       return;
     }
 
     if (receiptUrl && !/^(https?:\/\/|data:image\/).+/i.test(receiptUrl)) {
-      this.errorMessage = "L'URL du reçu est invalide.";
+      this.errorMessage = this.lang.translate('expenses.validation.receipt-invalid');
       return;
     }
 
@@ -423,7 +423,7 @@ export class ExpensesComponent implements OnInit {
           this.reload();
         });
       },
-      error: (err) => this.openAlert('Expense error', err?.error?.message || this.language.translate('expenses.error')),
+      error: (err) => this.openAlert(this.lang.translate('expenses.error'), err?.error?.message || this.lang.translate('expenses.error')),
     });
   }
 
@@ -434,10 +434,10 @@ export class ExpensesComponent implements OnInit {
 
   remove(e: any) {
     this.pendingDeleteExpense.set(e);
-    this.dialogTitle.set('Delete expense');
-    this.dialogMessage.set(this.language.translate('expenses.delete-confirm'));
+    this.dialogTitle.set(this.lang.translate('common.delete'));
+    this.dialogMessage.set(this.lang.translate('expenses.delete-confirm'));
     this.dialogMode.set('confirm');
-    this.dialogConfirmLabel.set('Delete');
+    this.dialogConfirmLabel.set(this.lang.translate('common.delete'));
     this.dialogDanger.set(true);
     this.dialogOpen.set(true);
   }
@@ -457,7 +457,7 @@ export class ExpensesComponent implements OnInit {
     const tenantId = this.resolveTenantId();
     this.expensesApi.remove(e.id, tenantId).subscribe({
       next: () => this.reload(),
-      error: (err) => this.openAlert('Delete expense', err?.error?.message || this.language.translate('expenses.delete-error')),
+      error: (err) => this.openAlert(this.lang.translate('expenses.delete-error'), err?.error?.message || this.lang.translate('expenses.delete-error')),
     });
   }
 
@@ -471,7 +471,7 @@ export class ExpensesComponent implements OnInit {
     this.dialogTitle.set(title);
     this.dialogMessage.set(message);
     this.dialogMode.set('alert');
-    this.dialogConfirmLabel.set('OK');
+    this.dialogConfirmLabel.set(this.lang.translate('common.ok'));
     this.dialogDanger.set(false);
     this.dialogOpen.set(true);
   }

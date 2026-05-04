@@ -1,10 +1,30 @@
-import { Injectable, ConflictException, NotFoundException, UnauthorizedException, ForbiddenException, OnModuleInit } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, ForbiddenException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 
 @Injectable()
 export class RolesService implements OnModuleInit {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
+
+  // TASK 3: getRoleById
+  async getRoleById(id: string) {
+    const role = await this.prisma.role.findUnique({
+      where: { id },
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
+    });
+
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    return role;
+  }
 
   async onModuleInit() {
     // TASK 2: Seed default permissions
@@ -49,16 +69,14 @@ export class RolesService implements OnModuleInit {
         }
       }
 
-      if (!standardRole) {
-        standardRole = await this.prisma.role.create({
-          data: {
-            name: roleName,
-            isStandard: true,
-            tenantId: null,
-            company_id: null,
-          },
-        });
-      }
+      standardRole ??= await this.prisma.role.create({
+        data: {
+          name: roleName,
+          isStandard: true,
+          tenantId: null,
+          company_id: null,
+        },
+      });
 
       // Seed permissions to:
       // - the official standard role, AND

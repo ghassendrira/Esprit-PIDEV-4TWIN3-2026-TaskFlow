@@ -211,14 +211,14 @@ export class LoginComponent implements AfterViewInit {
     if (this.googleClient) {
       this.googleClient.requestCode();
     } else {
-      this.errorMessage = 'Google Sign-In n\'est pas encore chargé. Veuillez réessayer.';
+      this.errorMessage = this.language.translate('auth.google-loading');
       this.cdr.detectChanges();
     }
   }
 
   private handleGoogleCodeResponse(response: any) {
     if (response?.error || !response?.code) {
-      this.errorMessage = 'Erreur lors de la connexion Google.';
+      this.errorMessage = this.language.translate('auth.google-error');
       this.cdr.detectChanges();
       return;
     }
@@ -235,13 +235,13 @@ export class LoginComponent implements AfterViewInit {
           this.auth.loginMock(res.data.token);
           this.router.navigate(['/dashboard']);
         } else {
-          this.errorMessage = res?.message || 'Erreur lors de la connexion Google.';
+          this.errorMessage = res?.message || this.language.translate('auth.google-error');
         }
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.isGoogleLoading = false;
-        this.errorMessage = err?.error?.message || 'Erreur lors de la connexion Google.';
+        this.errorMessage = err?.error?.message || this.language.translate('auth.google-error');
         this.cdr.detectChanges();
       }
     });
@@ -345,7 +345,7 @@ export class LoginComponent implements AfterViewInit {
       },
       error: (err) => {
         this.isVerifying2fa = false;
-        this.errorMessage = err?.error?.message || 'Code OTP invalide';
+        this.errorMessage = err?.error?.message || this.language.translate('auth.otp-invalid');
       }
     });
   }

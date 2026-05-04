@@ -55,7 +55,7 @@ import { LanguageService } from '../../core/services/language.service';
 
         <div class="flex flex-col items-center text-center pt-2 pb-6">
           <div class="inline-flex items-center gap-2 rounded-full border border-[var(--tf-border)] bg-[var(--tf-surface-2)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--tf-muted)] mb-5">
-            Taskflow Secure Access
+            {{ 'auth.secure-access' | t }}
           </div>
           <img src="/TASKFLOW-removebg-preview.png" alt="TaskFlow" class="h-24 sm:h-28 w-auto max-w-[340px] object-contain drop-shadow-sm" />
           <div class="mt-4 text-2xl font-bold tracking-tight">{{ 'forgot.title' | t }}</div>
@@ -180,6 +180,9 @@ import { LanguageService } from '../../core/services/language.service';
               <div class="text-xs flex items-center gap-2" [class.text-primary-500]="hasNumber" [class.text-slate-400]="!hasNumber">
                 <span class="text-[10px]">{{ hasNumber ? '✓' : '○' }}</span> {{ 'forgot.number' | t }}
               </div>
+              <div class="text-xs flex items-center gap-2" [class.text-primary-500]="hasSpecial" [class.text-slate-400]="!hasSpecial">
+                <span class="text-[10px]">{{ hasSpecial ? '✓' : '○' }}</span> {{ 'forgot.special' | t }}
+              </div>
               <div class="text-xs flex items-center gap-2" [class.text-primary-500]="passwordsMatch && confirmPassword" [class.text-slate-400]="!passwordsMatch || !confirmPassword">
                 <span class="text-[10px]">{{ passwordsMatch && confirmPassword ? '✓' : '○' }}</span> {{ 'forgot.match' | t }}
               </div>
@@ -200,7 +203,7 @@ import { LanguageService } from '../../core/services/language.service';
           <h2 class="text-xl font-bold">{{ 'forgot.success' | t }}</h2>
           <p class="text-[var(--tf-muted)]">{{ 'forgot.reset-success' | t }}</p>
           <p class="text-sm text-[var(--tf-muted)] mt-4">
-            Redirection vers la page de connexion dans {{ countdown() }} secondes...
+            {{ language.translate('forgot.redirection-countdown', { count: countdown() }) }}
           </p>
           <button (click)="goToLogin()" class="w-full mt-4 text-sm text-[var(--tf-primary)] hover:underline">
             {{ 'forgot.login-now' | t }}

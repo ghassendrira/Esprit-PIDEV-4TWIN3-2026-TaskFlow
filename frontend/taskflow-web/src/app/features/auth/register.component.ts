@@ -73,16 +73,16 @@ import { RecaptchaComponent } from '../../shared/components/recaptcha.component'
               <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">{{ 'common.first-name' | t }}</label>
               <input formControlName="firstName" required minlength="2" maxlength="60" autocomplete="given-name" [placeholder]="'register.first-name-placeholder' | t"
                      class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
-                <p *ngIf="showError('firstName', 'required')" class="mt-1 text-xs text-red-400">{{ 'common.first-name' | t }} is required.</p>
-                <p *ngIf="showError('firstName', 'minlength')" class="mt-1 text-xs text-red-400">{{ 'common.first-name' | t }} must contain at least 2 characters.</p>
+                <p *ngIf="showError('firstName', 'required')" class="mt-1 text-xs text-red-400">{{ language.translate('auth.validation.required', { field: ('common.first-name' | t) }) }}</p>
+                <p *ngIf="showError('firstName', 'minlength')" class="mt-1 text-xs text-red-400">{{ language.translate('auth.validation.minlength', { field: ('common.first-name' | t), count: 2 }) }}</p>
                 <p *ngIf="fieldErrors.firstName" class="mt-1 text-xs text-red-400">{{ fieldErrors.firstName }}</p>
             </div>
             <div>
               <label class="block text-[10px] font-semibold uppercase tracking-widest text-[var(--tf-muted)] mb-2">{{ 'common.last-name' | t }}</label>
               <input formControlName="lastName" required minlength="2" maxlength="60" autocomplete="family-name" [placeholder]="'register.last-name-placeholder' | t"
                      class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] px-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
-              <p *ngIf="showError('lastName', 'required')" class="mt-1 text-xs text-red-400">{{ 'common.last-name' | t }} is required.</p>
-              <p *ngIf="showError('lastName', 'minlength')" class="mt-1 text-xs text-red-400">{{ 'common.last-name' | t }} must contain at least 2 characters.</p>
+              <p *ngIf="showError('lastName', 'required')" class="mt-1 text-xs text-red-400">{{ language.translate('auth.validation.required', { field: ('common.last-name' | t) }) }}</p>
+              <p *ngIf="showError('lastName', 'minlength')" class="mt-1 text-xs text-red-400">{{ language.translate('auth.validation.minlength', { field: ('common.last-name' | t), count: 2 }) }}</p>
                 <p *ngIf="fieldErrors.lastName" class="mt-1 text-xs text-red-400">{{ fieldErrors.lastName }}</p>
             </div>
           </div>
@@ -99,8 +99,8 @@ import { RecaptchaComponent } from '../../shared/components/recaptcha.component'
               <input formControlName="company" required minlength="2" maxlength="120" autocomplete="organization" [placeholder]="'auth.company-placeholder' | t"
                      class="w-full h-12 rounded-xl bg-[var(--tf-surface)] border border-[var(--tf-border)] pl-12 pr-4 text-[var(--tf-on-surface)] placeholder:text-[var(--tf-muted)] outline-none focus:ring-2 focus:ring-[var(--tf-primary)] focus:border-transparent transition"/>
             </div>
-            <p *ngIf="showError('company', 'required')" class="mt-1 text-xs text-red-400">{{ 'common.company-name' | t }} is required.</p>
-            <p *ngIf="showError('company', 'minlength')" class="mt-1 text-xs text-red-400">{{ 'common.company-name' | t }} must contain at least 2 characters.</p>
+            <p *ngIf="showError('company', 'required')" class="mt-1 text-xs text-red-400">{{ language.translate('auth.validation.required', { field: ('common.company-name' | t) }) }}</p>
+            <p *ngIf="showError('company', 'minlength')" class="mt-1 text-xs text-red-400">{{ language.translate('auth.validation.minlength', { field: ('common.company-name' | t), count: 2 }) }}</p>
             <p *ngIf="fieldErrors.company" class="mt-1 text-xs text-red-400">{{ fieldErrors.company }}</p>
           </div>
           <div>
@@ -265,14 +265,14 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
     if (this.googleClient) {
       this.googleClient.requestCode();
     } else {
-      this.errorMessage = 'Google Sign-In n\'est pas encore chargé. Veuillez réessayer.';
+      this.errorMessage = this.language.translate('auth.google-loading');
       this.cdr.detectChanges();
     }
   }
 
   private handleGoogleCodeResponse(response: any) {
     if (response?.error || !response?.code) {
-      this.errorMessage = 'Erreur lors de la connexion Google.';
+      this.errorMessage = this.language.translate('auth.google-error');
       this.cdr.detectChanges();
       return;
     }
@@ -444,11 +444,15 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
 
   private humanizeBackendMessage(message: string, field: string) {
     const lower = message.toLowerCase();
+    const fieldLabel = field === 'firstName' ? this.language.translate('common.first-name') : 
+                      field === 'lastName' ? this.language.translate('common.last-name') : 
+                      this.language.translate('common.company-name');
+
     if (lower.includes('should not be empty') || lower.includes('must not be empty') || lower.includes('required')) {
-      return `${field === 'firstName' ? 'Le prénom' : field === 'lastName' ? 'Le nom' : 'Le nom de l\'entreprise'} est obligatoire.`;
+      return this.language.translate('auth.validation.required', { field: fieldLabel });
     }
     if (lower.includes('minlength') || lower.includes('must be longer') || lower.includes('too short')) {
-      return `${field === 'firstName' ? 'Le prénom' : field === 'lastName' ? 'Le nom' : 'Le nom de l\'entreprise'} est trop court.`;
+      return this.language.translate('auth.validation.minlength', { field: fieldLabel, count: 2 });
     }
     return message;
   }

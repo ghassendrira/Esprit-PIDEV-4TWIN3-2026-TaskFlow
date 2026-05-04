@@ -1,6 +1,10 @@
+// Importe l'exception pour les requêtes invalides et le décorateur Injectable de NestJS
 import { BadRequestException, Injectable } from '@nestjs/common';
+// Importe le dataset d'exemples pour la classification des dépenses
 import { EXPENSE_CLASSIFICATION_DATASET } from './expense-classification.dataset';
+// Importe les types pour les exemples, snapshots et résultats de prédiction
 import { LabeledExample, ModelSnapshot, PredictionResult } from './ai.types';
+// Importe les types et classes liés au modèle de retard de facture
 import {
   InvoiceDelayExample,
   InvoiceDelayFeatures,
@@ -8,19 +12,24 @@ import {
   InvoiceDelayPredictionResult,
   InvoiceDelayRiskModel,
 } from './invoice-delay.model';
+// Importe le dataset d'exemples pour le retard de facture
 import { INVOICE_DELAY_DATASET } from './invoice-delay.dataset';
+// Importe le modèle de classification de texte naïf Bayesien
 import { NaiveBayesTextModel } from './naive-bayes-text.model';
 
+// Interface pour la requête de prédiction de retard de facture
 interface InvoiceDelayPredictionRequest extends Partial<InvoiceDelayFeatures> {
   businessId?: string;
   clientId?: string;
 }
 
+// Interface pour un paiement de facture
 interface InvoicePaymentRecord {
   paymentDate?: string | Date;
   amount?: number;
 }
 
+// Interface pour une facture
 interface InvoiceRecord {
   id: string;
   businessId: string;
@@ -33,24 +42,33 @@ interface InvoiceRecord {
   payments?: InvoicePaymentRecord[];
 }
 
+// Déclare le service injectable pour l'IA
 @Injectable()
 export class AiService {
+  // Modèle de classification de texte naïf Bayesien
   private readonly model = new NaiveBayesTextModel();
+  // Modèle de prédiction de risque de retard de facture
   private readonly invoiceDelayModel = new InvoiceDelayRiskModel();
+  // Snapshot du modèle de classification de dépenses
   private snapshot: ModelSnapshot;
+  // Snapshot du modèle de retard de facture
   private invoiceDelaySnapshot: InvoiceDelayModelSnapshot;
+  // Exemples d'entraînement pour le modèle de retard de facture
   private invoiceDelayExamples: ReadonlyArray<InvoiceDelayExample>;
 
+  // Constructeur : entraîne les modèles à l'initialisation
   constructor() {
     this.snapshot = this.trainInternal(EXPENSE_CLASSIFICATION_DATASET);
     this.invoiceDelayExamples = INVOICE_DELAY_DATASET;
     this.invoiceDelaySnapshot = this.trainInvoiceDelayInternal(INVOICE_DELAY_DATASET);
   }
 
+  // Retourne le snapshot du modèle de classification de dépenses
   getModelSnapshot(): ModelSnapshot {
     return this.snapshot;
   }
 
+  // Prédit la catégorie d'une dépense à partir d'un texte
   predict(text: string): PredictionResult {
     const input = text.trim();
     if (!input) {
@@ -58,6 +76,10 @@ export class AiService {
     }
 
     return this.model.predict(input);
+  //
+  // Ce fichier définit le service principal pour les fonctionnalités d'intelligence artificielle (IA).
+  // Il gère l'entraînement, la prédiction et la gestion des modèles pour la classification des dépenses et la prédiction du retard de paiement des factures.
+  // Toute la logique métier liée à l'IA est centralisée ici et utilisée par le contrôleur d'IA.
   }
 
   retrain(examples?: LabeledExample[]): ModelSnapshot {
@@ -153,7 +175,7 @@ export class AiService {
 
     return this.buildPredictionFeaturesFromInvoices(invoices, clientId, request);
   }
-
+//La fonction qui récupère réellement les données depuis la base
   private async fetchInvoicesByBusiness(businessId: string): Promise<InvoiceRecord[]> {
     const url = `http://127.0.0.1:3005/invoices/by-business/${encodeURIComponent(businessId)}`;
     let response: globalThis.Response;

@@ -100,7 +100,7 @@ type ClientSummary = {
         style="grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; align-items: end; margin-top: 10px;"
       >
         <div style="grid-column: span 3;">
-          <label class="text-sm muted">Invoice file (PDF/image)</label>
+          <label class="text-sm muted">{{ 'invoice.file-label' | t }}</label>
           <input
             type="file"
             accept="application/pdf,image/*"
@@ -112,13 +112,14 @@ type ClientSummary = {
         </div>
 
         <div style="grid-column: span 2;">
-          <label class="text-sm muted">Invoice number</label>
+          <label class="text-sm muted">{{ 'invoice.number-label' | t }}</label>
           <input
             class="w-full border rounded-lg px-3 py-2"
             style="border-color: var(--tf-border); background: var(--tf-surface); color: var(--tf-on-surface);"
             [(ngModel)]="form.invoiceNumber"
             name="invoiceNumber"
             maxlength="64"
+            placeholder="INV-000"
           />
         </div>
 
@@ -157,11 +158,11 @@ type ClientSummary = {
             [(ngModel)]="form.status"
             name="status"
           >
-            <option value="DRAFT">DRAFT</option>
-            <option value="SENT">SENT</option>
-            <option value="PAID">PAID</option>
-            <option value="OVERDUE">OVERDUE</option>
-            <option value="CANCELED">CANCELED</option>
+            <option value="DRAFT">{{ 'invoice.status.draft' | t }}</option>
+            <option value="SENT">{{ 'invoice.status.sent' | t }}</option>
+            <option value="PAID">{{ 'invoice.status.paid' | t }}</option>
+            <option value="OVERDUE">{{ 'invoice.status.overdue' | t }}</option>
+            <option value="CANCELED">{{ 'invoice.status.canceled' | t }}</option>
           </select>
         </div>
 
@@ -249,23 +250,23 @@ type ClientSummary = {
 
       <div class="grid gap-3" style="grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px;">
         <div class="rounded-lg border p-3" style="border-color: var(--tf-border); background: var(--tf-surface-2);">
-          <div class="text-xs font-semibold uppercase tracking-[0.08em] muted">Automatic status</div>
+          <div class="text-xs font-semibold uppercase tracking-[0.08em] muted">{{ 'invoice.auto-status.label' | t }}</div>
           <div class="mt-2 text-lg font-bold">{{ invoiceStatusLabel() }}</div>
           <p class="muted" style="margin-top: 6px; font-size: 12px;">{{ invoiceStatusHint() }}</p>
         </div>
 
         <div class="rounded-lg border p-3" style="border-color: var(--tf-border); background: var(--tf-surface-2);">
-          <div class="text-xs font-semibold uppercase tracking-[0.08em] muted">AI risk</div>
+          <div class="text-xs font-semibold uppercase tracking-[0.08em] muted">{{ 'ai-risk.title' | t }}</div>
           <ng-container *ngIf="riskPrediction() as currentPrediction; else noRisk">
-            <div class="mt-2 text-lg font-bold">{{ currentPrediction.label === 'late' ? 'High risk' : 'Low risk' }}</div>
+            <div class="mt-2 text-lg font-bold">{{ currentPrediction.label === 'late' ? ('invoice.ai-risk.high' | t) : ('invoice.ai-risk.low' | t) }}</div>
             <div class="mt-2 grid gap-2 text-sm">
-              <div class="flex items-center justify-between"><span class="muted">Late risk</span><strong>{{ (currentPrediction.riskProbability * 100) | number:'1.0-1' }}%</strong></div>
-              <div class="flex items-center justify-between"><span class="muted">Risk level</span><strong>{{ currentPrediction.riskLevel }}</strong></div>
-              <div class="flex items-center justify-between"><span class="muted">Confidence</span><strong>{{ (currentPrediction.confidence * 100) | number:'1.0-1' }}%</strong></div>
+              <div class="flex items-center justify-between"><span class="muted">{{ 'ai-risk.risk-probability' | t }}</span><strong>{{ (currentPrediction.riskProbability * 100) | number:'1.0-1' }}%</strong></div>
+              <div class="flex items-center justify-between"><span class="muted">{{ 'ai-risk.risk-level' | t }}</span><strong>{{ currentPrediction.riskLevel }}</strong></div>
+              <div class="flex items-center justify-between"><span class="muted">{{ 'invoice.ai-risk.confidence' | t }}</span><strong>{{ (currentPrediction.confidence * 100) | number:'1.0-1' }}%</strong></div>
             </div>
           </ng-container>
           <ng-template #noRisk>
-            <p class="muted" style="margin-top: 8px; font-size: 12px;">Select a client to compute the AI risk from its invoice history.</p>
+            <p class="muted" style="margin-top: 8px; font-size: 12px;">{{ 'invoice.ai-risk.select-client-hint' | t }}</p>
           </ng-template>
         </div>
       </div>
@@ -292,7 +293,7 @@ type ClientSummary = {
           <tbody class="divide-y divide-[color:var(--tf-border)]">
             <tr *ngFor="let inv of invoices();" class="hover:bg-[var(--tf-surface-2)] transition">
               <td class="px-3 py-2 font-['DM_Mono']">{{ inv.invoiceNumber }}</td>
-              <td class="px-3 py-2">{{ inv.status }}</td>
+              <td class="px-3 py-2">{{ 'invoice.status.' + inv.status.toLowerCase() | t }}</td>
               <td class="px-3 py-2">{{ inv.issueDate | date:'dd MMM yyyy' }}</td>
               <td class="px-3 py-2">{{ inv.dueDate | date:'dd MMM yyyy' }}</td>
               <td class="px-3 py-2">{{ inv.totalAmount }}</td>
@@ -331,7 +332,7 @@ type ClientSummary = {
       [message]="dialogMessage()"
       [mode]="dialogMode()"
       [confirmLabel]="dialogConfirmLabel()"
-      cancelLabel="Cancel"
+      [cancelLabel]="'common.cancel' | t"
       [danger]="dialogDanger()"
       (confirm)="handleDialogConfirm()"
       (cancel)="closeDialog()"
@@ -344,7 +345,7 @@ export class InvoicesComponent implements OnInit {
   private clientsApi = inject(ClientsService);
   private invoicesApi = inject(InvoicesService);
   private auth = inject(AuthService);
-  private language = inject(LanguageService);
+  private lang = inject(LanguageService);
 
   businesses = signal<Array<{ id: string; name: string }>>([]);
   tenants = signal<Array<{ id: string; name: string }>>([]);
@@ -363,7 +364,7 @@ export class InvoicesComponent implements OnInit {
   dialogTitle = signal('');
   dialogMessage = signal('');
   dialogMode = signal<'alert' | 'confirm' | 'prompt'>('alert');
-  dialogConfirmLabel = signal('OK');
+  dialogConfirmLabel = signal(this.lang.translate('common.ok'));
   dialogDanger = signal(false);
   pendingDeleteInvoice = signal<any | null>(null);
   errorMessage: string | null = null;
@@ -543,7 +544,7 @@ export class InvoicesComponent implements OnInit {
           };
         },
         error: (err) => {
-          const msg = err?.error?.message || err?.message || 'OCR failed.';
+          const msg = err?.error?.message || err?.message || this.lang.translate('invoice.ocr-failed');
           this.errorMessage = String(msg);
         },
       })
@@ -578,7 +579,10 @@ export class InvoicesComponent implements OnInit {
         this.invoices.set(data || []);
         this.refreshInvoiceRisk();
       },
-      error: () => this.invoices.set([]),
+      error: (err) => {
+        this.invoices.set([]);
+        this.errorMessage = err?.error?.message || err?.message || this.lang.translate('invoice.error-loading');
+      },
     });
   }
 
@@ -593,7 +597,8 @@ export class InvoicesComponent implements OnInit {
   }
 
   invoiceStatusLabel(): string {
-    return this.syncAutoStatus();
+    const status = this.syncAutoStatus();
+    return this.lang.translate(`invoice.status.${status.toLowerCase()}`);
   }
 
   invoiceStatusHint(): string {
@@ -601,17 +606,17 @@ export class InvoicesComponent implements OnInit {
     const dueDate = this.form.dueDate ? new Date(this.form.dueDate) : null;
 
     if (!issueDate) {
-      return 'Choose an issue date to determine whether the invoice is unpaid or overdue.';
+      return this.lang.translate('invoice.auto-status.hint-no-issue');
     }
 
     if (!dueDate) {
-      return 'Without a due date, the invoice stays as a draft until you define the payment term.';
+      return this.lang.translate('invoice.auto-status.hint-no-due');
     }
 
     const today = this.startOfToday();
     return dueDate.getTime() < today.getTime()
-      ? 'The due date is in the past, so the invoice is considered overdue if no payment exists.'
-      : 'The due date is still in the future, so the invoice is unpaid but not overdue yet.';
+      ? this.lang.translate('invoice.auto-status.hint-overdue')
+      : this.lang.translate('invoice.auto-status.hint-future');
   }
 
   private refreshInvoiceRisk(): void {
@@ -725,32 +730,32 @@ export class InvoicesComponent implements OnInit {
     const notes = String(this.form.notes || '').trim();
 
     if (!clientId) {
-      this.errorMessage = 'Le client est obligatoire.';
+      this.errorMessage = this.lang.translate('invoice.validation.client-required');
       return;
     }
 
     if (!issueDate) {
-      this.errorMessage = 'La date d\'émission est obligatoire.';
+      this.errorMessage = this.lang.translate('invoice.validation.issue-date-required');
       return;
     }
 
     if (dueDate && new Date(dueDate).getTime() < new Date(issueDate).getTime()) {
-      this.errorMessage = 'La date d\'échéance doit être postérieure à la date d\'émission.';
+      this.errorMessage = this.lang.translate('invoice.validation.due-date-after-issue');
       return;
     }
 
     if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
-      this.errorMessage = 'Le total doit être supérieur à 0.';
+      this.errorMessage = this.lang.translate('invoice.validation.total-positive');
       return;
     }
 
     if (!Number.isFinite(taxAmount) || taxAmount < 0) {
-      this.errorMessage = 'La taxe doit être positive.';
+      this.errorMessage = this.lang.translate('invoice.validation.tax-positive');
       return;
     }
 
     if (notes.length > 500) {
-      this.errorMessage = 'Les notes sont trop longues.';
+      this.errorMessage = this.lang.translate('invoice.notes-too-long');
       return;
     }
 
@@ -783,7 +788,7 @@ export class InvoicesComponent implements OnInit {
           this.reload();
         });
       },
-      error: (err) => this.openAlert('Invoice error', err?.error?.message || this.language.translate('invoice.error')),
+      error: (err) => this.openAlert(this.lang.translate('invoice.error'), err?.error?.message || this.lang.translate('invoice.error')),
     });
   }
 
@@ -796,10 +801,10 @@ export class InvoicesComponent implements OnInit {
 
   remove(inv: any) {
     this.pendingDeleteInvoice.set(inv);
-    this.dialogTitle.set('Delete invoice');
-    this.dialogMessage.set(this.language.translate('invoice.delete-confirm'));
+    this.dialogTitle.set(this.lang.translate('common.delete'));
+    this.dialogMessage.set(this.lang.translate('invoice.delete-confirm'));
     this.dialogMode.set('confirm');
-    this.dialogConfirmLabel.set('Delete');
+    this.dialogConfirmLabel.set(this.lang.translate('common.delete'));
     this.dialogDanger.set(true);
     this.dialogOpen.set(true);
   }
@@ -819,7 +824,7 @@ export class InvoicesComponent implements OnInit {
     const tenantId = this.resolveTenantId();
     this.invoicesApi.remove(inv.id, tenantId).subscribe({
       next: () => this.reload(),
-      error: (err) => this.openAlert('Delete invoice', err?.error?.message || this.language.translate('invoice.delete-error')),
+      error: (err) => this.openAlert(this.lang.translate('common.delete'), err?.error?.message || this.lang.translate('invoice.delete-error')),
     });
   }
 
@@ -833,7 +838,7 @@ export class InvoicesComponent implements OnInit {
     this.dialogTitle.set(title);
     this.dialogMessage.set(message);
     this.dialogMode.set('alert');
-    this.dialogConfirmLabel.set('OK');
+    this.dialogConfirmLabel.set(this.lang.translate('common.ok'));
     this.dialogDanger.set(false);
     this.dialogOpen.set(true);
   }

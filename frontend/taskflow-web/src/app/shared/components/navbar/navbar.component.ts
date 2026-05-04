@@ -72,8 +72,8 @@ import { TranslatePipe } from '../../pipes/t.pipe';
             type="button"
             class="relative w-10 h-10 inline-flex items-center justify-center rounded-lg border transition hover:bg-[var(--tf-surface-2)]"
             style="border-color: var(--tf-border); color: var(--tf-on-surface);"
-            aria-label="Notifications"
-            title="Notifications"
+            [attr.aria-label]="'common.notifications' | t"
+            [attr.title]="'common.notifications' | t"
           >
             <i class="fa-regular fa-bell text-lg"></i>
             <span
@@ -165,9 +165,10 @@ export class NavbarComponent {
   });
   tenantLogo = computed(() => this.tenant.logo());
   userName = computed(() => {
+    this.language.language(); // track language
     const user = this.auth.user();
     if (user && user.name && user.name !== 'User') return user.name;
-    return 'Business Owner';
+    return this.language.translate('common.business-owner');
   });
 
   logout() {

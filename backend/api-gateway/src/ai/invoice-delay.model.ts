@@ -1,47 +1,55 @@
+// Décrit les caractéristiques d'une facture pour la prédiction de retard
 export interface InvoiceDelayFeatures {
-  amount: number;
-  dueDays: number;
-  clientLateRatio: number;
-  previousLateCount: number;
-  openInvoiceCount: number;
-  overdueInvoiceCount: number;
+  amount: number; // Montant de la facture
+  dueDays: number; // Nombre de jours avant échéance
+  clientLateRatio: number; // Ratio de retard du client
+  previousLateCount: number; // Nombre de retards précédents
+  openInvoiceCount: number; // Nombre de factures ouvertes
+  overdueInvoiceCount: number; // Nombre de factures en retard
 }
 
+// Exemple d'entraînement pour le modèle de retard de facture
 export interface InvoiceDelayExample {
-  features: InvoiceDelayFeatures;
-  late: boolean;
+  features: InvoiceDelayFeatures; // Caractéristiques de la facture
+  late: boolean; // Statut de retard
 }
 
+// Type pour l'étiquette de risque de retard
 export type InvoiceDelayRiskLabel = 'late' | 'on_time';
+// Type pour le niveau de risque
 export type InvoiceDelayRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
+// Score de prédiction pour le risque de retard
 export interface InvoiceDelayPredictionScore {
-  label: InvoiceDelayRiskLabel;
-  score: number;
-  probability: number;
+  label: InvoiceDelayRiskLabel; // Étiquette prédite
+  score: number; // Score brut
+  probability: number; // Probabilité
 }
 
+// Résultat de la prédiction de retard de facture
 export interface InvoiceDelayPredictionResult {
-  input: InvoiceDelayFeatures;
-  label: InvoiceDelayRiskLabel;
-  riskProbability: number;
-  riskLevel: InvoiceDelayRiskLevel;
-  confidence: number;
-  scores: InvoiceDelayPredictionScore[];
+  input: InvoiceDelayFeatures; // Entrée
+  label: InvoiceDelayRiskLabel; // Étiquette prédite
+  riskProbability: number; // Probabilité de risque
+  riskLevel: InvoiceDelayRiskLevel; // Niveau de risque
+  confidence: number; // Confiance
+  scores: InvoiceDelayPredictionScore[]; // Détail des scores
 }
 
+// Snapshot du modèle de retard de facture
 export interface InvoiceDelayModelSnapshot {
-  modelName: string;
-  trainedAt: string;
-  trainingExamples: number;
-  featureCount: number;
-  trainingAccuracy: number;
-  weights?: number[];
-  means?: number[];
-  stds?: number[];
-  intercept?: number;
+  modelName: string; // Nom du modèle
+  trainedAt: string; // Date d'entraînement
+  trainingExamples: number; // Nombre d'exemples
+  featureCount: number; // Nombre de features
+  trainingAccuracy: number; // Précision
+  weights?: number[]; // Poids du modèle
+  means?: number[]; // Moyennes
+  stds?: number[]; // Écarts-types
+  intercept?: number; // Intercept
 }
 
+// Liste des noms de features utilisées par le modèle
 const FEATURE_NAMES: Array<keyof InvoiceDelayFeatures> = [
   'amount',
   'dueDays',
@@ -51,13 +59,18 @@ const FEATURE_NAMES: Array<keyof InvoiceDelayFeatures> = [
   'overdueInvoiceCount',
 ];
 
+// Classe du modèle de risque de retard de facture
 export class InvoiceDelayRiskModel {
-  private weights: number[] = [];
-  private means: number[] = [];
-  private stds: number[] = [];
-  private lastTrainingSize = 0;
+  private weights: number[] = []; // Poids du modèle
+  private means: number[] = []; // Moyennes des features
+  private stds: number[] = []; // Écarts-types des features
+  private lastTrainingSize = 0; // Taille du dernier entraînement
 
+  // Fonction d'entraînement du modèle
   train(examples: InvoiceDelayExample[]): void {
+    //
+    // Ce fichier définit les types et la classe du modèle pour la prédiction du risque de retard de paiement des factures.
+    // Il structure les données d'entrée, les résultats de prédiction et le modèle utilisé pour l'entraînement et l'inférence.
     if (!examples.length) {
       throw new Error('Training dataset cannot be empty');
     }

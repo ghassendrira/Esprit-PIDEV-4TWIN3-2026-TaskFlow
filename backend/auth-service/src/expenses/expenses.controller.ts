@@ -3,7 +3,7 @@ import { ExpensesProxyService } from './expenses.service';
 
 @Controller('expenses')
 export class ExpensesController {
-  constructor(private service: ExpensesProxyService) {}
+  constructor(private readonly service: ExpensesProxyService) {}
 
   @Get('by-business/:businessId')
   listByBusiness(

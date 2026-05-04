@@ -7,9 +7,9 @@ import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class RBACGuard implements CanActivate {
   constructor(
-    private reflector: Reflector,
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

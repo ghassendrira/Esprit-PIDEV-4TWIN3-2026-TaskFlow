@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Headers, UnauthorizedException, Param, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers, UnauthorizedException, Param } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AssignPermissionsDto } from './dto/assign-permission.dto';
@@ -7,8 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 @Controller('roles')
 export class RolesController {
   constructor(
-    private rolesService: RolesService,
-    private jwt: JwtService,
+    private readonly rolesService: RolesService,
+    private readonly jwt: JwtService,
   ) {}
 
   private async getPayload(authHeader?: string) {

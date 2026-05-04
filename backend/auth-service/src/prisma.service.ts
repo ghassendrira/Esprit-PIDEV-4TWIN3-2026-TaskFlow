@@ -14,11 +14,14 @@ export class PrismaService
     const authUrl = process.env.DATABASE_URL_AUTH;
     const defaultUrl = process.env.DATABASE_URL;
     const url = authUrl ?? defaultUrl;
-    const dbUrlSource = authUrl
-      ? 'DATABASE_URL_AUTH'
-      : defaultUrl
-        ? 'DATABASE_URL'
-        : 'none';
+    let dbUrlSource: 'DATABASE_URL_AUTH' | 'DATABASE_URL' | 'none';
+    if (authUrl) {
+      dbUrlSource = 'DATABASE_URL_AUTH';
+    } else if (defaultUrl) {
+      dbUrlSource = 'DATABASE_URL';
+    } else {
+      dbUrlSource = 'none';
+    }
 
     const adapter = url
       ? new PrismaPg({

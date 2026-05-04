@@ -10,8 +10,8 @@ import { PrismaService } from '../prisma.service';
 @Injectable()
 export class ClientsService {
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
   ) {}
 
   private businessBase() {

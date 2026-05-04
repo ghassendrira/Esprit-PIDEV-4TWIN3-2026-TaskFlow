@@ -5,8 +5,8 @@ import { PrismaService } from '../prisma.service';
 @Injectable()
 export class InvoicesProxyService {
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
   ) {}
 
   private async getContext(authHeader?: string, tenantIdFromHeader?: string) {
@@ -173,11 +173,14 @@ export class InvoicesProxyService {
 
   async create(authHeader: string, tenantIdFromHeader: string, body: any) {
     const businessId = body?.businessId as string;
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
+    let tenantId = (tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined')
       ? tenantIdFromHeader
-      : businessId
-        ? await this.resolveTenantIdFromBusiness(businessId)
-        : null;
+      : null;
+
+    if (!tenantId && businessId) {
+      tenantId = await this.resolveTenantIdFromBusiness(businessId);
+    }
+
     const ctx = await this.getContext(authHeader, tenantId ?? undefined);
     if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
 
@@ -219,11 +222,14 @@ export class InvoicesProxyService {
 
   async update(authHeader: string, tenantIdFromHeader: string, id: string, body: any) {
     const businessId = body?.businessId as string | undefined;
-    const tenantId = tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined'
+    let tenantId = (tenantIdFromHeader && tenantIdFromHeader !== 'null' && tenantIdFromHeader !== 'undefined')
       ? tenantIdFromHeader
-      : businessId
-        ? await this.resolveTenantIdFromBusiness(businessId)
-        : null;
+      : null;
+
+    if (!tenantId && businessId) {
+      tenantId = await this.resolveTenantIdFromBusiness(businessId);
+    }
+
     const ctx = await this.getContext(authHeader, tenantId ?? undefined);
     if (!this.canWrite(ctx.roleName)) throw new ForbiddenException('Read-only for Business Owner');
 

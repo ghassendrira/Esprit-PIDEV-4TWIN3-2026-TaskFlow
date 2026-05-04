@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { LanguageService } from '../../core/services/language.service';
 import { TfCardComponent } from '../../shared/ui/card/tf-card.component';
 import { TfTableComponent } from '../../shared/ui/table/tf-table.component';
 import { TranslatePipe } from '../../shared/pipes/t.pipe';
@@ -87,13 +88,13 @@ type BusinessOwnerDashboardResponse = {
     </header>
 
     <tf-card *ngIf="loading()" class="table-card">
-      <div class="empty-state">Loading dashboard statistics...</div>
+      <div class="empty-state">{{ 'dashboard.loading' | t }}</div>
     </tf-card>
 
     <tf-card *ngIf="error()" class="table-card">
       <div class="empty-state">
         <div>{{ error() }}</div>
-        <button class="retry-btn" type="button" (click)="reload()">Retry</button>
+        <button class="retry-btn" type="button" (click)="reload()">{{ 'dashboard.retry' | t }}</button>
       </div>
     </tf-card>
 
@@ -101,7 +102,7 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid metrics">
         <tf-card *ngFor="let card of adminMetricCards()">
           <div class="metric metric-card">
-            <div class="k">{{ card.label }}</div>
+            <div class="k">{{ card.label | t }}</div>
             <div class="v">{{ card.value }}</div>
             <div class="h">{{ card.hint }}</div>
           </div>
@@ -111,15 +112,15 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid analytics-two">
         <tf-card class="analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Users by role</h3>
-            <span class="muted">Organization mix</span>
+            <h3 style="margin: 0;">{{ 'dashboard.users-by-role' | t }}</h3>
+            <span class="muted">{{ 'dashboard.organization-mix' | t }}</span>
           </div>
           <div class="analytics-layout" *ngIf="adminRoleChartRows().length; else emptyAdminRoles">
             <div class="donut-wrap">
               <div class="donut-chart" [style.background]="adminRoleDonutGradient()">
                 <div class="donut-hole">
                   <strong>{{ adminRoleTotal() }}</strong>
-                  <span>Total</span>
+                  <span>{{ 'dashboard.total' | t }}</span>
                 </div>
               </div>
             </div>
@@ -137,21 +138,21 @@ type BusinessOwnerDashboardResponse = {
             </div>
           </div>
           <ng-template #emptyAdminRoles>
-            <div class="empty-state compact">No role distribution available.</div>
+            <div class="empty-state compact">{{ 'dashboard.no-role-dist' | t }}</div>
           </ng-template>
         </tf-card>
 
         <tf-card class="analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Operational queues</h3>
-            <span class="muted">Pending admin actions</span>
+            <h3 style="margin: 0;">{{ 'dashboard.operational-queues' | t }}</h3>
+            <span class="muted">{{ 'dashboard.pending-admin-actions' | t }}</span>
           </div>
           <div class="bar-panel">
             <div class="bar-row" *ngFor="let row of adminQueueChartRows()">
               <div class="bar-meta">
                 <div>
                   <strong>{{ row.label }}</strong>
-                  <div class="muted">{{ row.percent | number:'1.0-0' }}% of max queue</div>
+                  <div class="muted">{{ 'dashboard.max-queue-hint' | t:{ percent: (row.percent | number:'1.0-0') || '0' } }}</div>
                 </div>
                 <span>{{ row.value }}</span>
               </div>
@@ -166,21 +167,21 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid analytics-two" style="margin-top: 12px;">
         <tf-card class="analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Tenant portfolio overview</h3>
-            <span class="muted">Businesses and users by tenant</span>
+            <h3 style="margin: 0;">{{ 'dashboard.tenant-portfolio' | t }}</h3>
+            <span class="muted">{{ 'dashboard.tenant-portfolio-hint' | t }}</span>
           </div>
           <div class="portfolio-card" *ngIf="adminBusinessChartRows().length; else emptyBusinessCoverage">
             <div class="chart-summary-strip">
               <div class="summary-chip">
-                <span>Total tenants</span>
+                <span>{{ 'dashboard.metric.total-tenants' | t }}</span>
                 <strong>{{ adminData()?.summary?.totalTenants ?? 0 }}</strong>
               </div>
               <div class="summary-chip">
-                <span>Total businesses</span>
+                <span>{{ 'dashboard.metric.total-businesses' | t }}</span>
                 <strong>{{ adminData()?.summary?.totalBusinesses ?? 0 }}</strong>
               </div>
               <div class="summary-chip">
-                <span>Active users</span>
+                <span>{{ 'dashboard.metric.active-users' | t }}</span>
                 <strong>{{ adminData()?.summary?.activeUsers ?? 0 }}</strong>
               </div>
             </div>
@@ -188,19 +189,19 @@ type BusinessOwnerDashboardResponse = {
             <div class="portfolio-legend">
               <div class="legend-inline">
                 <span class="legend-dot blue"></span>
-                <span>Businesses</span>
+                <span>{{ 'dashboard.businesses' | t }}</span>
               </div>
               <div class="legend-inline">
                 <span class="legend-dot amber"></span>
-                <span>Users</span>
+                <span>{{ 'dashboard.users' | t }}</span>
               </div>
             </div>
 
             <div class="portfolio-simple admin-table-scroll">
               <div class="portfolio-simple-head">
-                <span>Tenant</span>
-                <span class="right">Businesses</span>
-                <span class="right">Users</span>
+                <span>{{ 'dashboard.tenant' | t }}</span>
+                <span class="right">{{ 'dashboard.businesses' | t }}</span>
+                <span class="right">{{ 'dashboard.users' | t }}</span>
               </div>
 
               <div class="portfolio-simple-row" *ngFor="let row of adminPortfolioRows()">
@@ -225,21 +226,21 @@ type BusinessOwnerDashboardResponse = {
             </div>
           </div>
           <ng-template #emptyBusinessCoverage>
-            <div class="empty-state compact">No tenant coverage available.</div>
+            <div class="empty-state compact">{{ 'dashboard.no-tenant-coverage' | t }}</div>
           </ng-template>
         </tf-card>
 
         <tf-card class="table-card analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Tenant leaderboard</h3>
-            <span class="muted">Live tenant coverage</span>
+            <h3 style="margin: 0;">{{ 'dashboard.tenant-leaderboard' | t }}</h3>
+            <span class="muted">{{ 'dashboard.live-tenant-coverage' | t }}</span>
           </div>
           <div class="leaderboard-table" *ngIf="adminBusinessRows().length; else emptyBusinessTable">
             <div class="leaderboard-head">
-              <span>Tenant</span>
-              <span>Businesses</span>
-              <span>Users</span>
-              <span>Coverage</span>
+              <span>{{ 'dashboard.tenant' | t }}</span>
+              <span>{{ 'dashboard.businesses' | t }}</span>
+              <span>{{ 'dashboard.users' | t }}</span>
+              <span>{{ 'dashboard.coverage' | t }}</span>
             </div>
             <div class="leaderboard-body admin-table-scroll">
               <div class="leaderboard-row" *ngFor="let row of adminBusinessRows()">
@@ -255,7 +256,7 @@ type BusinessOwnerDashboardResponse = {
             </div>
           </div>
           <ng-template #emptyBusinessTable>
-            <div class="empty-state compact">No tenant coverage available.</div>
+            <div class="empty-state compact">{{ 'dashboard.no-tenant-coverage' | t }}</div>
           </ng-template>
         </tf-card>
       </section>
@@ -263,10 +264,10 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid" style="margin-top: 12px;">
         <tf-card class="table-card analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Recent admin activity</h3>
-            <span class="muted">Latest platform events</span>
+            <h3 style="margin: 0;">{{ 'dashboard.recent-admin-activity' | t }}</h3>
+            <span class="muted">{{ 'dashboard.latest-platform-events' | t }}</span>
           </div>
-          <tf-table [columns]="adminActivityColumns" [data]="adminActivityRows()"></tf-table>
+          <tf-table [columns]="adminActivityColumns()" [data]="adminActivityRows()"></tf-table>
         </tf-card>
       </section>
     </ng-container>
@@ -275,7 +276,7 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid metrics">
         <tf-card *ngFor="let card of ownerMetricCards()">
           <div class="metric metric-card">
-            <div class="k">{{ card.label }}</div>
+            <div class="k">{{ card.label | t }}</div>
             <div class="v">{{ card.value }}</div>
             <div class="h">{{ card.hint }}</div>
           </div>
@@ -285,13 +286,13 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid analytics-main" style="margin-top: 12px;">
         <tf-card class="analytics-card finance-hero">
           <div class="table-head">
-            <h3 style="margin: 0;">Financial overview</h3>
-            <span class="muted">Cash position and receivables</span>
+            <h3 style="margin: 0;">{{ 'dashboard.financial-overview' | t }}</h3>
+            <span class="muted">{{ 'dashboard.cash-position' | t }}</span>
           </div>
           <div class="finance-summary" *ngIf="ownerCashflowChartRows().length; else emptyCashflow">
             <div class="finance-stats">
               <div class="finance-stat" *ngFor="let row of ownerCashflowChartRows()">
-                <span>{{ row.label }}</span>
+                <span>{{ row.label | t }}</span>
                 <strong>{{ row.value }}</strong>
               </div>
             </div>
@@ -299,8 +300,8 @@ type BusinessOwnerDashboardResponse = {
               <div class="bar-row" *ngFor="let row of ownerCashflowChartRows()">
                 <div class="bar-meta">
                   <div>
-                    <strong>{{ row.label }}</strong>
-                    <div class="muted">{{ row.percent | number:'1.0-0' }}% of top amount</div>
+                    <strong>{{ row.label | t }}</strong>
+                    <div class="muted">{{ 'dashboard.top-amount-hint' | t:{ percent: (row.percent | number:'1.0-0') || '0' } }}</div>
                   </div>
                   <span>{{ row.value }}</span>
                 </div>
@@ -311,22 +312,22 @@ type BusinessOwnerDashboardResponse = {
             </div>
           </div>
           <ng-template #emptyCashflow>
-            <div class="empty-state compact">No financial breakdown available.</div>
+            <div class="empty-state compact">{{ 'dashboard.no-cashflow' | t }}</div>
           </ng-template>
         </tf-card>
 
         <div class="dash-grid analytics-stack">
           <tf-card class="analytics-card">
             <div class="table-head">
-              <h3 style="margin: 0;">Invoice status</h3>
-              <span class="muted">Collection health</span>
+              <h3 style="margin: 0;">{{ 'dashboard.invoice-status' | t }}</h3>
+              <span class="muted">{{ 'dashboard.collection-health' | t }}</span>
             </div>
             <div class="analytics-layout" *ngIf="ownerInvoiceStatusChartRows().length; else emptyInvoiceStatuses">
               <div class="donut-wrap">
                 <div class="donut-chart" [style.background]="ownerInvoiceDonutGradient()">
                   <div class="donut-hole">
                     <strong>{{ ownerInvoiceStatusTotal() }}</strong>
-                    <span>Invoices</span>
+                    <span>{{ 'dashboard.invoices' | t }}</span>
                   </div>
                 </div>
               </div>
@@ -344,21 +345,21 @@ type BusinessOwnerDashboardResponse = {
               </div>
             </div>
             <ng-template #emptyInvoiceStatuses>
-              <div class="empty-state compact">No invoices found yet.</div>
+              <div class="empty-state compact">{{ 'dashboard.no-invoices' | t }}</div>
             </ng-template>
           </tf-card>
 
           <tf-card class="analytics-card">
             <div class="table-head">
-              <h3 style="margin: 0;">Expense status</h3>
-              <span class="muted">Expense approval mix</span>
+              <h3 style="margin: 0;">{{ 'dashboard.expense-status' | t }}</h3>
+              <span class="muted">{{ 'dashboard.expense-approval-mix' | t }}</span>
             </div>
             <div class="analytics-layout" *ngIf="ownerExpenseStatusChartRows().length; else emptyExpenseStatuses">
               <div class="donut-wrap">
                 <div class="donut-chart" [style.background]="ownerExpenseDonutGradient()">
                   <div class="donut-hole">
                     <strong>{{ ownerExpenseStatusTotal() }}</strong>
-                    <span>Expenses</span>
+                    <span>{{ 'dashboard.expenses' | t }}</span>
                   </div>
                 </div>
               </div>
@@ -376,7 +377,7 @@ type BusinessOwnerDashboardResponse = {
               </div>
             </div>
             <ng-template #emptyExpenseStatuses>
-              <div class="empty-state compact">No expenses found yet.</div>
+              <div class="empty-state compact">{{ 'dashboard.no-expenses' | t }}</div>
             </ng-template>
           </tf-card>
         </div>
@@ -385,15 +386,15 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid analytics-two" style="margin-top: 12px;">
         <tf-card class="analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Top clients</h3>
-            <span class="muted">Revenue concentration</span>
+            <h3 style="margin: 0;">{{ 'dashboard.top-clients' | t }}</h3>
+            <span class="muted">{{ 'dashboard.revenue-concentration' | t }}</span>
           </div>
           <div class="bar-panel" *ngIf="ownerTopClientChartRows().length; else emptyTopClients">
             <div class="bar-row" *ngFor="let row of ownerTopClientChartRows()">
               <div class="bar-meta">
                 <div>
                   <strong>{{ row.label }}</strong>
-                  <div class="muted">{{ row.percent | number:'1.0-0' }}% of top client</div>
+                  <div class="muted">{{ 'dashboard.top-client-hint' | t:{ percent: (row.percent | number:'1.0-0') || '0' } }}</div>
                 </div>
                 <span>{{ row.value }}</span>
               </div>
@@ -403,21 +404,21 @@ type BusinessOwnerDashboardResponse = {
             </div>
           </div>
           <ng-template #emptyTopClients>
-            <div class="empty-state compact">No client billing data yet.</div>
+            <div class="empty-state compact">{{ 'dashboard.no-client-billing' | t }}</div>
           </ng-template>
         </tf-card>
 
         <tf-card class="analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Operations pulse</h3>
-            <span class="muted">Core business activity</span>
+            <h3 style="margin: 0;">{{ 'dashboard.operations-pulse' | t }}</h3>
+            <span class="muted">{{ 'dashboard.core-business-activity' | t }}</span>
           </div>
           <div class="bar-panel" *ngIf="ownerOperationsChartRows().length; else emptyOperations">
             <div class="bar-row" *ngFor="let row of ownerOperationsChartRows()">
               <div class="bar-meta">
                 <div>
-                  <strong>{{ row.label }}</strong>
-                  <div class="muted">Current tracked value</div>
+                  <strong>{{ row.label | t }}</strong>
+                  <div class="muted">{{ 'dashboard.current-tracked-value' | t }}</div>
                 </div>
                 <span>{{ row.value }}</span>
               </div>
@@ -427,7 +428,7 @@ type BusinessOwnerDashboardResponse = {
             </div>
           </div>
           <ng-template #emptyOperations>
-            <div class="empty-state compact">No operations breakdown available.</div>
+            <div class="empty-state compact">{{ 'dashboard.no-operations' | t }}</div>
           </ng-template>
         </tf-card>
       </section>
@@ -435,24 +436,24 @@ type BusinessOwnerDashboardResponse = {
       <section class="dash-grid analytics-two" style="margin-top: 12px;">
         <tf-card class="table-card analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Recent invoices</h3>
-            <span class="muted">Latest billing activity</span>
+            <h3 style="margin: 0;">{{ 'dashboard.recent-invoices' | t }}</h3>
+            <span class="muted">{{ 'dashboard.latest-billing-activity' | t }}</span>
           </div>
-          <tf-table [columns]="ownerInvoiceColumns" [data]="ownerInvoiceRows()"></tf-table>
+          <tf-table [columns]="ownerInvoiceColumns()" [data]="ownerInvoiceRows()"></tf-table>
         </tf-card>
 
         <tf-card class="table-card analytics-card">
           <div class="table-head">
-            <h3 style="margin: 0;">Recent expenses</h3>
-            <span class="muted">Latest spending activity</span>
+            <h3 style="margin: 0;">{{ 'dashboard.recent-expenses' | t }}</h3>
+            <span class="muted">{{ 'dashboard.latest-spending-activity' | t }}</span>
           </div>
-          <tf-table [columns]="ownerExpenseColumns" [data]="ownerExpenseRows()"></tf-table>
+          <tf-table [columns]="ownerExpenseColumns()" [data]="ownerExpenseRows()"></tf-table>
         </tf-card>
       </section>
     </ng-container>
 
     <tf-card *ngIf="!loading() && !error() && !isAdmin() && !isBusinessOwner()" class="table-card">
-      <div class="empty-state">Dashboard statistics are available for Admin and Business Owner roles.</div>
+      <div class="empty-state">{{ 'dashboard.admin-only' | t }}</div>
     </tf-card>
   `,
   styles: [`
@@ -635,6 +636,7 @@ type BusinessOwnerDashboardResponse = {
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
+  private language = inject(LanguageService);
 
   readonly loading = signal(true);
   readonly error = signal('');
@@ -652,9 +654,10 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly dashboardScopeLabel = computed(() => {
-    if (this.isAdmin()) return 'Platform overview';
-    if (this.isBusinessOwner()) return 'Business overview';
-    return 'Dashboard';
+    this.language.language(); // track language
+    if (this.isAdmin()) return this.language.translate('dashboard.scope.platform');
+    if (this.isBusinessOwner()) return this.language.translate('dashboard.scope.business');
+    return this.language.translate('dashboard.scope.default');
   });
 
   readonly adminMetricCards = computed(() => {
@@ -662,19 +665,19 @@ export class DashboardComponent implements OnInit {
     if (!summary) return [];
     return [
       {
-        label: 'Total tenants',
+        label: 'dashboard.metric.total-tenants',
         value: String(summary.totalTenants),
-        hint: `${summary.totalBusinesses} businesses across the platform`,
+        hint: this.language.translate('dashboard.metric.total-businesses-hint', { count: summary.totalBusinesses }),
       },
       {
-        label: 'Active users',
+        label: 'dashboard.metric.active-users',
         value: String(summary.activeUsers),
-        hint: `${summary.blockedAccounts} accounts currently blocked`,
+        hint: this.language.translate('dashboard.metric.active-users-hint', { count: summary.blockedAccounts }),
       },
       {
-        label: 'Pending actions',
+        label: 'dashboard.metric.pending-actions',
         value: String(summary.pendingRegistrations + summary.pendingPasswordResetRequests),
-        hint: `${summary.pendingRegistrations} registrations and ${summary.pendingPasswordResetRequests} reset requests`,
+        hint: this.language.translate('dashboard.metric.pending-actions-hint', { count: summary.pendingRegistrations + summary.pendingPasswordResetRequests }),
       },
     ];
   });
@@ -684,26 +687,26 @@ export class DashboardComponent implements OnInit {
     if (!summary) return [];
     return [
       {
-        label: 'Invoiced amount',
+        label: 'dashboard.metric.invoiced-amount',
         value: this.formatMoney(summary.totalInvoicedAmount, summary.currency),
-        hint: `${summary.totalInvoices} invoices across ${summary.businessCount} businesses`,
+        hint: this.language.translate('dashboard.metric.invoices-hint', { total: summary.totalInvoices, businesses: summary.businessCount }),
       },
       {
-        label: 'Outstanding amount',
+        label: 'dashboard.metric.outstanding-amount',
         value: this.formatMoney(summary.outstandingAmount, summary.currency),
-        hint: `${summary.overdueInvoicesCount} overdue invoices`,
+        hint: this.language.translate('dashboard.metric.overdue-hint', { count: summary.overdueInvoicesCount }),
       },
       {
-        label: 'Expenses',
+        label: 'dashboard.metric.expenses',
         value: this.formatMoney(summary.totalExpenses, summary.currency),
-        hint: `${summary.totalClients} clients and ${summary.totalEmployees} employees`,
+        hint: this.language.translate('dashboard.metric.clients-employees-hint', { clients: summary.totalClients, employees: summary.totalEmployees }),
       },
     ];
   });
 
   readonly adminUsersByRoleRows = computed(() =>
     (this.adminData()?.usersByRole ?? []).map((row) => ({
-      label: this.toTitleCase(row.role.replace(/_/g, ' ')),
+      label: this.language.translate(`employees.role.${row.role.toLowerCase()}`),
       value: String(row.count),
     })),
   );
@@ -711,7 +714,7 @@ export class DashboardComponent implements OnInit {
   readonly adminRoleChartRows = computed(() =>
     this.withPercentages(
       (this.adminData()?.usersByRole ?? []).map((row) => ({
-        label: this.toTitleCase(row.role.replace(/_/g, ' ')),
+        label: this.language.translate(`employees.role.${row.role.toLowerCase()}`),
         amount: row.count,
         value: String(row.count),
         color: this.paletteFromIndex(0),
@@ -723,9 +726,9 @@ export class DashboardComponent implements OnInit {
     const summary = this.adminData()?.summary;
     if (!summary) return [];
     return this.withPercentages([
-      { label: 'Pending registrations', amount: summary.pendingRegistrations, value: String(summary.pendingRegistrations) },
-      { label: 'Blocked accounts', amount: summary.blockedAccounts, value: String(summary.blockedAccounts) },
-      { label: 'Password reset requests', amount: summary.pendingPasswordResetRequests, value: String(summary.pendingPasswordResetRequests) },
+      { label: 'dashboard.queue.pending-registrations', amount: summary.pendingRegistrations, value: String(summary.pendingRegistrations) },
+      { label: 'dashboard.queue.blocked-accounts', amount: summary.blockedAccounts, value: String(summary.blockedAccounts) },
+      { label: 'dashboard.queue.password-resets', amount: summary.pendingPasswordResetRequests, value: String(summary.pendingPasswordResetRequests) },
     ]);
   });
 
@@ -764,14 +767,14 @@ export class DashboardComponent implements OnInit {
 
   readonly ownerInvoiceStatusRows = computed(() =>
     (this.ownerData()?.invoicesByStatus ?? []).map((row) => ({
-      label: this.toTitleCase(row.label.replace(/_/g, ' ')),
+      label: this.language.translate(`expenses.status.${row.label.toLowerCase()}`),
       value: String(row.count),
     })),
   );
 
   readonly ownerExpenseStatusRows = computed(() =>
     (this.ownerData()?.expensesByStatus ?? []).map((row) => ({
-      label: this.toTitleCase(row.label.replace(/_/g, ' ')),
+      label: this.language.translate(`expenses.status.${row.label.toLowerCase()}`),
       value: String(row.count),
     })),
   );
@@ -787,7 +790,7 @@ export class DashboardComponent implements OnInit {
   readonly ownerInvoiceStatusChartRows = computed(() =>
     this.withPercentages(
       (this.ownerData()?.invoicesByStatus ?? []).map((row) => ({
-        label: this.toTitleCase(row.label.replace(/_/g, ' ')),
+        label: this.language.translate(`expenses.status.${row.label.toLowerCase()}`),
         amount: row.count,
         value: String(row.count),
         color: this.paletteFromIndex(0),
@@ -798,7 +801,7 @@ export class DashboardComponent implements OnInit {
   readonly ownerExpenseStatusChartRows = computed(() =>
     this.withPercentages(
       (this.ownerData()?.expensesByStatus ?? []).map((row) => ({
-        label: this.toTitleCase(row.label.replace(/_/g, ' ')),
+        label: this.language.translate(`expenses.status.${row.label.toLowerCase()}`),
         amount: row.count,
         value: String(row.count),
         color: this.paletteFromIndex(0),
@@ -821,9 +824,9 @@ export class DashboardComponent implements OnInit {
     const summary = this.ownerData()?.summary;
     if (!summary) return [];
     return this.withPercentages([
-      { label: 'Total invoiced', amount: summary.totalInvoicedAmount, value: this.formatMoney(summary.totalInvoicedAmount, summary.currency), tone: 'primary' },
-      { label: 'Paid', amount: summary.paidAmount, value: this.formatMoney(summary.paidAmount, summary.currency), tone: 'success' },
-      { label: 'Outstanding', amount: summary.outstandingAmount, value: this.formatMoney(summary.outstandingAmount, summary.currency), tone: 'warn' },
+      { label: 'dashboard.cashflow.total-invoiced', amount: summary.totalInvoicedAmount, value: this.formatMoney(summary.totalInvoicedAmount, summary.currency), tone: 'primary' },
+      { label: 'dashboard.cashflow.paid', amount: summary.paidAmount, value: this.formatMoney(summary.paidAmount, summary.currency), tone: 'success' },
+      { label: 'dashboard.cashflow.outstanding', amount: summary.outstandingAmount, value: this.formatMoney(summary.outstandingAmount, summary.currency), tone: 'warn' },
     ]);
   });
 
@@ -831,9 +834,9 @@ export class DashboardComponent implements OnInit {
     const summary = this.ownerData()?.summary;
     if (!summary) return [];
     return this.withPercentages([
-      { label: 'Clients', amount: summary.totalClients, value: String(summary.totalClients) },
-      { label: 'Employees', amount: summary.totalEmployees, value: String(summary.totalEmployees) },
-      { label: 'Overdue invoices', amount: summary.overdueInvoicesCount, value: String(summary.overdueInvoicesCount) },
+      { label: 'dashboard.ops.clients', amount: summary.totalClients, value: String(summary.totalClients) },
+      { label: 'dashboard.ops.employees', amount: summary.totalEmployees, value: String(summary.totalEmployees) },
+      { label: 'dashboard.ops.overdue-invoices', amount: summary.overdueInvoicesCount, value: String(summary.overdueInvoicesCount) },
     ]);
   });
 
@@ -845,30 +848,38 @@ export class DashboardComponent implements OnInit {
   readonly ownerExpenseStatusTotal = computed(() => this.sumAmounts(this.ownerExpenseStatusChartRows()));
 
   readonly adminBusinessColumns = [
-    { key: 'tenantName', label: 'Tenant' },
-    { key: 'businessCount', label: 'Businesses' },
-    { key: 'userCount', label: 'Users' },
+    { key: 'tenantName', label: 'dashboard.col.tenant' },
+    { key: 'businessCount', label: 'dashboard.col.businesses' },
+    { key: 'userCount', label: 'dashboard.col.users' },
   ];
 
-  readonly adminActivityColumns = [
-    { key: 'title', label: 'Activity' },
-    { key: 'status', label: 'Status' },
-    { key: 'at', label: 'Date' },
-  ];
+  readonly adminActivityColumns = computed(() => {
+    this.language.language(); // track language
+    return [
+      { key: 'title', label: this.language.translate('dashboard.col.activity') },
+      { key: 'status', label: this.language.translate('dashboard.col.status') },
+      { key: 'at', label: this.language.translate('dashboard.col.date') },
+    ];
+  });
 
-  readonly ownerInvoiceColumns = [
-    { key: 'clientName', label: 'Client' },
-    { key: 'amount', label: 'Amount' },
-    { key: 'status', label: 'Status' },
-    { key: 'issueDate', label: 'Issued at' },
-  ];
+  readonly ownerInvoiceColumns = computed(() => {
+    this.language.language(); // track language
+    return [
+      { key: 'invoiceNumber', label: this.language.translate('dashboard.col.number') },
+      { key: 'clientName', label: this.language.translate('dashboard.col.client') },
+      { key: 'amount', label: this.language.translate('dashboard.col.amount') },
+      { key: 'status', label: this.language.translate('dashboard.col.status') },
+    ];
+  });
 
-  readonly ownerExpenseColumns = [
-    { key: 'description', label: 'Expense' },
-    { key: 'amount', label: 'Amount' },
-    { key: 'status', label: 'Status' },
-    { key: 'date', label: 'Date' },
-  ];
+  readonly ownerExpenseColumns = computed(() => {
+    this.language.language(); // track language
+    return [
+      { key: 'description', label: this.language.translate('dashboard.col.description') },
+      { key: 'amount', label: this.language.translate('dashboard.col.amount') },
+      { key: 'status', label: this.language.translate('dashboard.col.status') },
+    ];
+  });
 
   readonly adminBusinessRows = computed(() =>
     this.withPercentages(
@@ -891,7 +902,7 @@ export class DashboardComponent implements OnInit {
   readonly adminActivityRows = computed(() =>
     (this.adminData()?.recentActivity ?? []).map((row) => ({
       title: row.title,
-      status: this.toTitleCase(String(row.status ?? '').replace(/_/g, ' ')),
+      status: this.language.translate(`common.status.${row.status.toLowerCase()}`),
       at: this.formatDate(row.at),
     })),
   );
@@ -901,7 +912,7 @@ export class DashboardComponent implements OnInit {
     return (this.ownerData()?.recentInvoices ?? []).map((row) => ({
       clientName: row.clientName,
       amount: this.formatMoney(row.amount, currency),
-      status: this.toTitleCase(row.status.replace(/_/g, ' ')),
+      status: this.language.translate(`invoice.status.${row.status.toLowerCase()}`),
       issueDate: this.formatDate(row.issueDate),
     }));
   });
@@ -911,7 +922,7 @@ export class DashboardComponent implements OnInit {
     return (this.ownerData()?.recentExpenses ?? []).map((row) => ({
       description: row.description,
       amount: this.formatMoney(row.amount, currency),
-      status: this.toTitleCase(row.status.replace(/_/g, ' ')),
+      status: this.language.translate(`expenses.status.${row.status.toLowerCase()}`),
       date: this.formatDate(row.date),
     }));
   });
@@ -935,7 +946,7 @@ export class DashboardComponent implements OnInit {
             this.adminData.set(response);
           },
           error: (error: any) => {
-            this.error.set(error?.error?.message || error?.message || 'Failed to load dashboard statistics.');
+            this.error.set(error?.error?.message || error?.message || this.language.translate('dashboard.error-loading'));
           },
         });
       return;
@@ -950,7 +961,7 @@ export class DashboardComponent implements OnInit {
             this.ownerData.set(response);
           },
           error: (error: any) => {
-            this.error.set(error?.error?.message || error?.message || 'Failed to load dashboard statistics.');
+            this.error.set(error?.error?.message || error?.message || this.language.translate('dashboard.error-loading'));
           },
         });
       return;

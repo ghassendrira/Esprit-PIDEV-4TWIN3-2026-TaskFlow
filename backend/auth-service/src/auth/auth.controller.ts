@@ -13,8 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 @Controller('auth')
 export class AuthController {
   constructor(
-    private auth: AuthService,
-    private jwtService: JwtService,
+    private readonly auth: AuthService,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Post('signup')
@@ -25,8 +25,7 @@ export class AuthController {
   @Post('signin')
   async signIn(@Body() body: any) {
     const { email, password, recaptchaToken } = body ?? {};
-    const res = await this.auth.signin(email, password, recaptchaToken);
-    return res;
+    return this.auth.signin(email, password, recaptchaToken);
   }
 
   @Post('google')

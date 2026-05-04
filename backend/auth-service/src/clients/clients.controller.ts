@@ -12,7 +12,7 @@ import { ClientsService } from './clients.service.js';
 
 @Controller('clients')
 export class ClientsController {
-  constructor(private service: ClientsService) {}
+  constructor(private readonly service: ClientsService) {}
 
   @Get('by-business/:businessId')
   listByBusiness(

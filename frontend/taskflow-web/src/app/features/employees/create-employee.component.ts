@@ -58,9 +58,12 @@ import { TranslatePipe } from '../../shared/pipes/t.pipe';
                 formControlName="role"
                 class="w-full rounded-lg bg-[var(--tf-surface-2)] border border-[var(--tf-border)] px-3 py-2 text-[var(--tf-on-surface)] outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary/10 transition"
               >
-                <option value="ACCOUNTANT">ACCOUNTANT</option>
-                <option value="ADMIN">ADMIN</option>
-                <option value="TEAM_MEMBER">TEAM_MEMBER</option>
+                <option value="ACCOUNTANT">{{ 'employees.role.accountant' | t }}</option>
+                <option value="ADMIN">{{ 'employees.role.admin' | t }}</option>
+                <option value="TEAM_MEMBER">{{ 'employees.role.team_member' | t }}</option>
+                <option value="MANAGER">{{ 'employees.role.manager' | t }}</option>
+                <option value="ANALYST">{{ 'employees.role.analyst' | t }}</option>
+                <option value="HR">{{ 'employees.role.hr' | t }}</option>
               </select>
             </div>
 

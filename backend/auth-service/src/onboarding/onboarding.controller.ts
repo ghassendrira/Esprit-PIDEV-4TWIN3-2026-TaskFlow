@@ -5,7 +5,7 @@ import { CreateBusinessDto } from './dto/create-business.dto';
 
 @Controller('onboarding')
 export class OnboardingController {
-  constructor(private service: OnboardingService) {}
+  constructor(private readonly service: OnboardingService) {}
 
   @Patch('company-setup')
   async companySetup(

@@ -99,7 +99,7 @@ interface Employee {
             [class.border-[var(--tf-border)]]="activeFilter() !== filter"
             class="px-6 py-2.5 rounded-full border text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap hover:border-primary/50"
           >
-            {{ filter === 'Tous' ? ('common.all' | t) : filter }}
+            {{ 'employees.role.' + filter.toLowerCase().replace('-', '_') | t }}
           </button>
         </div>
       </div>
@@ -145,7 +145,7 @@ interface Employee {
                   [ngClass]="getRoleBadgeClass(emp.role)"
                   class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border"
                 >
-                  {{ emp.role }}
+                  {{ 'employees.role.' + emp.role.toLowerCase().replace('-', '_') | t }}
                 </span>
               </td>
               <td class="px-8 py-5">
@@ -217,7 +217,7 @@ interface Employee {
         [message]="dialogMessage()"
         [mode]="dialogMode()"
         [confirmLabel]="dialogConfirmLabel()"
-        cancelLabel="Cancel"
+        [cancelLabel]="'common.cancel' | t"
         [danger]="dialogDanger()"
         (confirm)="handleDialogConfirm()"
         (cancel)="closeDialog()"
@@ -240,21 +240,24 @@ interface Employee {
 export class EmployeesListComponent implements OnInit {
   private auth = inject(AuthService);
   private tenant = inject(TenantService);
-  private language = inject(LanguageService);
+  private lang = inject(LanguageService);
   
   employees = signal<Employee[]>([]);
   searchQuery = '';
-  activeFilter = signal('Tous');
-  roles = ['Tous', 'ACCOUNTANT', 'ADMIN', 'TEAM-MEMBER'];
+  activeFilter = signal('ALL');
+  roles = ['ALL', 'ACCOUNTANT', 'ADMIN', 'TEAM_MEMBER', 'MANAGER', 'ANALYST', 'HR'];
   dialogOpen = signal(false);
   dialogTitle = signal('');
   dialogMessage = signal('');
   dialogMode = signal<'alert' | 'confirm' | 'prompt'>('alert');
-  dialogConfirmLabel = signal('OK');
+  dialogConfirmLabel = signal(this.lang.translate('common.ok'));
   dialogDanger = signal(false);
   pendingDeleteEmployee = signal<Employee | null>(null);
 
-  userName = computed(() => this.auth.user()?.name || 'Admin');
+  userName = computed(() => {
+    this.lang.language(); // track language
+    return this.auth.user()?.name || this.lang.translate('common.admin');
+  });
 
   stats = computed(() => {
     const list = this.employees();
@@ -281,7 +284,7 @@ export class EmployeesListComponent implements OnInit {
         e.lastName.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
         e.email.toLowerCase().includes(this.searchQuery.toLowerCase());
       
-      const matchesFilter = this.activeFilter() === 'Tous' || e.role === this.activeFilter();
+      const matchesFilter = this.activeFilter() === 'ALL' || e.role === this.activeFilter();
       
       return matchesSearch && matchesFilter;
     });
@@ -307,13 +310,13 @@ export class EmployeesListComponent implements OnInit {
     this.auth.getEmployee(emp.id).subscribe({
       next: (data) => {
         this.openAlert(
-          'Employee details',
-          `Name: ${data.firstName} ${data.lastName}\nEmail: ${data.email}\nRole: ${data.role}`,
+          this.lang.translate('employees.details'),
+          `${this.lang.translate('employees.name')}: ${data.firstName} ${data.lastName}\n${this.lang.translate('common.email')}: ${data.email}\n${this.lang.translate('employees.role')}: ${this.lang.translate('employees.role.' + data.role.toLowerCase().replace('-', '_'))}`,
         );
       },
       error: (err) => {
         console.error('Failed to show employee', err);
-        this.openAlert('Error', err.error?.message || this.language.translate('common.unknown-error'));
+        this.openAlert(this.lang.translate('common.error'), err.error?.message || this.lang.translate('common.unknown-error'));
       }
     });
   }
@@ -325,12 +328,12 @@ export class EmployeesListComponent implements OnInit {
 
   deleteEmployee(emp: Employee) {
     this.pendingDeleteEmployee.set(emp);
-    this.dialogTitle.set('Delete employee');
+    this.dialogTitle.set(this.lang.translate('employees.delete'));
     this.dialogMessage.set(
-      this.language.translate('clients.delete-confirm', { name: `${emp.firstName} ${emp.lastName}` }),
+      this.lang.translate('clients.delete-confirm', { name: `${emp.firstName} ${emp.lastName}` }),
     );
     this.dialogMode.set('confirm');
-    this.dialogConfirmLabel.set('Delete');
+    this.dialogConfirmLabel.set(this.lang.translate('employees.delete'));
     this.dialogDanger.set(true);
     this.dialogOpen.set(true);
   }
@@ -349,12 +352,12 @@ export class EmployeesListComponent implements OnInit {
     this.closeDialog();
     this.auth.deleteEmployee(emp.id).subscribe({
       next: () => {
-        this.openAlert('Success', this.language.translate('employees.deleted-success'));
+        this.openAlert(this.lang.translate('common.success'), this.lang.translate('employees.deleted-success'));
         this.loadEmployees();
       },
       error: (err) => {
         console.error('Failed to delete employee', err);
-        this.openAlert('Error', err.error?.message || this.language.translate('employees.delete-error'));
+        this.openAlert(this.lang.translate('common.error'), err.error?.message || this.lang.translate('employees.delete-error'));
       }
     });
   }
@@ -398,7 +401,7 @@ export class EmployeesListComponent implements OnInit {
     this.dialogTitle.set(title);
     this.dialogMessage.set(message);
     this.dialogMode.set('alert');
-    this.dialogConfirmLabel.set('OK');
+    this.dialogConfirmLabel.set(this.lang.translate('common.ok'));
     this.dialogDanger.set(false);
     this.dialogOpen.set(true);
   }

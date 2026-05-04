@@ -1,7 +1,6 @@
 import {
   Injectable,
   BadRequestException,
-  ConflictException,
   InternalServerErrorException,
   BadGatewayException,
   UnauthorizedException,
@@ -13,7 +12,6 @@ import { PrismaService } from '../prisma.service';
 import { SignUpDto } from './dto/signup.dto';
 
 // Local type definitions (Prisma v6 thin client doesn't export these)
-type User = any;
 const RegistrationStatus = {
   PENDING: 'PENDING' as const,
   ACTIVE: 'ACTIVE' as const,
@@ -39,11 +37,11 @@ import * as qrcode from 'qrcode';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private otplib: any;
+  private readonly otplib: any;
 
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
   ) {
     this.notificationClient = ClientProxyFactory.create({
       transport: Transport.TCP,
@@ -54,9 +52,10 @@ export class AuthService {
       // For otplib v13, we need to load the authenticator properly
       const otplibPkg = require('otplib');
       
+      let mappedOtplib: any;
       // If the package itself has generateSecret, it's the functional API
       if (otplibPkg.generateSecret) {
-        this.otplib = {
+        mappedOtplib = {
           generateSecret: otplibPkg.generateSecret,
           keyuri: otplibPkg.generateURI,
           verify: otplibPkg.verify,
@@ -65,20 +64,20 @@ export class AuthService {
       } else {
         // Otherwise try authenticator or default
         const auth = otplibPkg.authenticator || otplibPkg.default?.authenticator || otplibPkg;
-        this.otplib = {
+        mappedOtplib = {
           generateSecret: auth.generateSecret,
           keyuri: auth.keyuri || auth.generateURI,
           verify: auth.verify,
           _isFunctional: !auth.keyuri // if keyuri is missing, it's functional generateURI
         };
       }
-      
+      this.otplib = mappedOtplib;
       this.logger.log('AuthService initialized with otplib mapping');
     } catch (e) {
       this.logger.error('Failed to require otplib', e);
     }
   }
-  private notificationClient: ClientProxy;
+  private readonly notificationClient: ClientProxy;
 
   /**
    * Verify a reCAPTCHA v2 token against Google's API.
@@ -107,6 +106,17 @@ export class AuthService {
       this.logger.error('reCAPTCHA verification failed', err);
       return false;
     }
+  }
+
+  private slugify(s: string) {
+    return s
+      .normalize('NFD')
+      .replaceAll(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replaceAll(/[^a-z0-9\s-]/g, '')
+      .replaceAll(/\s+/g, '-')
+      .replaceAll(/-+/g, '-');
   }
 
   async signup(dto: SignUpDto): Promise<{
@@ -162,16 +172,6 @@ export class AuthService {
     const placeholderPassword = `temp-${Math.random().toString(36).slice(2, 10)}`;
     const passwordHash = await bcrypt.hash(placeholderPassword, saltRounds);
 
-    const slugify = (s: string) =>
-      s
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-');
-
     // 1) Créer le tenant via le Tenant Service (service séparé)
     const tenantServiceBase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
@@ -183,7 +183,7 @@ export class AuthService {
       createTenantRes = await fetch(`${tenantServiceBase}/tenants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: companyName, slug: slugify(companyName) }),
+        body: JSON.stringify({ name: companyName, slug: this.slugify(companyName) }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -294,6 +294,47 @@ export class AuthService {
     }
   }
 
+  private async handleWelcomeEmail(user: any) {
+    if (!user.welcomeEmailSent && !user.mustChangePassword) {
+      const payload = {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userId: user.id,
+      };
+      const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
+      await fetch(`${notifBase}/notification/welcome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(err => console.error('Notification error:', err));
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { welcomeEmailSent: true },
+        select: { id: true },
+      });
+    }
+  }
+
+  private async checkAccountLock(user: any, now: Date) {
+    if (user.blockedUntil && user.blockedUntil.getTime() > now.getTime()) {
+      const mins = Math.ceil((user.blockedUntil.getTime() - now.getTime()) / 60000);
+      throw new ForbiddenException(`Compte bloqué. Réessayez dans ${mins} minutes.`);
+    }
+
+    // Auto unlock if lock expired
+    if (user.blockedUntil && user.blockedUntil.getTime() <= now.getTime()) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { blockedUntil: null, loginAttempts: 0 },
+        select: { id: true },
+      });
+      user.blockedUntil = null;
+      user.loginAttempts = 0;
+    }
+  }
+
   async signin(
     email: string,
     password: string,
@@ -341,21 +382,7 @@ export class AuthService {
 
     // Login protection (account lock)
     const now = new Date();
-    if (user.blockedUntil && user.blockedUntil.getTime() > now.getTime()) {
-      const mins = Math.ceil((user.blockedUntil.getTime() - now.getTime()) / 60000);
-      throw new ForbiddenException(`Compte bloqué. Réessayez dans ${mins} minutes.`);
-    }
-
-    // Auto unlock if lock expired
-    if (user.blockedUntil && user.blockedUntil.getTime() <= now.getTime()) {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { blockedUntil: null, loginAttempts: 0 },
-        select: { id: true },
-      });
-      user.blockedUntil = null;
-      user.loginAttempts = 0;
-    }
+    await this.checkAccountLock(user, now);
 
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
@@ -396,26 +423,7 @@ export class AuthService {
 
     // Welcome email logic if approved but email not sent yet
     try {
-      if (!user.welcomeEmailSent && !user.mustChangePassword) {
-        const payload = {
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          userId: user.id,
-        };
-        const notifBase = (process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004').replace(/\/+$/, '');
-        await fetch(`${notifBase}/notification/welcome`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }).catch(err => console.error('Notification error:', err));
-
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: { welcomeEmailSent: true },
-          select: { id: true },
-        });
-      }
+      await this.handleWelcomeEmail(user);
     } catch (err) {
       console.error('Email trigger failed:', err);
     }
@@ -915,7 +923,7 @@ export class AuthService {
       },
     });
 
-    let foundUser: User | null = null;
+    let foundUser: any | null = null;
     for (const u of users) {
       if (u.resetTokenHash && (await bcrypt.compare(resetToken, u.resetTokenHash))) {
         foundUser = u;
@@ -930,7 +938,7 @@ export class AuthService {
     // Validate password rules
     const hasUpper = /[A-Z]/.test(newPassword);
     const hasLower = /[a-z]/.test(newPassword);
-    const hasNumber = /[0-9]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
     if (newPassword.length < 8 || !hasUpper || !hasLower || !hasNumber) {
       throw new BadRequestException(
         'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.',
@@ -1371,16 +1379,6 @@ export class AuthService {
     // 3. New user — create PENDING account (same as normal signup)
     const resolvedCompany = companyName || `${firstName} ${lastName}`.trim();
 
-    const slugify = (s: string) =>
-      s
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-');
-
     // Create tenant
     const tenantServiceBase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
@@ -1392,7 +1390,7 @@ export class AuthService {
       createTenantRes = await fetch(`${tenantServiceBase}/tenants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: resolvedCompany, slug: slugify(resolvedCompany) }),
+        body: JSON.stringify({ name: resolvedCompany, slug: this.slugify(resolvedCompany) }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);

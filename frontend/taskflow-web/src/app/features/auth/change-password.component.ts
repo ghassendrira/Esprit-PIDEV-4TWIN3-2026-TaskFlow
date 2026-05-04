@@ -414,9 +414,9 @@ export class ChangePasswordComponent {
   }
 
   get strengthLabel(): string {
-    if (this.strengthScore <= 2) return 'Faible';
-    if (this.strengthScore <= 3) return 'Moyen';
-    return 'Fort';
+    if (this.strengthScore <= 2) return this.language.translate('change.strength-weak');
+    if (this.strengthScore <= 3) return this.language.translate('change.strength-medium');
+    return this.language.translate('change.strength-strong');
   }
 
   get strengthColor(): string {
