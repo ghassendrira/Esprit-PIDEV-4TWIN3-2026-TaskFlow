@@ -5,6 +5,14 @@ import { JwtService } from '@nestjs/jwt';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
+jest.mock('otplib', () => ({
+  authenticator: {
+    generateSecret: jest.fn(),
+    keyuri: jest.fn(),
+    verify: jest.fn(),
+  },
+}));
+
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: PrismaService;

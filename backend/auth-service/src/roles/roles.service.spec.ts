@@ -38,12 +38,17 @@ describe('RolesService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('ensureStandardRoles', () => {
-    it('should create standard role if not exists', async () => {
+  describe('onModuleInit', () => {
+    it('should create standard roles and upsert permissions', async () => {
+      mockPrisma.permission.upsert.mockResolvedValue({ id: 'perm-1', name: 'Create_User' });
       mockPrisma.role.findFirst.mockResolvedValue(null);
-      mockPrisma.role.create.mockResolvedValue({ id: 'role-id', name: 'ADMIN' });
+      mockPrisma.role.create.mockResolvedValue({ id: 'role-1', name: 'ADMIN' });
+      mockPrisma.role.findMany.mockResolvedValue([{ id: 'role-1' }]);
+      mockPrisma.rolePermission.upsert.mockResolvedValue({});
 
-      await (service as any).ensureStandardRoles();
+      await service.onModuleInit();
+      
+      expect(mockPrisma.permission.upsert).toHaveBeenCalled();
       expect(mockPrisma.role.create).toHaveBeenCalled();
     });
   });
