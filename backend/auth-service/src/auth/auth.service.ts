@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SignUpDto } from './dto/signup.dto';
+import * as crypto from 'crypto';
 
 // Local type definitions (Prisma v6 thin client doesn't export these)
 const RegistrationStatus = {
@@ -169,7 +170,7 @@ export class AuthService {
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
     // Signup for business owners is approval-based: no password is provided yet.
     // We generate a placeholder hash so the user can be created as PENDING.
-    const placeholderPassword = `temp-${Math.random().toString(36).slice(2, 10)}`;
+    const placeholderPassword = crypto.randomBytes(8).toString('hex');
     const passwordHash = await bcrypt.hash(placeholderPassword, saltRounds);
 
     // 1) Créer le tenant via le Tenant Service (service séparé)
@@ -671,7 +672,7 @@ export class AuthService {
     if (!user) throw new BadRequestException('Utilisateur introuvable');
 
     // Generate reset token
-    const rawToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const rawToken = crypto.randomBytes(16).toString('hex');
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
     const resetTokenHash = await bcrypt.hash(rawToken, saltRounds);
     const resetTokenExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -768,7 +769,7 @@ export class AuthService {
     }
 
     // Generate new temporary password
-    const tempPassword = Math.random().toString(36).substring(2, 10);
+    const tempPassword = crypto.randomBytes(4).toString('hex');
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
     const passwordHash = await bcrypt.hash(tempPassword, saltRounds);
 
@@ -897,7 +898,7 @@ export class AuthService {
     }
 
     // Generate reset token
-    const rawToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const rawToken = crypto.randomBytes(16).toString('hex');
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
     const resetTokenHash = await bcrypt.hash(rawToken, saltRounds);
     const resetTokenExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes

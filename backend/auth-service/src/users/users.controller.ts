@@ -15,6 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { RBACGuard } from '../roles/rbac.guard';
 import { RequirePermissions } from '../roles/decorators/permissions.decorator';
 
@@ -78,7 +79,7 @@ export class UsersController {
     if (existing) throw new ConflictException('Email already used');
 
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
-    const tempPassword = Math.random().toString(36).slice(2, 12);
+    const tempPassword = crypto.randomBytes(6).toString('hex');
     const passwordHash = await bcrypt.hash(tempPassword, saltRounds);
 
     let role = await this.prisma.role.findFirst({
