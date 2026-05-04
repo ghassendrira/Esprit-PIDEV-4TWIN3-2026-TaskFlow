@@ -256,7 +256,7 @@ export class SettingsService {
     const brand = (cur?.branding ?? {}) as Record<string, any>;
     const merged = {
       ...brand,
-      ...(dto.branding || {}),
+      ...dto.branding,
       ...(dto.category ? { category: dto.category } : {}),
     };
     const payload: any = {

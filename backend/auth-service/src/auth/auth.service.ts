@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SignUpDto } from './dto/signup.dto';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 // Local type definitions (Prisma v6 thin client doesn't export these)
 const RegistrationStatus = {
@@ -924,7 +924,7 @@ export class AuthService {
       },
     });
 
-    let foundUser: any | null = null;
+    let foundUser: any = null;
     for (const u of users) {
       if (u.resetTokenHash && (await bcrypt.compare(resetToken, u.resetTokenHash))) {
         foundUser = u;

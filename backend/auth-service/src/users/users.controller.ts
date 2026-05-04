@@ -15,7 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import { RBACGuard } from '../roles/rbac.guard';
 import { RequirePermissions } from '../roles/decorators/permissions.decorator';
 

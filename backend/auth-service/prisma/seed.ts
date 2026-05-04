@@ -1,8 +1,8 @@
 import 'dotenv/config';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 // Prisma 7 + adapter-pg: PrismaClient must be instantiated with adapter/options.
 const dbUrl = process.env.DATABASE_URL;

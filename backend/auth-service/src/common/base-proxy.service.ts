@@ -145,7 +145,7 @@ export abstract class BaseProxyService {
     }
 
     const payload = { ...body, createdBy };
-    delete (payload as any).createdByUserId;
+    delete payload.createdByUserId;
 
     const r = await fetch(url, {
       method: 'POST',
