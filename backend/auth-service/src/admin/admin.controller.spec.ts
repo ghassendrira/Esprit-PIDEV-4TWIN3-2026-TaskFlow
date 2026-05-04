@@ -8,14 +8,17 @@ describe('AdminController', () => {
   let controller: AdminController;
   let prisma: PrismaService;
   let jwt: JwtService;
+  const fetchMock = jest.fn();
 
   beforeAll(() => {
-    global.fetch = jest.fn();
+    global.fetch = fetchMock as any;
   });
 
   const mockPrisma = {
     user: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
     },
     userTenantMembership: {
       findFirst: jest.fn(),
@@ -27,6 +30,8 @@ describe('AdminController', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    fetchMock.mockReset();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdminController],
       providers: [
@@ -62,6 +67,48 @@ describe('AdminController', () => {
       const result = await controller.registrations('Bearer token');
       expect(result).toBeDefined();
       expect(result.length).toBe(1);
+    });
+  });
+
+  describe('blockedAccounts', () => {
+    it('should return blocked users for super admin', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'admin-id' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        role: { name: 'SUPER_ADMIN' },
+      });
+      mockPrisma.user.findMany.mockResolvedValue([
+        {
+          id: 'u1',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@test.com',
+          blockedUntil: new Date(),
+          loginAttempts: 2,
+          createdAt: new Date(),
+          memberships: [{ tenantId: 't1', role: { name: 'ADMIN' } }],
+        },
+      ]);
+      fetchMock.mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ name: 'Acme' }) });
+
+      const result = await controller.blockedAccounts('Bearer token');
+
+      expect(result[0].companyName).toBe('Acme');
+      expect(result[0].roleName).toBe('ADMIN');
+    });
+  });
+
+  describe('unblockAccount', () => {
+    it('should unblock account when user exists', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'admin-id' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        role: { name: 'SUPER_ADMIN' },
+      });
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', email: 'jane@test.com' });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
+
+      const result = await controller.unblockAccount('Bearer token', 'u1');
+
+      expect(result.success).toBe(true);
     });
   });
 });
