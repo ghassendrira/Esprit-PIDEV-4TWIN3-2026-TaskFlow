@@ -1,8 +1,7 @@
 FROM node:20-alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm install --legacy-peer-deps
 COPY . .
+RUN npm install --legacy-peer-deps || true
 RUN npm run build || true
-EXPOSE 3001
+EXPOSE 3003
 CMD ["node", "dist/main"]
