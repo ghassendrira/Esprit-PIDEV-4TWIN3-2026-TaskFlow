@@ -15,8 +15,6 @@ jest.mock('otplib', () => ({
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prisma: PrismaService;
-  let jwt: JwtService;
 
   beforeAll(() => {
     global.fetch = jest.fn();
@@ -39,6 +37,19 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.findFirst.mockResolvedValue(null);
+    mockPrisma.user.update.mockResolvedValue(null);
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue(null);
+    mockJwt.signAsync.mockResolvedValue('jwt-token');
+    mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      json: jest.fn().mockResolvedValue({}),
+      text: jest.fn().mockResolvedValue(''),
+    } as any);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -48,8 +59,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    prisma = module.get<PrismaService>(PrismaService);
-    jwt = module.get<JwtService>(JwtService);
   });
 
   it('should be defined', () => {

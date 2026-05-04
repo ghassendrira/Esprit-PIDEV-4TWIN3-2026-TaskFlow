@@ -2,12 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { InvoicesProxyService } from './invoices.service';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { UnauthorizedException, BadRequestException, ForbiddenException } from '@nestjs/common';
 
 describe('InvoicesProxyService', () => {
   let service: InvoicesProxyService;
-  let prisma: PrismaService;
-  let jwt: JwtService;
 
   beforeAll(() => {
     global.fetch = jest.fn();
@@ -24,6 +22,11 @@ describe('InvoicesProxyService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue(null);
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1', email: 'user@test.com', roles: [] });
+    global.fetch = jest.fn();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InvoicesProxyService,
@@ -33,8 +36,6 @@ describe('InvoicesProxyService', () => {
     }).compile();
 
     service = module.get<InvoicesProxyService>(InvoicesProxyService);
-    prisma = module.get<PrismaService>(PrismaService);
-    jwt = module.get<JwtService>(JwtService);
   });
 
   it('should be defined', () => {

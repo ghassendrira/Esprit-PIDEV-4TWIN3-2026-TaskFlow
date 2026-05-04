@@ -4,13 +4,14 @@ import { PrismaService } from '../prisma.service';
 
 describe('RolesService', () => {
   let service: RolesService;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     role: {
       findFirst: jest.fn(),
       create: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
+      findUnique: jest.fn(),
     },
     permission: {
       findMany: jest.fn(),
@@ -22,9 +23,23 @@ describe('RolesService', () => {
       createMany: jest.fn(),
       upsert: jest.fn(),
     },
+    userTenantMembership: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockPrisma.role.findMany.mockResolvedValue([]);
+    mockPrisma.role.findFirst.mockResolvedValue(null);
+    mockPrisma.role.create.mockResolvedValue({ id: 'role-1', name: 'ADMIN' });
+    mockPrisma.permission.findMany.mockResolvedValue([]);
+    mockPrisma.rolePermission.createMany.mockResolvedValue({ count: 0 });
+    mockPrisma.rolePermission.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.userTenantMembership.findMany.mockResolvedValue([]);
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue(null);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RolesService,
@@ -33,7 +48,6 @@ describe('RolesService', () => {
     }).compile();
 
     service = module.get<RolesService>(RolesService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
