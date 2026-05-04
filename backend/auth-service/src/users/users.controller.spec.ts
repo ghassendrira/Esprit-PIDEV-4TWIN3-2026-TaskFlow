@@ -108,4 +108,44 @@ describe('UsersController', () => {
     expect(result[0].role).toBe('BUSINESS_OWNER');
     expect(result[0].email).toBe('user@test.com');
   });
+
+  describe('getEmployee', () => {
+    it('should return employee details', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+      mockPrisma.userTenantMembership.findFirst
+        .mockResolvedValueOnce({ tenantId: 'tenant1', role: { name: 'OWNER' } }) // assertBusinessOwner
+        .mockResolvedValueOnce({
+          user: { id: 'u1', firstName: 'F', lastName: 'L', email: 'e', isActive: true },
+          role: { name: 'ADMIN' },
+          joinedAt: new Date(),
+        }); // getEmployee
+
+      const result = await controller.getEmployee('u1', 'Bearer token', 'tenant1');
+      expect(result.id).toBe('u1');
+      expect(result.role).toBe('ADMIN');
+    });
+
+    it('should throw BadRequestException if employee not found', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+      mockPrisma.userTenantMembership.findFirst
+        .mockResolvedValueOnce({ tenantId: 'tenant1', role: { name: 'OWNER' } })
+        .mockResolvedValueOnce(null);
+
+      await expect(controller.getEmployee('u1', 'Bearer token', 'tenant1')).rejects.toThrow('User not found in this company');
+    });
+  });
+
+  describe('deleteEmployee', () => {
+    it('should soft delete employee', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+      mockPrisma.userTenantMembership.findFirst
+        .mockResolvedValueOnce({ tenantId: 'tenant1', role: { name: 'OWNER' } })
+        .mockResolvedValueOnce({ id: 'm1' });
+      (mockPrisma.user as any).update = jest.fn().mockResolvedValue({ id: 'u1' });
+
+      const result = await controller.deleteEmployee('u1', 'Bearer token', 'tenant1');
+      expect(result.success).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalled();
+    });
+  });
 });

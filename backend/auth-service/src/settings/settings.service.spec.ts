@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsService } from './settings.service';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { BadGatewayException, InternalServerErrorException } from '@nestjs/common';
 
 describe('SettingsService', () => {
   let service: SettingsService;
@@ -131,6 +132,36 @@ describe('SettingsService', () => {
     const result = await service.requestTenant('Bearer token', { name: 'New Tenant' });
     expect(result.success).toBe(true);
     expect(result.message).toBeDefined();
+  });
+
+  it('should throw BadGatewayException if tenant service fails in requestTenant', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: jest.fn().mockResolvedValue('error'),
+    });
+
+    try {
+      await service.requestTenant('Bearer token', { name: 'New' });
+    } catch (e) {
+      expect(e).toBeInstanceOf(BadGatewayException);
+    }
+  });
+
+  it('should throw InternalServerErrorException if tenant service returns invalid JSON', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockRejectedValue(new Error()),
+      text: jest.fn().mockResolvedValue('not json'),
+    });
+
+    try {
+      await service.requestTenant('Bearer token', { name: 'New' });
+    } catch (e) {
+      expect(e).toBeInstanceOf(InternalServerErrorException);
+    }
   });
 
   it('should update a tenant', async () => {

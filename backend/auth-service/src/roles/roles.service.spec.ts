@@ -95,4 +95,55 @@ describe('RolesService', () => {
       ).rejects.toThrow(ConflictException);
     });
   });
+
+  describe('assignPermissionsToRole', () => {
+    it('should assign permissions if super admin', async () => {
+      mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-1', name: 'CUSTOM' });
+      mockPrisma.rolePermission.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrisma.rolePermission.createMany.mockResolvedValue({ count: 2 });
+
+      await service.assignPermissionsToRole('role-1', ['p1', 'p2'], 'admin-1', undefined, true);
+      
+      expect(mockPrisma.rolePermission.deleteMany).toHaveBeenCalledWith({ where: { roleId: 'role-1' } });
+      expect(mockPrisma.rolePermission.createMany).toHaveBeenCalled();
+    });
+
+    it('should assign permissions if business owner for their tenant', async () => {
+      mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-1', name: 'CUSTOM', tenantId: 'tenant-1' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        role: { name: 'BUSINESS_OWNER' },
+      });
+
+      await service.assignPermissionsToRole('role-1', ['p1'], 'user-1', 'tenant-1', false);
+      expect(mockPrisma.rolePermission.createMany).toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenException if business owner tries to modify SUPER_ADMIN', async () => {
+      mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-1', name: 'SUPER_ADMIN' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        role: { name: 'BUSINESS_OWNER' },
+      });
+
+      await expect(
+        service.assignPermissionsToRole('role-1', ['p1'], 'user-1', 'tenant-1', false),
+      ).rejects.toThrow('Business Owners cannot modify SUPER_ADMIN permissions');
+    });
+
+    it('should throw ForbiddenException if user has no membership', async () => {
+      mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-1', name: 'CUSTOM' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.assignPermissionsToRole('role-1', ['p1'], 'user-1', 'tenant-1', false),
+      ).rejects.toThrow('Insufficient permissions to manage roles');
+    });
+  });
+
+  describe('getPermissions', () => {
+    it('should return all permissions', async () => {
+      mockPrisma.permission.findMany.mockResolvedValue([{ id: 'p1', name: 'P1' }]);
+      const result = await service.getPermissions();
+      expect(result).toEqual([{ id: 'p1', name: 'P1' }]);
+    });
+  });
 });

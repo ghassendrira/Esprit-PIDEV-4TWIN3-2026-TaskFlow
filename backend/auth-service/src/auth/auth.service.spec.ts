@@ -477,33 +477,206 @@ describe('AuthService', () => {
   });
 
   describe('resetPassword', () => {
-    it('should reject when token not found', async () => {
+    it('should throw BadRequestException if request not found', async () => {
       mockPrisma.user.findMany.mockResolvedValue([]);
-
-      await expect(
-        service.resetPassword({ resetToken: 'bad', newPassword: 'NewPass1!' } as any),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.resetPassword({ resetToken: 'token', newPassword: 'new' })).rejects.toThrow(BadRequestException);
     });
 
-    it('should reset password when token valid', async () => {
-      const hash = await bcrypt.hash('token', 10);
+    it('should update password and clear reset token', async () => {
       mockPrisma.user.findMany.mockResolvedValue([
-        { id: '1', resetTokenHash: hash },
+        {
+          id: 'u1',
+          resetTokenHash: await bcrypt.hash('valid-token', 10),
+          resetTokenExpires: new Date(Date.now() + 10000),
+        },
       ]);
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
 
-      const result = await service.resetPassword({ resetToken: 'token', newPassword: 'NewPass1!' } as any);
-
+      const result = await service.resetPassword({ resetToken: 'valid-token', newPassword: 'NewPass1!' });
       expect(result.success).toBe(true);
       expect(mockPrisma.user.update).toHaveBeenCalled();
     });
   });
 
-  describe('switchTenant', () => {
-    it('should reject when membership missing', async () => {
-      mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
-      mockPrisma.userTenantMembership.findFirst.mockResolvedValue(null);
+  describe('contactAdminForReset', () => {
+    it('should create a pending request and notify admin', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', firstName: 'F', lastName: 'L' });
+      mockPrisma.passwordResetRequest.create.mockResolvedValue({ id: 'req-1' });
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-      await expect(service.switchTenant('Bearer token', 'tenant-1')).rejects.toThrow(UnauthorizedException);
+      const result = await service.contactAdminForReset('test@test.com');
+      expect(result.success).toBe(true);
+      expect(mockPrisma.passwordResetRequest.create).toHaveBeenCalledWith({
+        data: { userId: 'u1', status: 'PENDING' },
+      });
+    });
+
+    it('should throw BadRequestException if user not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      await expect(service.contactAdminForReset('missing@test.com')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('getPendingPasswordResetRequests', () => {
+    it('should return pending requests', async () => {
+      mockPrisma.passwordResetRequest.findMany.mockResolvedValue([]);
+      const result = await service.getPendingPasswordResetRequests();
+      expect(result).toEqual([]);
+      expect(mockPrisma.passwordResetRequest.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('approvePasswordReset', () => {
+    it('should approve request, generate temp pass and notify', async () => {
+      mockPrisma.passwordResetRequest.findUnique.mockResolvedValue({
+        id: 'req-1',
+        status: 'PENDING',
+        userId: 'u1',
+        user: { email: 'test@test.com', firstName: 'F', lastName: 'L' },
+      });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
+      mockPrisma.passwordResetRequest.update.mockResolvedValue({ id: 'req-1' });
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+
+      const result = await service.approvePasswordReset('req-1');
+      expect(result.success).toBe(true);
+      expect(result.tempPassword).toBeDefined();
+      expect(mockPrisma.user.update).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if request not found or not pending', async () => {
+      mockPrisma.passwordResetRequest.findUnique.mockResolvedValue(null);
+      await expect(service.approvePasswordReset('missing')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('rejectPasswordReset', () => {
+    it('should reject request and notify', async () => {
+      mockPrisma.passwordResetRequest.findUnique.mockResolvedValue({
+        id: 'req-1',
+        status: 'PENDING',
+        user: { email: 'test@test.com', firstName: 'F', lastName: 'L' },
+      });
+      mockPrisma.passwordResetRequest.update.mockResolvedValue({ id: 'req-1' });
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+
+      const result = await service.rejectPasswordReset('req-1', 'Reason');
+      expect(result.success).toBe(true);
+      expect(mockPrisma.passwordResetRequest.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'req-1' },
+        data: expect.objectContaining({ status: 'REJECTED', adminNotes: 'Reason' }),
+      }));
+    });
+  });
+
+  describe('verifySecurityAnswer', () => {
+    it('should return reset token on correct answer', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', isActive: true });
+      mockPrisma.securityQuestion.findMany.mockResolvedValue([
+        { answerHash: await bcrypt.hash('answer', 10) },
+      ]);
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
+
+      const result = await service.verifySecurityAnswer({
+        email: 'test@test.com',
+        question: 'Q',
+        answer: 'answer',
+      });
+      expect(result.resetToken).toBeDefined();
+    });
+
+    it('should throw BadRequestException on incorrect answer', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', isActive: true });
+      mockPrisma.securityQuestion.findMany.mockResolvedValue([
+        { answerHash: await bcrypt.hash('wrong', 10) },
+      ]);
+
+      await expect(service.verifySecurityAnswer({
+        email: 'test@test.com',
+        question: 'Q',
+        answer: 'right',
+      })).rejects.toThrow('Réponse incorrecte');
+    });
+  });
+
+  describe('switchTenant', () => {
+    it('should return a new token for the target tenant', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'u1' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        tenantId: 'tenant-2',
+        role: { name: 'ADMIN' },
+      });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'test@test.com',
+        firstName: 'F',
+        lastName: 'L',
+      });
+      mockJwt.signAsync.mockResolvedValue('new-token');
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ name: 'Tenant 2' }),
+      });
+
+      const result = await service.switchTenant('Bearer token', 'tenant-2');
+      expect(result.token).toBe('new-token');
+      expect(result.tenantId).toBe('tenant-2');
+    });
+  });
+
+  describe('handleWelcomeEmail', () => {
+    it('should send welcome email and update user', async () => {
+      const user = { id: 'u1', email: 'test@test.com', firstName: 'F', lastName: 'L', welcomeEmailSent: false, mustChangePassword: false };
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
+
+      await (service as any).handleWelcomeEmail(user);
+
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/notification/welcome'), expect.anything());
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u1' },
+        data: { welcomeEmailSent: true },
+      }));
+    });
+  });
+
+  describe('checkAccountLock', () => {
+    it('should throw ForbiddenException if account is blocked', async () => {
+      const blockedUntil = new Date(Date.now() + 10000);
+      const user = { id: 'u1', blockedUntil };
+      await expect((service as any).checkAccountLock(user, new Date())).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should unlock account if lock expired', async () => {
+      const blockedUntil = new Date(Date.now() - 10000);
+      const user = { id: 'u1', blockedUntil, loginAttempts: 5 };
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
+
+      await (service as any).checkAccountLock(user, new Date());
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'u1' },
+        data: { blockedUntil: null, loginAttempts: 0 },
+      }));
+    });
+  });
+
+  describe('signin locking', () => {
+    it('should lock account after 5 failed attempts', async () => {
+      jest.spyOn(service as any, 'verifyRecaptcha').mockResolvedValue(true);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        passwordHash: await bcrypt.hash('correct', 10),
+        loginAttempts: 4,
+        registrationStatus: 'ACTIVE',
+        isActive: true,
+      });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1' });
+
+      await expect(service.signin('test@test.com', 'wrong', 'token')).rejects.toThrow('Trop de tentatives. Compte bloqué pour 30 minutes.');
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ blockedUntil: expect.any(Date) }),
+      }));
     });
   });
 });

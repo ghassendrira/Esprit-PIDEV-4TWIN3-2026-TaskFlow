@@ -92,4 +92,27 @@ describe('NotificationService', () => {
     });
     expect(service).toBeDefined();
   });
+
+  it('should throw error if BREVO_API_KEY is missing in sendRejectionEmail', async () => {
+    delete process.env.BREVO_API_KEY;
+    await expect(service.sendRejectionEmail({
+      email: 'test@test.com',
+      fullName: 'Test',
+      reason: 'reason',
+    })).rejects.toThrow('BREVO_API_KEY is missing');
+  });
+
+  it('should throw error if sendTransacEmail fails', async () => {
+    process.env.BREVO_API_KEY = 'key';
+    const mockSend = jest.fn().mockRejectedValue(new Error('Brevo error'));
+    require('sib-api-v3-sdk').TransactionalEmailsApi.mockImplementation(() => ({
+      sendTransacEmail: mockSend,
+    }));
+
+    await expect(service.sendRejectionEmail({
+      email: 'test@test.com',
+      fullName: 'Test',
+      reason: 'reason',
+    })).rejects.toThrow('Failed to send rejection email');
+  });
 });
