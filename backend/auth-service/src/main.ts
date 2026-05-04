@@ -28,4 +28,4 @@ async function bootstrap() {
   console.log(`Application is running on: http://localhost:${port}`);
 }
 
-bootstrap();
+bootstrap(); // NOSONAR: top-level await is not safe with the current NestJS entrypoint/module setup.
