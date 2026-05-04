@@ -292,8 +292,9 @@ export class SettingsService {
       auth,
       tenantId,
     );
-    const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const url = `${base.replace(/\/+$/, '')}/businesses/by-tenant/${resolvedTenantId}`;
+    const rawUrl = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
+    const base = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
+    const url = `${base}/businesses/by-tenant/${resolvedTenantId}`;
     try {
       const r = await fetch(url);
       const list = r.ok ? await r.json() : [];
@@ -368,8 +369,9 @@ export class SettingsService {
     tenantId?: string,
   ) {
     await this.resolveTenant(auth, tenantId);
-    const base = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const url = `${base.replace(/\/+$/, '')}/businesses/${id}`;
+    const rawUrl = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
+    const base = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
+    const url = `${base}/businesses/${id}`;
     const r = await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

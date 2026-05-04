@@ -174,9 +174,8 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(placeholderPassword, saltRounds);
 
     // 1) Créer le tenant via le Tenant Service (service séparé)
-    const tenantServiceBase = (
-      process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    const rawTenantUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+    const tenantServiceBase = rawTenantUrl.endsWith('/') ? rawTenantUrl.slice(0, -1) : rawTenantUrl;
     let createTenantRes: Response;
     try {
       const controller = new AbortController();
@@ -545,7 +544,8 @@ export class AuthService {
     // Try to get tenant name from tenant-service if possible
     let tenantName = 'TaskFlow';
     try {
-      const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+      const rawTenantUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+      const tenantBase = rawTenantUrl.endsWith('/') ? rawTenantUrl.slice(0, -1) : rawTenantUrl;
       const tRes = await fetch(`${tenantBase}/tenants/${membership?.tenantId}`);
       if (tRes.ok) {
         const tData = await tRes.json();
@@ -989,7 +989,8 @@ export class AuthService {
     // Try to get tenant name from tenant-service if possible
     let tenantName = 'TaskFlow';
     try {
-      const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+      const rawTenantUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+      const tenantBase = rawTenantUrl.endsWith('/') ? rawTenantUrl.slice(0, -1) : rawTenantUrl;
       const tRes = await fetch(`${tenantBase}/tenants/${tenantId}`);
       if (tRes.ok) {
         const tData = await tRes.json();
@@ -1173,7 +1174,8 @@ export class AuthService {
 
       let tenantName = 'TaskFlow';
       try {
-        const tenantBase = (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').replace(/\/+$/, '');
+        const rawTenantUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+        const tenantBase = rawTenantUrl.endsWith('/') ? rawTenantUrl.slice(0, -1) : rawTenantUrl;
         const tRes = await fetch(`${tenantBase}/tenants/${membership?.tenantId}`);
         if (tRes.ok) {
           const tData = await tRes.json();
@@ -1381,9 +1383,8 @@ export class AuthService {
     const resolvedCompany = companyName || `${firstName} ${lastName}`.trim();
 
     // Create tenant
-    const tenantServiceBase = (
-      process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    const rawTenantUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+    const tenantServiceBase = rawTenantUrl.endsWith('/') ? rawTenantUrl.slice(0, -1) : rawTenantUrl;
     let createTenantRes: Response;
     try {
       const controller = new AbortController();

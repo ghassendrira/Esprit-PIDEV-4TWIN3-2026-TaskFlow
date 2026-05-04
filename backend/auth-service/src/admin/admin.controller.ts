@@ -26,7 +26,9 @@ export class AdminController {
 
     const tenantServiceBase = (
       process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    ).endsWith('/')
+      ? (process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002').slice(0, -1)
+      : process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
 
     try {
       const response = await fetch(`${tenantServiceBase}/tenants/${tenantId}`);
@@ -94,9 +96,8 @@ export class AdminController {
       orderBy: { createdAt: 'desc' },
     });
 
-    const tenantServiceBase = (
-      process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    const rawUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+    const tenantServiceBase = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
 
     const results: Array<{
       id: string;

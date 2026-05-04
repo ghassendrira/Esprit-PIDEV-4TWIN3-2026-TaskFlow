@@ -61,9 +61,8 @@ export class OnboardingService {
       authHeader,
       tenantId,
     );
-    const base = (
-      process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    const rawUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+    const base = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     // Fetch current tenant to merge fields
     const current = await fetch(`${base}/tenants/${resolvedTenantId}`).then(
       (r) => (r.ok ? r.json() : null),
@@ -102,14 +101,14 @@ export class OnboardingService {
       authHeader,
       tenantId,
     );
-    const tbase = (
-      process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    const rawTUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+    const tbase = rawTUrl.endsWith('/') ? rawTUrl.slice(0, -1) : rawTUrl;
     const tenant = await fetch(`${tbase}/tenants/${resolvedTenantId}`).then(
       (r) => (r.ok ? r.json() : null),
     );
-    const url = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const endpoint = `${url.replace(/\/+$/, '')}/businesses`;
+    const rawBUrl = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
+    const url = rawBUrl.endsWith('/') ? rawBUrl.slice(0, -1) : rawBUrl;
+    const endpoint = `${url}/businesses`;
     const r = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -142,14 +141,14 @@ export class OnboardingService {
       authHeader,
       tenantId,
     );
-    const tbase = (
-      process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002'
-    ).replace(/\/+$/, '');
+    const rawTUrl = process.env.TENANT_SERVICE_URL ?? 'http://localhost:3002';
+    const tbase = rawTUrl.endsWith('/') ? rawTUrl.slice(0, -1) : rawTUrl;
     const tenant = await fetch(`${tbase}/tenants/${resolvedTenantId}`).then(
       (r) => (r.ok ? r.json() : null),
     );
-    const url = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
-    const endpoint = `${url.replace(/\/+$/, '')}/businesses/count-by-tenant/${resolvedTenantId}`;
+    const rawBUrl = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
+    const url = rawBUrl.endsWith('/') ? rawBUrl.slice(0, -1) : rawBUrl;
+    const endpoint = `${url}/businesses/count-by-tenant/${resolvedTenantId}`;
     try {
       const r = await fetch(endpoint, { method: 'GET' });
       const data = r.ok ? await r.json() : { count: 0 };

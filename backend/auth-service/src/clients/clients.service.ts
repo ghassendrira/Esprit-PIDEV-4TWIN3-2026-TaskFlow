@@ -15,10 +15,8 @@ export class ClientsService {
   ) {}
 
   private businessBase() {
-    return (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(
-      /\/+$/,
-      '',
-    );
+    const rawUrl = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
+    return rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
   }
 
   private async resolveTenant(

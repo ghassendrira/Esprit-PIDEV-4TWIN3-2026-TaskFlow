@@ -61,7 +61,8 @@ export abstract class BaseProxyService {
   }
 
   protected async resolveTenantIdFromBusiness(businessId: string) {
-    const base = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/+$/, '');
+    const rawUrl = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
+    const base = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     const url = `${base}/businesses/${encodeURIComponent(businessId)}`;
     try {
       const r = await fetch(url);
@@ -75,7 +76,8 @@ export abstract class BaseProxyService {
   }
 
   protected async assertBusinessInTenant(tenantId: string, businessId: string) {
-    const base = (process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003').replace(/\/+$/, '');
+    const rawUrl = process.env.BUSINESS_SERVICE_URL ?? 'http://localhost:3003';
+    const base = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     const url = `${base}/businesses/by-tenant/${encodeURIComponent(tenantId)}`;
     try {
       const r = await fetch(url);
