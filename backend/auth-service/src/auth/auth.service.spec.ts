@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('otplib', () => ({
@@ -120,6 +120,105 @@ describe('AuthService', () => {
       const input = 'Hello World Éaccent!';
       const result = (service as any).slugify(input);
       expect(result).toBe('hello-world-eaccent');
+    });
+  });
+
+  describe('changePassword', () => {
+    const baseUser = {
+      id: '1',
+      email: 'test@test.com',
+      firstName: 'Test',
+      lastName: 'User',
+      passwordHash: '',
+      mustChangePassword: true,
+      isActive: true,
+      registrationStatus: 'ACTIVE',
+    };
+
+    it('should throw UnauthorizedException when auth header is missing', async () => {
+      await expect(
+        service.changePassword('', { currentPassword: 'old', newPassword: 'NewPass1!' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw BadRequestException when account is not approved', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        isActive: false,
+      });
+
+      await expect(
+        service.changePassword('Bearer token', {
+          currentPassword: 'old',
+          newPassword: 'NewPass1!',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when password change not required', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        mustChangePassword: false,
+      });
+
+      await expect(
+        service.changePassword('Bearer token', {
+          currentPassword: 'old',
+          newPassword: 'NewPass1!',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when current password is invalid', async () => {
+      const hash = await bcrypt.hash('correct', 10);
+      mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        passwordHash: hash,
+      });
+
+      await expect(
+        service.changePassword('Bearer token', {
+          currentPassword: 'wrong',
+          newPassword: 'NewPass1!',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should update password and return new token on success', async () => {
+      const hash = await bcrypt.hash('oldPass', 10);
+      mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        passwordHash: hash,
+      });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({
+        tenantId: 'tenant-1',
+        role: { name: 'ADMIN' },
+      });
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ name: 'TaskFlow' }),
+      } as any);
+      mockJwt.signAsync.mockResolvedValue('new-token');
+
+      const result = await service.changePassword('Bearer token', {
+        currentPassword: 'oldPass',
+        newPassword: 'NewPass1!',
+      });
+
+      expect(result.token).toBe('new-token');
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: {
+          passwordHash: expect.any(String),
+          mustChangePassword: false,
+          tempPassword: null,
+          welcomeEmailSent: true,
+        },
+      });
     });
   });
 });
