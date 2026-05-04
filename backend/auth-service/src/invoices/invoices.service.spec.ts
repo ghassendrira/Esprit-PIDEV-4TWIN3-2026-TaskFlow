@@ -49,6 +49,8 @@ describe('InvoicesProxyService', () => {
     json: jest.fn().mockResolvedValue(body),
   });
 
+  const currentBaseUrl = () => (service as any).getBaseUrl() as string;
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -131,7 +133,7 @@ describe('InvoicesProxyService', () => {
       const result = await service.listByBusiness('Bearer token', 'null', 'business-1');
 
       expect(result).toEqual([{ id: 'invoice-1' }]);
-      expect(fetchMock).toHaveBeenCalledWith('http://localhost:3005/invoices/by-business/business-1');
+      expect(fetchMock).toHaveBeenCalledWith(`${currentBaseUrl()}/by-business/business-1`);
     });
 
     it('should create an invoice for the authenticated user', async () => {
@@ -149,7 +151,7 @@ describe('InvoicesProxyService', () => {
       });
 
       expect(result).toEqual({ id: 'invoice-1' });
-      expect(fetchMock).toHaveBeenCalledWith('http://localhost:3005/invoices', {
+      expect(fetchMock).toHaveBeenCalledWith(currentBaseUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -175,7 +177,7 @@ describe('InvoicesProxyService', () => {
         createdByUserId: 'user-2',
       });
 
-      expect(fetchMock).toHaveBeenCalledWith('http://localhost:3005/invoices', {
+      expect(fetchMock).toHaveBeenCalledWith(currentBaseUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -241,7 +243,7 @@ describe('InvoicesProxyService', () => {
       });
 
       expect(result).toEqual({ id: 'invoice-1', totalAmount: 99 });
-      expect(fetchMock).toHaveBeenCalledWith('http://localhost:3005/invoices/invoice-1', {
+      expect(fetchMock).toHaveBeenCalledWith(`${currentBaseUrl()}/invoice-1`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -262,7 +264,7 @@ describe('InvoicesProxyService', () => {
       await expect(service.remove('Bearer token', 'tenant-1', 'invoice-1')).resolves.toEqual({
         success: true,
       });
-      expect(fetchMock).toHaveBeenCalledWith('http://localhost:3005/invoices/invoice-1', {
+      expect(fetchMock).toHaveBeenCalledWith(`${currentBaseUrl()}/invoice-1`, {
         method: 'DELETE',
       });
     });
