@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 type JwtPayload = { sub: string; email: string };
 
@@ -264,7 +265,6 @@ export class AdminController {
     const tempPassword = Math.random().toString(36).slice(-8);
 
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
-    const bcrypt = (await import('bcrypt')).default;
     const tempPasswordHash = await bcrypt.hash(tempPassword, saltRounds);
 
     const updated = await this.prisma.user.update({
