@@ -13,7 +13,9 @@ export class ExpensesProxyService extends BaseProxyService {
   }
 
   protected getBaseUrl(): string {
-    return (process.env.EXPENSE_SERVICE_URL ?? 'http://localhost:3006').replace(/\/+$/, '') + '/expenses';
+    const baseUrl = process.env.EXPENSE_SERVICE_URL ?? 'http://localhost:3006';
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    return normalizedBaseUrl + '/expenses';
   }
 
   protected getServiceName(): string {
