@@ -49,12 +49,23 @@ describe('OnboardingService', () => {
       await expect((service as any).resolveTenantIdFromAuth('invalid')).rejects.toThrow(UnauthorizedException);
     });
 
+    it('should throw UnauthorizedException if sub missing in token', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({});
+      await expect((service as any).resolveTenantIdFromAuth('Bearer token')).rejects.toThrow('Invalid token payload');
+    });
+
     it('should return tenantId from membership', async () => {
       mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
       mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 'tenant1' });
 
       const result = await (service as any).resolveTenantIdFromAuth('Bearer token');
       expect(result).toEqual({ userId: 'user1', tenantId: 'tenant1' });
+    });
+
+    it('should throw UnauthorizedException if no membership', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue(null);
+      await expect((service as any).resolveTenantIdFromAuth('Bearer token')).rejects.toThrow('No tenant membership');
     });
   });
 
@@ -80,6 +91,16 @@ describe('OnboardingService', () => {
         expect.stringContaining('/tenants/tenant1'),
         expect.objectContaining({ method: 'PATCH' }),
       );
+    });
+
+    it('should throw error if tenant update fails', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 'tenant1' });
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({}) })
+        .mockResolvedValueOnce({ ok: false, text: jest.fn().mockResolvedValue('fail') });
+
+      await expect(service.companySetup('Bearer token', {} as any)).rejects.toThrow('Tenant update failed: fail');
     });
   });
 

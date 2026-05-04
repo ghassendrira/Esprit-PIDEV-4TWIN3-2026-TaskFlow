@@ -476,7 +476,50 @@ describe('AuthService', () => {
     });
   });
 
-  describe('resetPassword', () => {
+  describe('verify2faAndLogin', () => {
+    it('should throw BadRequestException if user has no 2FA', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', is2faEnabled: false });
+      await expect(service.verify2faAndLogin('u1', '123456')).rejects.toThrow('2FA not enabled for this user');
+    });
+
+    it('should throw BadRequestException if OTP is invalid', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', is2faEnabled: true, twoFaSecret: 'secret' });
+      (service as any).otplib = { verify: jest.fn().mockReturnValue(false) };
+      await expect(service.verify2faAndLogin('u1', '123456')).rejects.toThrow('Invalid OTP');
+    });
+
+    it('should return token if OTP is valid', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'test@test.com',
+        firstName: 'F',
+        lastName: 'L',
+        is2faEnabled: true,
+        twoFaSecret: 'secret',
+      });
+      (service as any).otplib = { verify: jest.fn().mockReturnValue(true) };
+      mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1', role: { name: 'ADMIN' } });
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ name: 'Tenant' }) });
+      mockJwt.signAsync.mockResolvedValue('token');
+
+      const result = await service.verify2faAndLogin('u1', '123456');
+      expect(result.token).toBe('token');
+    });
+  });
+
+  describe('googleSignin', () => {
+    it('should throw InternalServerErrorException if GOOGLE_CLIENT_ID missing', async () => {
+      delete process.env.GOOGLE_CLIENT_ID;
+      await expect(service.googleSignin({})).rejects.toThrow('GOOGLE_CLIENT_ID not configured');
+    });
+
+    it('should throw BadRequestException if no token or code', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'id';
+      await expect(service.googleSignin({})).rejects.toThrow('Code ou idToken Google requis');
+    });
+  });
+
+  describe('switchTenant', () => {
     it('should throw BadRequestException if request not found', async () => {
       mockPrisma.user.findMany.mockResolvedValue([]);
       await expect(service.resetPassword({ resetToken: 'token', newPassword: 'new' })).rejects.toThrow(BadRequestException);

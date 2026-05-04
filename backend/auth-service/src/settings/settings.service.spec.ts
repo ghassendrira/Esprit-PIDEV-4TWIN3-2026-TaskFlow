@@ -177,6 +177,16 @@ describe('SettingsService', () => {
     expect(result.tenant.name).toBe('Updated');
   });
 
+  it('should throw error if tenant update fails', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ branding: {} }) }) // get current
+      .mockResolvedValueOnce({ ok: false, text: jest.fn().mockResolvedValue('fail') }); // update
+
+    await expect(service.updateTenant('Bearer token', {} as any, 't1')).rejects.toThrow('fail');
+  });
+
   it('should get businesses', async () => {
     mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
     mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
@@ -191,6 +201,26 @@ describe('SettingsService', () => {
     ]);
   });
 
+  it('should return empty list if business service returns non-array', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ error: 'not array' }),
+    });
+
+    const result = await service.getBusinesses('Bearer token', 't1');
+    expect(result).toEqual([]);
+  });
+
+  it('should throw BadGatewayException if business service fails', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+    fetchMock.mockRejectedValue(new Error('unreachable'));
+
+    await expect(service.getBusinesses('Bearer token', 't1')).rejects.toThrow(BadGatewayException);
+  });
+
   it('should update a business', async () => {
     mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
     mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
@@ -202,5 +232,16 @@ describe('SettingsService', () => {
     const result = await service.updateBusiness('Bearer token', 'b1', { name: 'Updated Biz' } as any, 't1');
     expect(result.success).toBe(true);
     expect(result.business.name).toBe('Updated Biz');
+  });
+
+  it('should throw error if business update fails', async () => {
+    mockJwt.verifyAsync.mockResolvedValue({ sub: 'user1' });
+    mockPrisma.userTenantMembership.findFirst.mockResolvedValue({ tenantId: 't1' });
+    fetchMock.mockResolvedValue({
+      ok: false,
+      text: jest.fn().mockResolvedValue('fail'),
+    });
+
+    await expect(service.updateBusiness('Bearer token', 'b1', {} as any, 't1')).rejects.toThrow('fail');
   });
 });

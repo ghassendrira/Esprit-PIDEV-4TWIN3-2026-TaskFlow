@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { PrismaService } from '../prisma.service';
 
@@ -55,7 +55,35 @@ describe('RolesService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('getRoleById', () => {
+    it('should return role if found', async () => {
+      const role = { id: 'r1', name: 'ADMIN', permissions: [] };
+      mockPrisma.role.findUnique.mockResolvedValue(role);
+      const result = await service.getRoleById('r1');
+      expect(result).toEqual(role);
+    });
+
+    it('should throw NotFoundException if role not found', async () => {
+      mockPrisma.role.findUnique.mockResolvedValue(null);
+      await expect(service.getRoleById('r1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('onModuleInit', () => {
+    it('should seed permissions and roles', async () => {
+      mockPrisma.permission.upsert.mockResolvedValue({ id: 'p1', name: 'perm' });
+      mockPrisma.role.findFirst.mockResolvedValue(null);
+      mockPrisma.role.create.mockResolvedValue({ id: 'r1' });
+      mockPrisma.role.findMany.mockResolvedValue([{ id: 'r1' }]);
+      mockPrisma.rolePermission.upsert.mockResolvedValue({});
+
+      await service.onModuleInit();
+      expect(mockPrisma.permission.upsert).toHaveBeenCalled();
+      expect(mockPrisma.role.create).toHaveBeenCalled();
+    });
+  });
+
+  describe('createRole', () => {
     it('should create standard roles and upsert permissions', async () => {
       mockPrisma.permission.upsert.mockResolvedValue({ id: 'perm-1', name: 'Create_User' });
       mockPrisma.role.findFirst.mockResolvedValue(null);
