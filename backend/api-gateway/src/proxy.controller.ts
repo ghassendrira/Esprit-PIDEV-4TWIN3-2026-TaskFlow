@@ -1257,4 +1257,47 @@ export class ProxyController {
       res.status(502).json({ message: 'Upstream error' });
     }
   }
+
+  // ─── CHATBOT FINANCE → chatbot-finance:8001 ───
+
+  @Get('chatbot/health')
+  async chatbotHealth(@Req() req: Request, @Res() res: Response) {
+    try {
+      const r = await fetch('http://localhost:8001/health', { headers: this.getHeaders(req) });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ status: 'error', message: 'Chatbot service unavailable' });
+    }
+  }
+
+  @Post('chatbot/chat')
+  async chatbotChat(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    try {
+      const r = await fetch('http://localhost:8001/chat', {
+        method: 'POST',
+        headers: { ...this.getHeaders(req), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Chatbot service unavailable' });
+    }
+  }
+
+  @Post('chatbot/chat-with-db')
+  async chatbotChatWithDb(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    try {
+      const r = await fetch('http://localhost:8001/ai/chat-with-db', {
+        method: 'POST',
+        headers: { ...this.getHeaders(req), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const text = await r.text();
+      res.status(r.status).setHeader('Content-Type', 'application/json').send(text);
+    } catch (e: unknown) {
+      res.status(502).json({ message: 'Chatbot service unavailable' });
+    }
+  }
 }

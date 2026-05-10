@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { ApiService } from './api.service';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -16,15 +16,13 @@ interface ChatApiResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AiChatService {
-  private apiUrl = 'http://localhost:8001';
-
-  constructor(private http: HttpClient) {}
+  private api = inject(ApiService);
 
   send(message: string, history: { role: string; content: string }[]): Observable<ChatApiResponse> {
-    return this.http.post<ChatApiResponse>(`${this.apiUrl}/chat`, { message, history });
+    return this.api.post<ChatApiResponse>('/chatbot/chat', { message, history });
   }
 
   health(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/health`);
+    return this.api.get('/chatbot/health');
   }
 }
