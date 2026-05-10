@@ -95,7 +95,7 @@ export class App {
   constructor() {
     this.theme.init();
     // Set the base URL for API calls
-    const apiBaseUrl = localStorage.getItem('apiBaseUrl') || 'http://localhost:3000';
+    const apiBaseUrl = localStorage.getItem('apiBaseUrl') || 'https://scheme-skies-stowing.ngrok-free.dev';
     this.api.setBaseUrl(apiBaseUrl);
   }
 }

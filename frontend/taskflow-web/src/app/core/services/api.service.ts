@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
 export class ApiService {
   private http = inject(HttpClient);
   private baseUrl = signal<string>('https://scheme-skies-stowing.ngrok-free.dev');
-
+  
   setBaseUrl(url: string) {
     this.baseUrl.set(url.replace(/\/+$/, ''));
   }

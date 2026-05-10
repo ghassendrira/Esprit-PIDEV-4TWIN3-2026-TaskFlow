@@ -20,7 +20,7 @@ export function buildInvoiceAnomalyPayload(inv: any, nbFacturesClient: number) {
     mois: issue.getMonth() + 1,
   };
 }
-
+/** test du deploy */
 export function countInvoicesPerClient(invoices: { clientId: string }[]) {
   const counts = new Map<string, number>();
   for (const i of invoices) {
