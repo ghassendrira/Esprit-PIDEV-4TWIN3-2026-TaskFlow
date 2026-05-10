@@ -254,6 +254,9 @@ export class AuthService {
       localStorage.setItem('activeTenantId', tenantId);
     }
     localStorage.setItem('businessId',     businessId);
+    if (businessId) {
+      localStorage.setItem('activeBusinessId', businessId);
+    }
     localStorage.setItem(
       'businessName',
       user.business?.name ||
