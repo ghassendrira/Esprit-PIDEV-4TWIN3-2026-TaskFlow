@@ -242,7 +242,7 @@ export class LoginComponent {
     });
     
     this.http
-      .get(`https://scheme-skies-stowing.ngrok-free.dev/businesses/by-owner/${result.user.id}`, { headers })
+      .get(`${this.api.getBaseUrl()}/businesses/by-owner/${result.user.id}`, { headers })
       .subscribe({
         next: (businesses: any) => {
           console.log('[Login] Businesses fetched:', businesses);

@@ -1,14 +1,19 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpContext, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
-  private baseUrl = signal<string>('https://scheme-skies-stowing.ngrok-free.dev');
+  private baseUrl = signal<string>(environment.apiUrl);
   
   setBaseUrl(url: string) {
     this.baseUrl.set(url.replace(/\/+$/, ''));
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl();
   }
 
   private url(path: string): string {

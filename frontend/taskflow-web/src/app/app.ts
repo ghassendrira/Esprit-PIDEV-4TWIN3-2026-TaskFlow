@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/services/theme.service';
 import { LoadingService } from './core/services/loading.service';
+import { environment } from '../environments/environment';
 import { ApiService } from './core/services/api.service';
 
 @Component({
@@ -95,7 +96,7 @@ export class App {
   constructor() {
     this.theme.init();
     // Set the base URL for API calls
-    const apiBaseUrl = localStorage.getItem('apiBaseUrl') || 'https://scheme-skies-stowing.ngrok-free.dev';
+    const apiBaseUrl = localStorage.getItem('apiBaseUrl') || environment.apiUrl;
     this.api.setBaseUrl(apiBaseUrl);
   }
 }
