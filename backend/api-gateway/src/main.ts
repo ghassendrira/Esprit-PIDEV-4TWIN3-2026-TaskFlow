@@ -31,6 +31,7 @@ async function bootstrap() {
       'X-Business-Id',
       'X-Employee-User-Id',
       'X-Request-Id',
+      'ngrok-skip-browser-warning',
     ],
     credentials: true,
     preflightContinue: false,
