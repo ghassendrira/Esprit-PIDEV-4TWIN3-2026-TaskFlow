@@ -79,6 +79,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const headers: any = {
     'x-user-id'  : userId,
     'x-user-role': userRole,
+    'ngrok-skip-browser-warning': 'true',
   };
 
   if (token) {
