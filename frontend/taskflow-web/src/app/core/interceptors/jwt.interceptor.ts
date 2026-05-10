@@ -18,8 +18,12 @@ function readToken(auth: AuthService): string {
 }
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
-  // Skip interceptor for external APIs (RAG chatbot, etc.)
-  if (!req.url.startsWith('/') && !req.url.includes('localhost:3')) {
+  // Skip interceptor for external APIs (RAG chatbot, etc.) — but keep for our backend URLs
+  const isRelative = req.url.startsWith('/');
+  const isLocalhost = req.url.includes('localhost:3');
+  const isNgrok = req.url.includes('ngrok-free.app') || req.url.includes('ngrok-free.dev') || req.url.includes('ngrok.io');
+  const isApiBaseUrl = req.url.includes(localStorage.getItem('apiBaseUrl') || '__never__');
+  if (!isRelative && !isLocalhost && !isNgrok && !isApiBaseUrl) {
     return next(req);
   }
 
