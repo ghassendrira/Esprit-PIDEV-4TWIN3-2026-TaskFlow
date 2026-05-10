@@ -119,7 +119,8 @@ export class InvoicesController {
           ...dto,
           businessId: resolvedBusinessId,
           companyId,
-          createdBy: cleanUserId,
+          // Only set createdBy if explicitly provided by client (admin selecting an employee)
+          ...(dto.createdByUserId ? { createdBy: dto.createdByUserId } : {}),
         },
         req.tenantId || companyId,
       );

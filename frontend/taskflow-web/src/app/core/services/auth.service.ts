@@ -138,15 +138,14 @@ export class AuthService {
       let tidStr = tid && String(tid) !== 'null' ? String(tid).split('/')[0].trim() : '';
       console.log('[AuthService] Step 2 - Cleaned tidStr:', tidStr);
       
-      // IMPORTANT: Chercher d'abord dans localStorage (déjà défini par login.component)
+      // Prefer tenant context from JWT. Use localStorage only as fallback.
       const existingTenantId = localStorage.getItem('tenantId');
       console.log('[AuthService] Step 3 - Existing in localStorage:', existingTenantId);
-      
-      if (existingTenantId && existingTenantId !== 'null' && existingTenantId !== '') {
+
+      if ((!tidStr || tidStr === 'null' || tidStr === 'undefined') && existingTenantId && existingTenantId !== 'null' && existingTenantId !== '') {
         tidStr = existingTenantId;
-        console.log('[AuthService] Step 4 - Using tenantId from localStorage:', tidStr);
+        console.log('[AuthService] Step 4 - Using tenantId fallback from localStorage:', tidStr);
       } else if (!tidStr) {
-        // Fallback: use existing tenantId from localStorage if JWT doesn't have one
         console.log('[AuthService] Step 5 - No tenantId in JWT, no fallback available');
       }
 
@@ -210,6 +209,7 @@ export class AuthService {
   handleLoginResponse(response: any) {
     const token = response.token || response.accessToken || '';
     const user = response.user || {};
+    const decoded = token ? this.decodeToken(token) : null;
 
     // Nettoyer le rôle
     const role = (user.role || response.role || '').replace('ROLE_', '');
@@ -224,7 +224,10 @@ export class AuthService {
       user.businesses?.[0]?.id || '';
 
     // Récupérer tenantId séparément (ne jamais l'écraser avec businessId)
+    // Prefer JWT tenant context because some backend responses may return businessId in user.tenantId.
     const tenantId =
+      decoded?.tenantId ||
+      decoded?.company_id ||
       user.tenantId ||
       response.tenantId ||
       user.company_id ||

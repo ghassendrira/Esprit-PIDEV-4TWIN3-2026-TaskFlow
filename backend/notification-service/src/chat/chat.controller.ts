@@ -43,9 +43,10 @@ export class ChatController {
     @Req() req: any,
   ) {
     const user = req.user;
+    const actorId = user?.sub || user?.id;
     return this.chatService.sendTeamMessage(
       businessId,
-      user.sub,
+      actorId,
       user.name || user.firstName || 'User',
       user.roles?.[0] || 'TEAM_MEMBER',
       body.content,
@@ -88,7 +89,8 @@ export class ChatController {
   @Post('support/:businessId/init')
   async initSupportRoom(@Param('businessId') businessId: string, @Req() req: any) {
     const user = req.user;
-    return this.chatService.getOrCreateSupportRoom(businessId, user.sub);
+    const actorId = user?.sub || user?.id;
+    return this.chatService.getOrCreateSupportRoom(businessId, actorId);
   }
 
   @Get('support/:roomId/messages')
@@ -111,9 +113,10 @@ export class ChatController {
     @Req() req: any,
   ) {
     const user = req.user;
+    const actorId = user?.sub || user?.id;
     return this.chatService.sendSupportMessage(
       roomId,
-      user.sub,
+      actorId,
       user.name || user.firstName || 'User',
       user.roles?.[0] || 'BUSINESS_OWNER',
       body.content,
@@ -122,12 +125,14 @@ export class ChatController {
 
   @Post('support/:roomId/read')
   async markAsRead(@Param('roomId') roomId: string, @Req() req: any) {
-    return this.chatService.markAsRead(roomId, req.user.sub);
+    const actorId = req.user?.sub || req.user?.id;
+    return this.chatService.markAsRead(roomId, actorId);
   }
 
   @Get('support/:roomId/unread')
   async getUnreadCount(@Param('roomId') roomId: string, @Req() req: any) {
-    const count = await this.chatService.countUnread(roomId, req.user.sub);
+    const actorId = req.user?.sub || req.user?.id;
+    const count = await this.chatService.countUnread(roomId, actorId);
     return { unread: count };
   }
 }

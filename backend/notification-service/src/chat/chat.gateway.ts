@@ -26,6 +26,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private readonly chatService: ChatService) {}
 
+  private resolveJwtSecrets() {
+    const values = [
+      process.env.AUTH_SERVICE_JWT_SECRET,
+      process.env.AUTH_JWT_SECRET,
+      'change-me',
+      process.env.JWT_SECRET,
+    ]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean);
+
+    return [...new Set(values)];
+  }
+
+  private verifyTokenWithFallback(token: string) {
+    const secrets = this.resolveJwtSecrets();
+    let lastError: Error | null = null;
+
+    for (const secret of secrets) {
+      try {
+        return jwt.verify(token, secret);
+      } catch (error: any) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('Token verification failed');
+  }
+
   handleConnection(client: Socket) {
     try {
       const token =
@@ -39,8 +67,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      const secret = process.env.JWT_SECRET ?? 'change-me';
-      const decoded: any = jwt.verify(token, secret);
+      const decoded: any = this.verifyTokenWithFallback(token);
       (client as any).user = decoded;
       this.logger.log(`Client connected: ${decoded.sub} (${decoded.name || decoded.email})`);
     } catch (err: any) {

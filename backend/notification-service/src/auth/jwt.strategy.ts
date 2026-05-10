@@ -5,11 +5,16 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
+    const authServiceJwtSecret =
+      process.env.AUTH_SERVICE_JWT_SECRET ??
+      process.env.AUTH_JWT_SECRET ??
+      'change-me';
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      // Must match auth-service JWT_SECRET (auth-service defaults to 'change-me').
-      secretOrKey: process.env.JWT_SECRET ?? 'change-me',
+      // Must match auth-service JWT secret (defaults to 'change-me' in local setup).
+      secretOrKey: authServiceJwtSecret,
     });
   }
 
@@ -24,8 +29,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     );
 
     return {
+      sub: payload.sub || payload.id,
       id: payload.sub || payload.id,
       email: payload.email,
+      name: payload.name,
       firstName: payload.firstName,
       lastName: payload.lastName,
       roles: normalizedRoles,

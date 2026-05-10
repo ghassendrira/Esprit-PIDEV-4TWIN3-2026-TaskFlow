@@ -550,6 +550,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Ensure tenant context is aligned with JWT before first Settings API calls.
+    this.restoreTenantContextFromToken();
+
     this.loadData();
     this.loadOptions();
   }
@@ -669,7 +672,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const candidate =
       String(payload?.tenantId ?? '').trim() ||
       String(payload?.company_id ?? '').trim() ||
-      String(payload?.businessId ?? '').trim() ||
       String(localStorage.getItem('tenantId') ?? '').trim() ||
       String(localStorage.getItem('activeTenantId') ?? '').trim();
 
@@ -693,7 +695,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     // Stay on Settings page and try one self-healing pass for tenant context.
     if (!this.isRecoveringUnauthorized && this.restoreTenantContextFromToken()) {
       this.isRecoveringUnauthorized = true;
-      this.showToast('Contexte session restaure. Rechargement Settings...', 'error');
       this.loadData();
       this.loadOptions();
       this.isRecoveringUnauthorized = false;

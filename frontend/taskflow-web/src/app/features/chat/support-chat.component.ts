@@ -143,7 +143,10 @@ export class SupportChatComponent implements OnInit, OnDestroy, AfterViewChecked
       });
     } else {
       // Owner: auto-init support room
-      const businessId = localStorage.getItem('tenantId') ?? '';
+      const businessId =
+        localStorage.getItem('businessId') ||
+        localStorage.getItem('activeBusinessId') ||
+        '';
       if (businessId) {
         this.chatService.initSupportRoom(businessId).subscribe({
           next: room => {

@@ -632,8 +632,13 @@ RULES:
 
     await this.assertBusinessTenant(dto.businessId, tenantId);
     const client = await this.assertClientBelongsToBusiness(dto.clientId, dto.businessId);
+    
+    // Only validate client assignment if createdByUserId is explicitly specified by admin
+    // Otherwise, client assignment is not required (normal user can create invoices for any client)
     const createdByUserId = dto.createdByUserId ?? dto.createdBy;
-    this.assertClientAssignedToUser(client, createdByUserId);
+    if (createdByUserId) {
+      this.assertClientAssignedToUser(client, createdByUserId);
+    }
 
     const invoiceNumber = (dto.invoiceNumber?.trim() || `INV-${Date.now()}`).slice(0, 64);
     const issueDate = dto.issueDate ? new Date(dto.issueDate) : new Date();
@@ -683,10 +688,12 @@ RULES:
       targetClientId,
       targetBusinessId,
     );
-    this.assertClientAssignedToUser(
-      client,
-      dto.createdByUserId ?? dto.createdBy ?? invoice.createdBy ?? undefined,
-    );
+    
+    // Only validate client assignment if createdByUserId is explicitly specified by admin
+    const explicitCreatedBy = dto.createdByUserId ?? dto.createdBy;
+    if (explicitCreatedBy) {
+      this.assertClientAssignedToUser(client, explicitCreatedBy);
+    }
 
     const issueDate = dto.issueDate ? new Date(dto.issueDate) : undefined;
     const dueDate = dto.dueDate ? new Date(dto.dueDate) : undefined;
