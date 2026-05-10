@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
-  private baseUrl = signal<string>('http://localhost:3000');
+  private baseUrl = signal<string>('https://scheme-skies-stowing.ngrok-free.dev');
 
   setBaseUrl(url: string) {
     this.baseUrl.set(url.replace(/\/+$/, ''));
